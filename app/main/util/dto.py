@@ -37,3 +37,15 @@ class AppointmentDto:
         'status': fields.String(required=False, description='status of appointment'),
         'public_id': fields.String(description='user identifier')
     })
+
+
+class ClientDto:
+    api = Namespace('client', description='client related operations')
+    client = api.model('client', {
+        'first_name': fields.String(required=True, description='client first name'),
+        'last_name': fields.String(required=True, description='client last name'),
+        'email': fields.String(required=True, description='client email address'),
+        'language': fields.String(required=True, description='client language preference'),
+        'phone': fields.String(required=True, description='client phone number'),
+        'public_id': fields.String(description='client identifier'),
+    })
