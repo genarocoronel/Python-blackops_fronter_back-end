@@ -2,6 +2,7 @@ import uuid
 import datetime
 
 from app.main import db
+from app.main.model.appointment import Appointment
 from app.main.model.client import Client
 
 
@@ -37,6 +38,14 @@ def get_all_clients():
 
 def get_client(public_id):
     return Client.query.filter_by(public_id=public_id).first()
+
+
+def get_client_appointments(public_id):
+    client = get_client(public_id)
+    if client:
+        return Appointment.query.filter_by(client_id=client.id).all()
+    else:
+        return None
 
 
 def save_changes(data):

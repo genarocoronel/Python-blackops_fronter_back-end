@@ -1,11 +1,12 @@
 from flask import request
 from flask_restplus import Resource
 
-from app.main.service.client_service import get_all_clients, save_new_client, get_client
-from ..util.dto import ClientDto
+from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments
+from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
 _client = ClientDto.client
+_appointment = AppointmentDto.appointment
 
 
 @api.route('/')
@@ -38,3 +39,18 @@ class Client(Resource):
             api.abort(404)
         else:
             return client
+
+
+@api.route('/<public_id>/appointments')
+@api.param('public_id', 'The Client Identifier')
+@api.response(404, 'Client not found')
+class ClientAppointmentList(Resource):
+    @api.doc('get client')
+    @api.marshal_with(_appointment)
+    def get(self, public_id):
+        """ Get client appointments """
+        result = get_client_appointments(public_id)
+        if result is None:
+            api.abort(404)
+        else:
+            return result
