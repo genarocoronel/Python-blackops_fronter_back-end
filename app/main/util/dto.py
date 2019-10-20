@@ -23,3 +23,17 @@ class AuthDto:
         'email': fields.String(required=True, description='The email address'),
         'password': fields.String(required=True, description='The user password '),
     })
+
+
+class AppointmentDto:
+    api = Namespace('appointment', description='appointment related operations')
+    appointment = api.model('appointment', {
+        'client_id': fields.Integer(required=True, description='identifier for client'),
+        'employee_id': fields.Integer(required=True, description='identifier for employee'),
+        'datetime': fields.DateTime(required=True, description='date and time of appointment'),
+        'summary': fields.String(required=True, description='summary of appointment'),
+        'notes': fields.String(required=False, description='notes for appointment'),
+        'reminder_types': fields.String(required=True, description='type(s) of reminders to be sent to client'),
+        'status': fields.String(required=False, description='status of appointment'),
+        'public_id': fields.String(description='user identifier')
+    })
