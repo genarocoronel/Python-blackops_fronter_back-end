@@ -1,4 +1,11 @@
+import enum
+
 from .. import db
+
+
+class ClientType(enum.Enum):
+    lead = "lead"
+    client = "client"
 
 
 class Client(db.Model):
@@ -12,4 +19,5 @@ class Client(db.Model):
     inserted_on = db.Column(db.DateTime, nullable=False)
     language = db.Column(db.String(25), nullable=False)
     phone = db.Column(db.String(25), nullable=False)
+    type = db.Column(db.Enum(ClientType), nullable=False, default=ClientType.lead)
     public_id = db.Column(db.String(100), unique=True)

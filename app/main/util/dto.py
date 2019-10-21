@@ -1,5 +1,7 @@
 from flask_restplus import Namespace, fields
 
+from app.main.model.client import ClientType
+
 
 class UserDto:
     api = Namespace('user', description='user related operations')
@@ -39,13 +41,39 @@ class AppointmentDto:
     })
 
 
+class ClientTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, ClientType):
+            return value.name
+        else:
+            return 'unknown'
+
+
 class ClientDto:
-    api = Namespace('client', description='client related operations')
-    client = api.model('client', {
+    NAMESPACE = 'client'
+
+    api = Namespace(NAMESPACE, description='client related operations')
+    client = api.model(NAMESPACE, {
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
         'email': fields.String(required=True, description='client email address'),
         'language': fields.String(required=True, description='client language preference'),
         'phone': fields.String(required=True, description='client phone number'),
+        'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
+    })
+
+
+class LeadDto:
+    NAMESPACE = 'lead'
+
+    api = Namespace(NAMESPACE, description='lead related operations')
+    client = api.model(NAMESPACE, {
+        'first_name': fields.String(required=True, description='lead first name'),
+        'last_name': fields.String(required=True, description='lead last name'),
+        'email': fields.String(required=True, description='lead email address'),
+        'language': fields.String(required=True, description='lead language preference'),
+        'phone': fields.String(required=True, description='lead phone number'),
+        'type': ClientTypeField(required=False, description='client type'),
+        'public_id': fields.String(description='lead identifier'),
     })
