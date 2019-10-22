@@ -1,6 +1,8 @@
+import rq
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from redis import Redis
 
 from .config import config_by_name
 
@@ -11,6 +13,10 @@ flask_bcrypt = Bcrypt()
 def create_app(config_name):
     app = Flask(__name__)
     app.config.from_object(config_by_name[config_name])
+
+    app.redis = Redis.from_url(app.config['REDIS_URL'])
+    app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
+
     db.init_app(app)
     flask_bcrypt.init_app(app)
 

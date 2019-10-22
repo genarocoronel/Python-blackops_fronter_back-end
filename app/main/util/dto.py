@@ -1,6 +1,6 @@
 from flask_restplus import Namespace, fields
-
 from app.main.model.client import ClientType
+from app.main.util import parsers
 
 
 class UserDto:
@@ -68,7 +68,7 @@ class LeadDto:
     NAMESPACE = 'lead'
 
     api = Namespace(NAMESPACE, description='lead related operations')
-    client = api.model(NAMESPACE, {
+    lead = api.model(NAMESPACE, {
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
         'email': fields.String(required=True, description='lead email address'),
@@ -77,3 +77,4 @@ class LeadDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
     })
+    lead_upload = parsers.file_upload

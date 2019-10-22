@@ -1,36 +1,43 @@
+import csv
 import uuid
 import datetime
 
 from app.main import db
 from app.main.model.appointment import Appointment
+from app.main.model.candidate import CandidateImport
 from app.main.model.client import Client, ClientType
 
 
 def save_new_client(data, client_type=ClientType.lead):
-    client = Client.query.filter_by(email=data['email']).first()
-    if not client:
-        new_client = Client(
-            public_id=str(uuid.uuid4()),
-            email=data['email'],
-            first_name=data['first_name'],
-            last_name=data['last_name'],
-            language=data['language'],
-            phone=data['phone'],
-            type=client_type,
-            inserted_on=datetime.datetime.utcnow()
-        )
-        save_changes(new_client)
-        response_object = {
-            'status': 'success',
-            'message': 'Successfully created client'
-        }
-        return response_object, 201
-    else:
-        response_object = {
-            'status': 'fail',
-            'message': 'Client already exists'
-        }
-        return response_object, 409
+    new_client = Client(
+        public_id=str(uuid.uuid4()),
+        email=data.get('email'),
+        suffix=data.get('suffix'),
+        first_name=data.get('first_name'),
+        middle_initial=data.get('middle_initial'),
+        last_name=data.get('last_name'),
+        address=data.get('address'),
+        city=data.get('city'),
+        state=data.get('state'),
+        zip=data.get('zip'),
+        zip4=data.get('zip'),
+        county=data.get('county'),
+        crrt=data.get('crrt'),
+        dpbc=data.get('dpbc'),
+        fips=data.get('fips'),
+        estimated_debt=data.get('estimated_debt'),
+        language=data.get('language'),
+        phone=data.get('phone'),
+        type=client_type,
+        inserted_on=datetime.datetime.utcnow()
+    )
+
+    save_changes(new_client)
+    response_object = {
+        'status': 'success',
+        'message': 'Successfully created client'
+    }
+    return response_object, 201
 
 
 def get_all_clients(client_type=ClientType.client):
@@ -49,6 +56,19 @@ def get_client_appointments(public_id, client_type=ClientType.client):
         return None
 
 
-def save_changes(data):
-    db.session.add(data)
+def save_changes(data=None):
+    db.session.add(data) if data else None
     db.session.commit()
+
+
+def save_new_candidate_import(data):
+    new_candidate_import = CandidateImport(
+        file=data['file_path'],
+        inserted_on=datetime.datetime.utcnow(),
+        updated_on=datetime.datetime.utcnow()
+    )
+    save_changes(new_candidate_import)
+    db.session.refresh(new_candidate_import)
+    return new_candidate_import
+
+

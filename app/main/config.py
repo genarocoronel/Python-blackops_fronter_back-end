@@ -8,6 +8,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'my_precious_secret_key')
+    UPLOAD_LOCATION = os.getenv('UPLOAD_LOCATION', f'{basedir}/files')
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     DEBUG = False
 
 
@@ -40,3 +42,4 @@ config_by_name = dict(
 )
 
 key = Config.SECRET_KEY
+upload_location = Config.UPLOAD_LOCATION
