@@ -5,7 +5,7 @@ from app.main import db
 from app.main.model.user import User
 
 
-def save_new_user(data):
+def save_new_user(data, is_admin=False):
     user = User.query.filter_by(email=data['email']).first()
     if not user:
         new_user = User(
@@ -19,6 +19,7 @@ def save_new_user(data):
             language=data['language'],
             personal_phone=data['personal_phone'],
             voip_route_number=data['voip_route_number'],
+            admin=is_admin,
             registered_on=datetime.datetime.utcnow()
         )
         save_changes(new_user)

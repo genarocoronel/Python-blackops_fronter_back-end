@@ -8,20 +8,25 @@ class Auth:
     def login_user(data):
         try:
             # fetch the user data
-            user = User.query.filter_by(email=data.get('email')).first()
+            user = User.query.filter_by(username=data.get('username')).first()
             if user and user.check_password(data.get('password')):
                 auth_token = user.encode_auth_token(user.id)
                 if auth_token:
                     response_object = {
                         'status': 'success',
                         'message': 'Successfully logged in.',
-                        'Authorization': auth_token.decode()
+                        'user': {
+                            'first_name': user.first_name,
+                            'last_name': user.last_name,
+                            'title': user.title
+                        },
+                        'token': auth_token.decode()
                     }
                     return response_object, 200
             else:
                 response_object = {
                     'status': 'fail',
-                    'message': 'email or password does not match.'
+                    'message': 'username or password does not match.'
                 }
                 return response_object, 401
 
@@ -69,6 +74,7 @@ class Auth:
                     'status': 'success',
                     'data': {
                         'user_id': user.id,
+                        'username': user.username,
                         'email': user.email,
                         'admin': user.admin,
                         'registered_on': str(user.registered_on)
