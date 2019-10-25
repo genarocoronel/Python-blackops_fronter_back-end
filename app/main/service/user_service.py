@@ -40,19 +40,24 @@ def get_a_user(public_id):
     return User.query.filter_by(public_id=public_id).first()
 
 
-def save_changes(data):
-    db.session.add(data)
+def save_changes(*data):
+    for entry in data:
+        db.session.add(entry)
     db.session.commit()
 
 
 def generate_token(user):
     try:
-        # generate the auth token
         auth_token = user.encode_auth_token(user.id)
         response_object = {
             'status': 'success',
             'message': 'Successfully registered.',
-            'Authorization': auth_token.decode()
+            'user': {
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'title': user.title,
+                'token': auth_token.decode()
+            }
         }
         return response_object, 201
     except Exception as e:

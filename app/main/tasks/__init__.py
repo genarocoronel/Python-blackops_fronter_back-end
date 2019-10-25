@@ -7,7 +7,7 @@ from app.main.model.candidate import CandidateImport, CandidateImportStatus
 from app.main.model.client import ClientType
 from app.main.model.task import ImportTask
 from app.main.service.client_service import save_new_client
-from manage import app
+from flask import current_app as app
 
 
 def _set_task_progress(import_request, progress, success=True, message=None):

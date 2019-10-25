@@ -25,6 +25,12 @@ class AuthDto:
         'username': fields.String(required=True, description='The user username'),
         'password': fields.String(required=True, description='The user password '),
     })
+    password_reset_request = api.model('password_reset_request', {
+        'query': fields.String(required=True, description='The user email, phone, or username')
+    })
+    password_reset = api.model('password_reset', {
+        'password': fields.String(required=True, description='new password for password reset request')
+    })
 
 
 class AppointmentDto:
