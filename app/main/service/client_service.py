@@ -3,7 +3,6 @@ import datetime
 
 from app.main import db
 from app.main.model.appointment import Appointment
-from app.main.model.candidate import CandidateImport
 from app.main.model.client import Client, ClientType
 
 
@@ -58,16 +57,3 @@ def get_client_appointments(public_id, client_type=ClientType.client):
 def save_changes(data=None):
     db.session.add(data) if data else None
     db.session.commit()
-
-
-def save_new_candidate_import(data):
-    new_candidate_import = CandidateImport(
-        file=data['file_path'],
-        inserted_on=datetime.datetime.utcnow(),
-        updated_on=datetime.datetime.utcnow()
-    )
-    save_changes(new_candidate_import)
-    db.session.refresh(new_candidate_import)
-    return new_candidate_import
-
-
