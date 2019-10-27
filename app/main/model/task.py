@@ -11,6 +11,7 @@ class ImportTask(db.Model):
     id = db.Column(db.String(36), primary_key=True)
     name = db.Column(db.String(128), index=True)
     description = db.Column(db.String(128))
+    message = db.Column(db.String(255), nullable=True)
     import_id = db.Column(db.Integer, db.ForeignKey('candidate_imports.id'))
     complete = db.Column(db.Boolean, default=False)
 

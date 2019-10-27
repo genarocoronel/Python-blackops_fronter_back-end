@@ -86,4 +86,10 @@ class LeadDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
     })
-    lead_upload = parsers.file_upload
+
+
+class CandidateDto:
+    NAMESPACE = 'candidate'
+
+    api = Namespace(NAMESPACE, description='candidate related operations')
+    candidate_upload = parsers.file_upload
