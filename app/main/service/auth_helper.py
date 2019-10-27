@@ -1,11 +1,18 @@
 import datetime
+import random
 import uuid
 
 from app.main.model.user import User, UserPasswordReset
+from app.main.service.sms_service import sms_send_raw
 from app.main.service.user_service import save_changes
 from app.main.util.validate import is_email
 from flask import current_app as app
+
 from ..service.blacklist_service import save_token
+
+
+def generate_code():
+    return str(random.randrange(100000, 999999))
 
 
 class Auth:
@@ -17,6 +24,13 @@ class Auth:
             if user and user.check_password(data.get('password')):
                 auth_token = user.encode_auth_token(user.id)
                 if auth_token:
+                    if user.require_2fa:
+                        code = generate_code()
+                        app.logger.debug(f'user authenticated with credentials; requires 2FA code: {code}')
+                        sms_send_raw(user.personal_phone,
+                                     f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes',
+                                     user.id)
+
                     response_object = {
                         'status': 'success',
                         'message': 'Successfully logged in.',
@@ -24,6 +38,8 @@ class Auth:
                             'first_name': user.first_name,
                             'last_name': user.last_name,
                             'title': user.title,
+                            'last_4_of_phone': user.personal_phone[-4:],
+                            'require_2fa': user.require_2fa,
                             'token': auth_token.decode()
                         }
                     }
@@ -111,41 +127,82 @@ class Auth:
                     user = User.query.filter_by(username=query_value).first()
 
             if user:
+                code = generate_code()
                 reset_request = UserPasswordReset(
                     reset_key=str(uuid.uuid4()),
+                    code=code,
                     user=user
                 )
                 save_changes(reset_request)
-                # TODO: initiate password reset for user
                 app.logger.info('Sending password reset email...')
-                app.logger.debug(f'password reset request id: {reset_request.reset_key}')
+                app.logger.debug(f'password reset request id: {reset_request.reset_key}, code: {code}')
+                sms_send_raw(user.personal_phone,
+                             f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes', user.id)
 
                 response_object = {
                     'success': True,
-                    'message': 'Password reset request successful'
+                    'message': 'Password reset request successful',
+                    'reset_key': reset_request.reset_key,
+                    'phone_last_4': user.personal_phone[-4:]
                 }
                 return response_object, 201
         except Exception as e:
             print(e)
 
     @staticmethod
-    def reset_password(data):
-        password_reset = UserPasswordReset.query.filter_by(reset_key=data['reset_key']).first()  # type: UserPasswordReset
-        if password_reset:
-            now = datetime.datetime.utcnow()
-            duration = now - password_reset.datetime
+    def validate_reset_password_request(data):
+        password_reset = UserPasswordReset.query.filter_by(
+            reset_key=data['reset_key']).first()  # type: UserPasswordReset
 
-            # password reset expires in 24 hours / 1 day
-            if not password_reset.has_activated and duration.days <= 1:
-                user = password_reset.user
-                user.password = data['password']
-                password_reset.has_activated = True
-                save_changes(password_reset, user)
+        if password_reset:
+            if not password_reset.is_expired():
+                if password_reset.check_code(data['code']):
+                    password_reset.validated = True
+                    save_changes(password_reset)
+                    response_object = {
+                        'success': True,
+                        'message': 'Successfully validated password reset request'
+                    }
+                    return response_object, 200
+                else:
+                    response_object = {
+                        'success': False,
+                        'message': 'Failed to validate password reset request'
+                    }
+                    return response_object, 403
+            else:
                 response_object = {
-                    'success': True,
-                    'message': 'Password reset successful'
+                    'message': 'Password reset request has expired.'
                 }
-                return response_object, 200
+                return response_object, 410
+        else:
+            response_object = {
+                'message': 'Invalid password reset request'
+            }
+            return response_object, 404
+
+    @staticmethod
+    def reset_password(data):
+        password_reset = UserPasswordReset.query.filter_by(
+            reset_key=data['reset_key']).first()  # type: UserPasswordReset
+
+        if password_reset:
+            if not password_reset.is_expired():
+                if not password_reset.validated:
+                    response_object = {
+                        'message': 'Please validate password reset request with code'
+                    }
+                    return response_object, 410
+                else:
+                    user = password_reset.user
+                    user.password = data['password']
+                    password_reset.has_activated = True
+                    save_changes(password_reset, user)
+                    response_object = {
+                        'success': True,
+                        'message': 'Password reset successful'
+                    }
+                    return response_object, 200
             else:
                 response_object = {
                     'message': 'Password reset request has expired.'

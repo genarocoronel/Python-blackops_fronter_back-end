@@ -17,6 +17,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     registered_on = db.Column(db.DateTime, nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
+    require_2fa = db.Column(db.Boolean, default=True)
     title = db.Column(db.String(100), nullable=True)
     language = db.Column(db.String(25), nullable=False)
     personal_phone = db.Column(db.String(25), nullable=False)
@@ -84,7 +85,29 @@ class UserPasswordReset(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     reset_key = db.Column(db.String(128), unique=True)
+    code_hash = db.Column(db.String(100))
+    validated = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     datetime = db.Column(db.DateTime(timezone=True), default=datetime.datetime.now)
     user = db.relationship(User, lazy='joined')
     has_activated = db.Column(db.Boolean, default=False)
+
+    @property
+    def code(self):
+        raise AttributeError('password: write-only field')
+
+    @code.setter
+    def code(self, code):
+        self.code_hash = flask_bcrypt.generate_password_hash(code).decode('utf-8')
+
+    def check_code(self, code):
+        return flask_bcrypt.check_password_hash(self.code_hash, code)
+
+    def is_expired(self):
+        now = datetime.datetime.utcnow()
+        duration = now - self.datetime
+
+        # password reset expires in 24 hours / 1 day
+        if self.has_activated or duration.days >= 1:
+            return True
+        return False

@@ -28,6 +28,9 @@ class AuthDto:
     password_reset_request = api.model('password_reset_request', {
         'query': fields.String(required=True, description='The user email, phone, or username')
     })
+    validate_password_reset_request = api.model('validate_password_reset_request', {
+        'code': fields.String(required=True, description='code sent to phone for password reset request')
+    })
     password_reset = api.model('password_reset', {
         'password': fields.String(required=True, description='new password for password reset request')
     })

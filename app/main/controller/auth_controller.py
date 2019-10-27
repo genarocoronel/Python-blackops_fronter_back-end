@@ -7,6 +7,7 @@ from ..util.dto import AuthDto
 api = AuthDto.api
 _user_auth = AuthDto.user_auth
 _password_reset_req = AuthDto.password_reset_request
+_validate_password_reset_req = AuthDto.validate_password_reset_request
 _password_reset = AuthDto.password_reset
 
 
@@ -48,6 +49,13 @@ class PasswordResetRequest(Resource):
 @api.route('/password-reset/<reset_token>')
 @api.param('reset_token', 'The User reset password token')
 class PasswordReset(Resource):
+    @api.doc('validate reset password request')
+    @api.expect(_validate_password_reset_req, validate=True)
+    def put(self, reset_token):
+        post_data = request.json
+        post_data.update(dict(reset_key=reset_token))
+        return Auth.validate_reset_password_request(data=post_data)
+
     @api.doc('reset password')
     @api.expect(_password_reset, validate=True)
     def post(self, reset_token):

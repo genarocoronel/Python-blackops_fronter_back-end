@@ -39,11 +39,3 @@ class User(Resource):
             api.abort(404)
         else:
             return user
-
-
-@api.route('/clockin')
-@token_required
-class UserClockin(Resource):
-    @api.doc('clockin user')
-    def post(self):
-        pass
