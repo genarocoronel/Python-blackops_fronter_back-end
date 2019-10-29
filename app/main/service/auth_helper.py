@@ -18,6 +18,11 @@ def generate_code():
 class Auth:
 
     @staticmethod
+    def generate_password(password_length=16):
+        s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()?"
+        return ''.join(random.sample(s, password_length))
+
+    @staticmethod
     def login_user(data):
         try:
             user = User.query.filter_by(username=data.get('username')).first()

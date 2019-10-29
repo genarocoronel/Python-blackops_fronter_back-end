@@ -1,4 +1,5 @@
 import rq
+from cryptography.fernet import Fernet
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
@@ -16,6 +17,7 @@ def create_app(config_name):
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
+    app.cipher = Fernet(app.config['SECRET_KEY'])
 
     db.init_app(app)
     flask_bcrypt.init_app(app)

@@ -49,6 +49,10 @@ def save_new_candidate(data):
     return response_object, 201
 
 
+def get_all_candidate_imports():
+    return CandidateImport.query.all();
+
+
 def get_all_candidates():
     return Candidate.query.all()
 

@@ -1,4 +1,8 @@
+import os
+
 from flask_restplus import Namespace, fields
+
+from app.main.model.candidate import CandidateImportStatus
 from app.main.model.client import ClientType
 from app.main.util import parsers
 
@@ -88,8 +92,53 @@ class LeadDto:
     })
 
 
+class CandidateImportStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CandidateImportStatus):
+            return value.name
+        else:
+            return 'unknown'
+
+
+class FileToFilenameField(fields.String):
+    def format(self, value):
+        return os.path.basename(value)
+
+
 class CandidateDto:
     NAMESPACE = 'candidate'
 
     api = Namespace(NAMESPACE, description='candidate related operations')
+    candidates = api.model(NAMESPACE, {
+        'public_id': fields.String(),
+        'first_name': fields.String(),
+        'last_name': fields.String(),
+        'middle_initial': fields.String(),
+        'suffix': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'zip': fields.String(),
+        'estimated_debt': fields.Integer(),
+        'inserted_on': fields.DateTime(),
+        'county': fields.String(),
+        'email': fields.String(),
+        'language': fields.String(),
+        'phone': fields.String(),
+    })
+    imports = api.model(NAMESPACE, {
+        'id': fields.Integer(required=True),
+        'file': FileToFilenameField(required=True),
+        'status': CandidateImportStatusField(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'updated_on': fields.DateTime(required=True)
+    })
     candidate_upload = parsers.file_upload
+    credit_report_account = api.model(NAMESPACE, {
+        'provider': fields.String(required=False),
+        'email': fields.String(required=True),
+        'first_name': fields.String(required=True),
+        'last_name': fields.String(required=True),
+        'zip': fields.String(required=True),
+        'phone': fields.String(required=True),
+    })

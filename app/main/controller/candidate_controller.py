@@ -1,14 +1,34 @@
 import os
 
+from flask import request
 from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
 from app.main.config import upload_location
-from app.main.service.candidate_service import save_new_candidate_import, save_changes
+from app.main.model.credit_report_account import CreditReportSignupStatus
+from app.main.service.auth_helper import Auth
+from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
+    get_candidate, get_all_candidates
+from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
+from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
+    get_id_verification_question, answer_id_verification_questions, update_customer
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
 _candidate_upload = CandidateDto.candidate_upload
+_import = CandidateDto.imports
+_credit_report_account = CandidateDto.credit_report_account
+_candidates = CandidateDto.candidates
+
+
+@api.route('/')
+class GetCandidates(Resource):
+    @api.doc('get all candidates')
+    @api.marshal_list_with(_candidates, envelope='data')
+    def get(self):
+        """ Get all Candidates """
+        candidates = get_all_candidates()
+        return candidates, 200
 
 
 @api.route('/upload')
@@ -36,3 +56,207 @@ class CandidateUpload(Resource):
 
         else:
             return {'status': 'failed', 'message': 'No file was provided'}, 409
+
+
+@api.route('/imports')
+class CandidateImports(Resource):
+    @api.doc('retrieve all imports efforts')
+    @api.marshal_list_with(_import, envelope='data')
+    def get(self):
+        """ Get all Candidate Imports """
+        imports = get_all_candidate_imports()
+        return imports, 200
+
+
+def _handle_get_candidate(candidate_public_id):
+    candidate = get_candidate(candidate_public_id)
+    if not candidate:
+        response_object = {
+            'success': False,
+            'message': 'Candidate does not exist'
+        }
+        return None, (response_object, 404)
+    else:
+        return candidate, None
+
+
+def _handle_get_credit_report(candidate, account_public_id):
+    account = candidate.credit_report_account
+    if not account or account.public_id != account_public_id:
+        response_object = {
+            'success': False,
+            'message': 'Credit Report Account does not exist'
+        }
+        return None, (response_object, 404)
+    else:
+        return account, None
+
+
+@api.route('/<candidate_public_id>/credit-report/account')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+class CreditReportAccount(Resource):
+    @api.doc('create credit report account')
+    @api.expect(_credit_report_account, validate=True)
+    def post(self, candidate_public_id):
+        """ Create Credit Report Account """
+        data = request.json
+
+        # TODO: retrieve campaign information for candidate
+        campaign_data = {'ad_id': 5000, 'affiliate_id': 1662780, 'campaign_id': 'ABR:DBL_OD_WOULDYOULIKETOADD_041615'}
+        campaign_data.update({'channel': 'paid'})
+
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                return error_response
+
+            # look for existing credit report account
+            credit_report_account = candidate.credit_report_account
+            if not credit_report_account:
+                signup_data = start_signup(campaign_data)
+                credit_report_account = save_new_credit_report_account(signup_data, candidate,
+                                                                       CreditReportSignupStatus.INITIATING_SIGNUP)
+
+            if credit_report_account.status == CreditReportSignupStatus.ACCOUNT_CREATED:
+                response_object = {
+                    'success': False,
+                    'message': 'Credit Report account already exists'
+                }
+                return response_object, 409
+
+            password = Auth.generate_password()
+            data.update(dict(password=password))
+            new_customer = create_customer(data, 'SPONSOR_CODE', credit_report_account.tracking_token,
+                                           plan_type='SPONSORED')
+
+            credit_report_account.password = password
+            credit_report_account.customer_token = new_customer.get('customerToken')
+            credit_report_account.financial_obligation_met = new_customer.get('isFinancialObligationMet')
+            credit_report_account.plan_type = new_customer.get('planType')
+            credit_report_account.status = CreditReportSignupStatus.ACCOUNT_CREATED
+            update_credit_report_account(credit_report_account)
+
+            response_object = {
+                'success': True,
+                'message': f'Successfully created credit report account with {credit_report_account.provider}'
+            }
+            return response_object, 201
+
+        except LockedException as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+
+@api.route('/<candidate_public_id>/credit-report/account/<public_id>')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('public_id', 'The Credit Report Account Identifier')
+class UpdateCreditReportAccount(Resource):
+    @api.doc('update credit report account')
+    def put(self, candidate_public_id, public_id):
+        """ Update Credit Report Account """
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                return error_response
+
+            account, error_response = _handle_get_credit_report(candidate, public_id)
+            if not account:
+                return error_response
+
+            data = request.json
+            update_customer(account.customer_token, data, account.tracking_token)
+
+            response_object = {
+                'success': True,
+                'message': 'Successfully updated credit report account'
+            }
+            return response_object, 200
+
+        except LockedException as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+
+@api.route('/<candidate_public_id>/credit-report/account/<public_id>/verification-questions')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('public_id', 'The Credit Report Account Identifier')
+class CreditReporAccounttVerification(Resource):
+    @api.doc('get verification questions')
+    def get(self, candidate_public_id, public_id):
+        """ Get Account Verification Questions """
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                return error_response
+
+            account, error_response = _handle_get_credit_report(candidate, public_id)
+            if not account:
+                return error_response
+
+            questions = get_id_verification_question(account.customer_token, account.tracking_token)
+            return questions, 200
+
+        except LockedException as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+    @api.doc('submit answers to verification questions')
+    def put(self, candidate_public_id, public_id):
+        """ Submit Account Verification Answers """
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                return error_response
+
+            account, error_response = _handle_get_credit_report(candidate, public_id)
+            if not account:
+                return error_response
+
+            data = request.json
+            answer_id_verification_questions(account.customer_token, data, account.tracking_token)
+
+            response_object = {
+                'success': True,
+                'message': 'Successfully submitted verification answers'
+            }
+            return response_object, 200
+
+        except LockedException as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500

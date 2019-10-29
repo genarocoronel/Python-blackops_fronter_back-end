@@ -1,6 +1,7 @@
 import enum
 
 from flask import current_app
+from sqlalchemy.orm import backref
 
 from app.main.model.task import ImportTask
 from .. import db
@@ -10,6 +11,7 @@ class Candidate(db.Model):
     __tablename__ = "candidates"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref="candidate")
     first_name = db.Column(db.String(25), nullable=False)
     middle_initial = db.Column(db.CHAR, nullable=True)
     last_name = db.Column(db.String(25), nullable=False)
@@ -47,7 +49,7 @@ class Candidate(db.Model):
 
     @property
     def zip(self):
-        return self._zip
+        return f'{self._zip}-{self.zip4}'
 
     @zip.setter
     def zip(self, zip):
