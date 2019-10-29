@@ -32,3 +32,5 @@ Werkzeug==0.14.1
 rq
 redis
 inflect
+python-dotenv
+cryptography
