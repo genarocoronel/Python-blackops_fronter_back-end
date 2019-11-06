@@ -1,6 +1,7 @@
 import datetime
 
 import jwt
+from pytz import utc
 
 from app.main.config import key
 from app.main.model.blacklist import BlacklistToken
@@ -88,7 +89,7 @@ class UserPasswordReset(db.Model):
     code_hash = db.Column(db.String(100))
     validated = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    datetime = db.Column(db.DateTime(timezone=True), default=datetime.datetime.now)
+    datetime = db.Column(db.DateTime(timezone=True), default=datetime.datetime.utcnow())
     user = db.relationship(User, lazy='joined')
     has_activated = db.Column(db.Boolean, default=False)
 
@@ -104,7 +105,7 @@ class UserPasswordReset(db.Model):
         return flask_bcrypt.check_password_hash(self.code_hash, code)
 
     def is_expired(self):
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(tz=utc)
         duration = now - self.datetime
 
         # password reset expires in 24 hours / 1 day
