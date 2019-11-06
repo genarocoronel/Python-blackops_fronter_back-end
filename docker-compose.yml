@@ -1,26 +1,38 @@
 version: '3'
 services:
 
+  # ReactJS Frontend
+  frontend:
+    depends_on:
+      - app
+    image: registry.thedeathstarco.com/elitedoc/web:dev
+    container_name: crmweb
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3001:3000"
+    working_dir: /app
+    command: ['npm', 'start']
+    networks:
+      - app-network
+
   #Python Service
   app:
+    depends_on:
+      - worker
+      - redis
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: crmapi:dev
+    image: registry.thedeathstarco.com/elitedoc/api:dev
     container_name: crmapi
     restart: unless-stopped
     tty: true
     ports:
       - "5000:5000"
     environment:
-      DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
-#      DB_DATABASE: crmdb
-#      DB_USERNAME: crmdev
-#      DB_PASSWORD: secret
-      SERVICE_NAME: app
-      SERVICE_TAGS: dev
+      BOILERPLATE_ENV: dev
+      REDIS_URL: redis://redis
     working_dir: /app
     volumes:
       - ./:/app
@@ -28,39 +40,33 @@ services:
     networks:
       - app-network
 
-#  #Nginx Service
-#  webserver:
-#    image: nginx:alpine
-#    container_name: webserver
-#    restart: unless-stopped
-#    tty: true
-#    ports:
-#      - "80:80"
-#      - "443:443"
-#    volumes:
-#      - ./:/var/www/html
-#      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
-#    networks:
-#      - app-network
-
-  #MySQL Service
-  db:
-    image: mysql:5.7.22
-    container_name: crmdb
+  #Candidate Parser
+  worker:
+    depends_on:
+      - redis
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: registry.thedeathstarco.com/elitedoc/api:dev
+    container_name: worker
     restart: unless-stopped
     tty: true
-    ports:
-      - "3306:3306"
     environment:
-#      MYSQL_DATABASE: crmdb
-#      MYSQL_USER: crmdev
-#      MYSQL_PASSWORD: secret
-      MYSQL_ROOT_PASSWORD: root
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
+      BOILERPLATE_ENV: dev
+      REDIS_URL: redis://redis
+    working_dir: /app
+    command: ['python', 'manage.py', 'candidate_parser_worker']
     volumes:
-      - ./docker/_data:/var/lib/mysql
-      - ./sql/:/tmp/sql
+      - ./:/app
+      - ./docker/.env.local:/app/.env
+    networks:
+      - app-network
+
+  redis:
+    image: redis
+    container_name: redis
+    expose:
+      - 6379
     networks:
       - app-network
 
