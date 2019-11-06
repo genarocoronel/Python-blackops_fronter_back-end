@@ -1,0 +1,50 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+
+class Config:
+    SECRET_KEY = os.getenv('SECRET_KEY', 'UtmqEhIIcPuNbXiKLi3Ufk5C6yv8cEiyiiywfsQSdtE=')
+    UPLOAD_LOCATION = os.getenv('UPLOAD_LOCATION', f'{basedir}/files')
+    REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
+    DEBUG = False
+
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'flask_boilerplate_main.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+class TestingConfig(Config):
+    DEBUG = True
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'flask_boilerplate_test.db')
+    PRESERVE_CONTEXT_ON_EXCEPTION = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+class StagingConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+
+class ProductionConfig(Config):
+    DEBUG = False
+    # uncomment the line below to use postgres
+    # SQLALCHEMY_DATABASE_URI = postgres_local_base
+
+
+config_by_name = dict(
+    dev=DevelopmentConfig,
+    test=TestingConfig,
+    staging=StagingConfig,
+    prod=ProductionConfig
+)
+
+key = Config.SECRET_KEY
+upload_location = Config.UPLOAD_LOCATION
