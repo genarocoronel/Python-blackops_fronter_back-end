@@ -19,7 +19,7 @@ class Auth:
 
     @staticmethod
     def generate_password(password_length=16):
-        s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()?"
+        s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ@3_*"
         return ''.join(random.sample(s, password_length))
 
     @staticmethod

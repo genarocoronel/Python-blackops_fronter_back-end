@@ -11,7 +11,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, get_all_candidates
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer
+    get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
@@ -124,10 +124,17 @@ class CreditReportAccount(Resource):
                 }
                 return response_object, 409
 
+            email_exists, error = does_email_exist(data.get('email'), credit_report_account.tracking_token)
+            if email_exists or error:
+                response_object = {
+                    'success': False,
+                    'message': error or 'Email already exists'
+                }
+                return response_object, 409
+
             password = Auth.generate_password()
             data.update(dict(password=password))
-            new_customer = create_customer(data, 'SPONSOR_CODE', credit_report_account.tracking_token,
-                                           plan_type='SPONSORED')
+            new_customer = create_customer(data, credit_report_account.tracking_token, sponsor_code='BTX5DY2SZK')
 
             credit_report_account.password = password
             credit_report_account.customer_token = new_customer.get('customerToken')
