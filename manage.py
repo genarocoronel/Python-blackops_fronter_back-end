@@ -12,7 +12,7 @@ from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
-app.register_blueprint(blueprint)
+app.register_blueprint(blueprint, url_prefix='/api/v1')
 
 app.app_context().push()
 
