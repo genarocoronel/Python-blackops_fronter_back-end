@@ -1,10 +1,18 @@
 import enum
 
 from flask import current_app
-from sqlalchemy.orm import backref
 
 from app.main.model.task import ImportTask
 from .. import db
+
+
+class CandidateStatus(enum.Enum):
+    IMPORTED = 'imported'  # Candidate has been imported but not submitted to Redstone for contact
+    CAMPAIGNED = 'campaigned'  # Submitted to Redstone for contact
+    WORKING = 'working'  # Being worked by opener rep
+    HUNGUP = 'hung up'
+    DEAD = 'dead'
+    SUBMITTED = 'submitted'
 
 
 class Candidate(db.Model):
@@ -21,6 +29,7 @@ class Candidate(db.Model):
     state = db.Column(db.String(2), nullable=False)
     _zip = db.Column('zip', db.String(5), nullable=False)
     zip4 = db.Column(db.String(4), nullable=False)
+    status = db.Column(db.Enum(CandidateStatus), nullable=False, default=CandidateStatus.IMPORTED)
     estimated_debt = db.Column(db.Integer, nullable=False)
 
     prequal_number = db.Column(db.String(12), unique=True, nullable=True)

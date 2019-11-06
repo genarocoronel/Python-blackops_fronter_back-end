@@ -2,7 +2,7 @@ import os
 
 from flask_restplus import Namespace, fields
 
-from app.main.model.candidate import CandidateImportStatus
+from app.main.model.candidate import CandidateImportStatus, CandidateStatus
 from app.main.model.client import ClientType
 from app.main.util import parsers
 
@@ -100,6 +100,14 @@ class CandidateImportStatusField(fields.String):
             return 'unknown'
 
 
+class CandidateStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CandidateStatus):
+            return value.name
+        else:
+            return 'unknown'
+
+
 class FileToFilenameField(fields.String):
     def format(self, value):
         return os.path.basename(value)
@@ -125,6 +133,7 @@ class CandidateDto:
         'email': fields.String(),
         'language': fields.String(),
         'phone': fields.String(),
+        'status': CandidateStatusField()
     })
     imports = api.model(NAMESPACE, {
         'id': fields.Integer(required=True),
