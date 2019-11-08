@@ -10,16 +10,41 @@ class CandidateStatus(enum.Enum):
     IMPORTED = 'imported'  # Candidate has been imported but not submitted to Redstone for contact
     CAMPAIGNED = 'campaigned'  # Submitted to Redstone for contact
     WORKING = 'working'  # Being worked by opener rep
-    HUNGUP = 'hung up'
-    DEAD = 'dead'
     SUBMITTED = 'submitted'
+
+
+class CandidateDisposition(db.Model):
+    __tablename__ = "candidate_dispositions"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    public_id = db.Column(db.String(100), unique=True, nullable=False)
+    inserted_on = db.Column(db.DateTime, nullable=False)
+
+    # relationships
+    candidates = db.relationship('Candidate', back_populates='disposition')
+
+    # fields
+    value = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(255), nullable=True)
 
 
 class Candidate(db.Model):
     __tablename__ = "candidates"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref="candidate")
+    public_id = db.Column(db.String(100), unique=True, nullable=False)
+    inserted_on = db.Column(db.DateTime, nullable=False)
+
+    # foreign keys
+    disposition_id = db.Column(db.Integer, db.ForeignKey('candidate_dispositions.id'))
+    import_id = db.Column(db.Integer, db.ForeignKey('candidate_imports.id'))
+
+    # relationships
+    import_record = db.relationship('CandidateImport', back_populates='candidates')
+    credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='candidate')
+    disposition = db.relationship('CandidateDisposition', back_populates='candidates')
+
+    # fields
     first_name = db.Column(db.String(25), nullable=False)
     middle_initial = db.Column(db.CHAR, nullable=True)
     last_name = db.Column(db.String(25), nullable=False)
@@ -48,9 +73,6 @@ class Candidate(db.Model):
     sav15 = db.Column(db.Integer, nullable=False)  # SAV15 = (M9*12)-(N9*12) assuming that column M is Debt3 and Column N is Debt15
     sav315 = db.Column(db.Integer, nullable=False)  # Sav315 = (((Q9*0.03)-R9)*12)+4 assuming that Q is the Debt3 column and R is the Debt 315 column
 
-    inserted_on = db.Column(db.DateTime, nullable=False)
-    public_id = db.Column(db.String(100), unique=True, nullable=False)
-
     county = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(255), unique=True, nullable=True)
     language = db.Column(db.String(25), nullable=True)
@@ -78,8 +100,13 @@ class CandidateImport(db.Model):
     __tablename__ = "candidate_imports"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    file = db.Column(db.String(255), nullable=False)
+
+    # relationships
+    candidates = db.relationship('Candidate', back_populates='import_record', lazy='dynamic')
     tasks = db.relationship('ImportTask', backref='candidate_import', lazy='dynamic')
+
+    # fields
+    file = db.Column(db.String(255), nullable=False)
     status = db.Column(db.Enum(CandidateImportStatus), nullable=False, default=CandidateImportStatus.CREATED)
     inserted_on = db.Column(db.DateTime, nullable=False)
     updated_on = db.Column(db.DateTime, nullable=False)

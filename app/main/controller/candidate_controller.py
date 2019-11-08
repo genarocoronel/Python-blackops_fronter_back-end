@@ -5,10 +5,11 @@ from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
 from app.main.config import upload_location
+from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, get_all_candidates
+    get_candidate, get_all_candidates, update_candidate
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist, \
@@ -22,6 +23,7 @@ _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _credit_account_verification_answers = CandidateDto.account_verification_answers
 _candidates = CandidateDto.candidates
+_update_candidate = CandidateDto.update_candidate
 
 
 @api.route('/')
@@ -32,6 +34,14 @@ class GetCandidates(Resource):
         """ Get all Candidates """
         candidates = get_all_candidates()
         return candidates, 200
+
+
+@api.route('/<public_id>')
+class UpdateCandidate(Resource):
+    @api.doc('update candidate')
+    @api.expect(_update_candidate, validate=True)
+    def put(self, public_id):
+        return update_candidate(public_id, request.json)
 
 
 @api.route('/upload')
@@ -69,6 +79,26 @@ class CandidateImports(Resource):
         """ Get all Candidate Imports """
         imports = get_all_candidate_imports()
         return imports, 200
+
+
+@api.route('/imports/<import_id>')
+@api.param('import_id', 'The Candidate Import Identifier')
+@api.response(404, 'Candidate Import not found')
+class CandidateImportRecords(Resource):
+    @api.doc('retrieve all imports candidates')
+    @api.marshal_list_with(_candidates, envelope='data')
+    def get(self, import_id):
+        """ Get All Import Candidates """
+        candidate_import = CandidateImport.query.filter_by(id=import_id).first()
+        if candidate_import:
+            candidates = candidate_import.candidates.all()
+            return candidates, 200
+        else:
+            response_object = {
+                'success': False,
+                'message': 'Candidate Import does not exist'
+            }
+            api.abort(404, **response_object)
 
 
 def _handle_get_candidate(candidate_public_id):
