@@ -114,10 +114,8 @@ class FileToFilenameField(fields.String):
 
 
 class CandidateDto:
-    NAMESPACE = 'candidate'
-
-    api = Namespace(NAMESPACE, description='candidate related operations')
-    candidates = api.model(NAMESPACE, {
+    api = Namespace('candidates', description='candidate related operations')
+    candidates = api.model('candidate', {
         'public_id': fields.String(),
         'first_name': fields.String(),
         'last_name': fields.String(),
@@ -135,7 +133,7 @@ class CandidateDto:
         'phone': fields.String(),
         'status': CandidateStatusField()
     })
-    imports = api.model(NAMESPACE, {
+    imports = api.model('candidate_import_request', {
         'id': fields.Integer(required=True),
         'file': FileToFilenameField(required=True),
         'status': CandidateImportStatusField(required=True),
@@ -143,11 +141,34 @@ class CandidateDto:
         'updated_on': fields.DateTime(required=True)
     })
     candidate_upload = parsers.file_upload
-    credit_report_account = api.model(NAMESPACE, {
-        'provider': fields.String(required=False),
-        'email': fields.String(required=True),
-        'first_name': fields.String(required=True),
-        'last_name': fields.String(required=True),
-        'zip': fields.String(required=True),
-        'phone': fields.String(required=True),
+    new_credit_report_account = api.model('candidate_create_request', {
+        'email': fields.String(required=True, example='charlie.test-pjndl@gmail.com'),
+        'first_name': fields.String(required=True, example='Charlie'),
+        'last_name': fields.String(required=True, example='Test-PJNDL'),
+        'zip': fields.String(required=True, example='01001'),
+        'phone': fields.String(required=True, example='555-555-5555')
+    })
+    update_credit_report_account = api.model('candidate_update_request', {
+        'first_name': fields.String(required=True, example='Charlie'),
+        'last_name': fields.String(required=True, example='Test-PJNDL'),
+        'street': fields.String(required=True, example='111 Donkey Lane'),
+        'street2': fields.String(required=False),
+        'city': fields.String(required=False, example='Boston'),
+        'state': fields.String(required=False, example='MA'),
+        'zip': fields.String(required=True, example='01001'),
+        'phone': fields.String(required=True, example='555-555-5555'),
+        'dob': fields.String(required=True, example='01/01/1990'),
+        'ssn': fields.String(required=False),
+        'ssn4': fields.String(required=False),
+        'security_question_id': fields.String(required=False),
+        'security_question_answer': fields.String(required=False),
+    })
+    account_verification_answers = api.model('verification_question_answers', {
+        'reference_number': fields.String(required=True),
+        'answers': fields.Nested(api.model('answers_list', {
+            'answer1': fields.String(required=True),
+            'answer2': fields.String(required=True),
+            'answer3': fields.String(required=True)
+        }), required=True, skip_none=True)
+
     })

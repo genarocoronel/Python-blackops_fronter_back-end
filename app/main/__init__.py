@@ -21,6 +21,9 @@ def create_app(config_name):
     app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
     app.cipher = Fernet(app.config['SECRET_KEY'])
 
+    app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']
+    app.smart_credit_publisher_id = app.config['SMART_CREDIT_PUBLISHER_ID']
+
     db.init_app(app)
     flask_bcrypt.init_app(app)
 
