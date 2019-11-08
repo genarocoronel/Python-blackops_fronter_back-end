@@ -10,15 +10,15 @@ def save_new_user(data, is_admin=False):
     if not user:
         new_user = User(
             public_id=str(uuid.uuid4()),
-            email=data['email'],
-            username=data['username'],
-            password=data['password'],
-            first_name=data['first_name'],
-            last_name=data['last_name'],
-            title=data['title'],
-            language=data['language'],
-            personal_phone=data['personal_phone'],
-            voip_route_number=data['voip_route_number'],
+            email=data.get('email'),
+            username=data.get('username'),
+            password=data.get('password'),
+            first_name=data.get('first_name'),
+            last_name=data.get('last_name'),
+            title=data.get('title'),
+            language=data.get('language'),
+            personal_phone=data.get('personal_phone'),
+            voip_route_number=data.get('voip_route_number'),
             admin=is_admin,
             registered_on=datetime.datetime.utcnow()
         )
@@ -30,6 +30,31 @@ def save_new_user(data, is_admin=False):
             'message': 'User already exists. Please Log in.',
         }
         return response_object, 409
+
+
+def update_user(public_id, data, is_admin=None):
+    user = User.query.filter_by(public_id=public_id).first()
+    if user:
+        for attr in data:
+            if hasattr(user, attr):
+                setattr(user, attr, data.get(attr))
+
+        if is_admin is not None:
+            user.admin = is_admin
+
+        save_changes(user)
+
+        response_object = {
+            'success': True,
+            'message': 'User updated successfully',
+        }
+        return response_object, 200
+    else:
+        response_object = {
+            'success': False,
+            'message': 'User not found',
+        }
+        return response_object, 404
 
 
 def get_all_users():

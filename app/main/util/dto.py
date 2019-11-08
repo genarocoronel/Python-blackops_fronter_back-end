@@ -4,11 +4,34 @@ from flask_restplus import Namespace, fields
 
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
 from app.main.model.client import ClientType
+from app.main.service.auth_helper import Auth
 from app.main.util import parsers
 
 
 class UserDto:
     api = Namespace('user', description='user related operations')
+    new_user = api.model('new_user', {
+        'email': fields.String(required=True, description='user email address'),
+        'username': fields.String(required=True, description='user username'),
+        'password': fields.String(required=True, description='user password', example=Auth.generate_password()),
+        'first_name': fields.String(required=True, description='user first name'),
+        'last_name': fields.String(required=True, description='user last name'),
+        'title': fields.String(required=True, description='user title', example='Administrator'),
+        'language': fields.String(required=True, description='user language preference', example='en'),
+        'personal_phone': fields.String(required=True, description='user personal phone number'),
+        'voip_route_number': fields.String(required=False, description='user VOIP routing number')
+
+    })
+    update_user = api.model('update_user', {
+        'email': fields.String(required=False, description='user email address'),
+        'first_name': fields.String(required=False, description='user first name'),
+        'last_name': fields.String(required=False, description='user last name'),
+        'title': fields.String(required=False, description='user title', example='Administrator'),
+        'language': fields.String(required=False, description='user language preference', example='en'),
+        'personal_phone': fields.String(required=False, description='user personal phone number'),
+        'voip_route_number': fields.String(required=False, description='user VOIP routing number')
+
+    })
     user = api.model('user', {
         'email': fields.String(required=True, description='user email address'),
         'username': fields.String(required=True, description='user username'),
