@@ -1,6 +1,6 @@
 import os
 
-from flask import request
+from flask import request, current_app
 from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
@@ -167,6 +167,38 @@ class CreditReportAccount(Resource):
             return response_object, 500
 
 
+@api.route('/<candidate_public_id>/credit-report/account/password')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+class CreditReportAccountPassword(Resource):
+    @api.doc('credit report account password')
+    def get(self, candidate_public_id):
+        """ Retrieve Candidate Credit Report Account Password"""
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                return error_response
+
+            credit_report_account = candidate.credit_report_account
+            if not credit_report_account:
+                response_object = {
+                    'success': False,
+                    'message': 'No Credit Report Account exists'
+                }
+                return response_object, 404
+
+            response_object = {
+                'success': True,
+                'password': current_app.cipher.decrypt(credit_report_account.password).decode()
+            }
+            return response_object, 200
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+
 @api.route('/<candidate_public_id>/credit-report/account/<public_id>')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('public_id', 'The Credit Report Account Identifier')
@@ -185,6 +217,8 @@ class UpdateCreditReportAccount(Resource):
                 return error_response
 
             data = request.json
+            data['ip_address'] = request.remote_addr
+            data['terms_confirmed'] = True
             update_customer(account.customer_token, data, account.tracking_token)
 
             response_object = {

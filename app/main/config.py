@@ -10,6 +10,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'UtmqEhIIcPuNbXiKLi3Ufk5C6yv8cEiyiiywfsQSdtE=')
     UPLOAD_LOCATION = os.getenv('UPLOAD_LOCATION', f'{basedir}/files')
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
+    SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')
+    SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')
     DEBUG = False
 
 

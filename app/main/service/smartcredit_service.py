@@ -1,7 +1,5 @@
 import requests
-
-client_key = '8ad1b492-a188-4dbc-aabf-640cd8d0f74a'
-publisher_id = ''
+from flask import current_app
 
 headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -34,11 +32,11 @@ def start_signup(data):
     response = requests.get('https://stage-sc.consumerdirect.com/api/signup/start',
                             headers=headers,
                             params={
-                                'clientKey': client_key,
+                                'clientKey': current_app.smart_credit_client_key,
                                 'ADID': data.get('ad_id'),
                                 'AID': data.get('affiliate_id'),
                                 'CID': data.get('campaign_id'),
-                                'PID': publisher_id,
+                                'PID': current_app.smart_credit_publisher_id,
                                 'channel': data.get('channel')
                             })
     result, error = _handle_errors(response)
@@ -52,7 +50,7 @@ def does_email_exist(email, tracking_token):
     response = requests.get('https://stage-sc.consumerdirect.com/api/signup/validate/email',
                             headers=headers,
                             params={
-                                'clientKey': client_key,
+                                'clientKey': current_app.smart_credit_client_key,
                                 'email': email,
                                 'trackingToken': tracking_token
                             })
@@ -67,7 +65,7 @@ def does_ssn_exist(customer_token, ssn, tracking_token):
     response = requests.get('https://stage-sc.consumerdirect.com/api/signup/validate/ssn',
                             headers=headers,
                             params={
-                                'clientKey': client_key,
+                                'clientKey': current_app.smart_credit_client_key,
                                 'ssn': ssn,
                                 'customerToken': customer_token,
                                 'trackingToken': tracking_token
@@ -81,7 +79,7 @@ def does_ssn_exist(customer_token, ssn, tracking_token):
 
 def create_customer(data, tracking_token, sponsor_code=None, plan_type=None):
     data = {
-        'clientKey': client_key,
+        'clientKey': current_app.smart_credit_client_key,
         'email': data.get('email'),
         'firstName': data.get('first_name'),
         'lastName': data.get('last_name'),
@@ -111,7 +109,7 @@ def get_customer_security_questions(tracking_token):
     response = requests.get('https://stage-sc.consumerdirect.com/api/signup/security-questions',
                             headers=headers,
                             params={
-                                'clientKey': client_key,
+                                'clientKey': current_app.smart_credit_client_key,
                                 'trackingToken': tracking_token
                             })
     result, error = _handle_errors(response)
@@ -128,7 +126,7 @@ def update_customer(customer_token, data, tracking_token):
                        'securityQuestionAnswer.answer': 'security_question_answer',
                        'securityQuestionAnswer.securityQuestionId': 'security_question_id'}
     payload = {
-        'clientKey': client_key,
+        'clientKey': current_app.smart_credit_client_key,
         'customerToken': customer_token,
         'firstName': data.get('first_name'),
         'lastName': data.get('last_name'),
@@ -154,7 +152,7 @@ def get_id_verification_question(customer_token, tracking_token):
     response = requests.get('https://stage-sc.consumerdirect.com/api/signup/id-verification',
                             headers=headers,
                             params={
-                                'clientKey': client_key,
+                                'clientKey': current_app.smart_credit_client_key,
                                 'customerToken': customer_token,
                                 'trackingToken': tracking_token
                             })
@@ -167,7 +165,7 @@ def get_id_verification_question(customer_token, tracking_token):
 
 def answer_id_verification_questions(customer_token, data, tracking_token):
     payload = {
-        'clientKey': client_key,
+        'clientKey': current_app.smart_credit_client_key,
         'customerToken': customer_token,
         'trackingToken': tracking_token,
         'idVerificationCriteria.referenceNumber': data.get('reference_number')
@@ -187,7 +185,7 @@ def answer_id_verification_questions(customer_token, data, tracking_token):
 
 def complete_credit_account_signup(customer_token, tracking_token):
     payload = {
-        'clientKey': client_key,
+        'clientKey': current_app.smart_credit_client_key,
         'customerToken': customer_token,
         'trackingToken': tracking_token,
     }
