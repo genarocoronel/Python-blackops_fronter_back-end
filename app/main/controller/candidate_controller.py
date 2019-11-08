@@ -11,13 +11,16 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, get_all_candidates
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist
+    get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist, \
+    complete_credit_account_signup
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
 _candidate_upload = CandidateDto.candidate_upload
 _import = CandidateDto.imports
-_credit_report_account = CandidateDto.credit_report_account
+_new_credit_report_account = CandidateDto.new_credit_report_account
+_update_credit_report_account = CandidateDto.update_credit_report_account
+_credit_account_verification_answers = CandidateDto.account_verification_answers
 _candidates = CandidateDto.candidates
 
 
@@ -96,10 +99,10 @@ def _handle_get_credit_report(candidate, account_public_id):
 @api.param('candidate_public_id', 'The Candidate Identifier')
 class CreditReportAccount(Resource):
     @api.doc('create credit report account')
-    @api.expect(_credit_report_account, validate=True)
+    @api.expect(_new_credit_report_account, validate=True)
     def post(self, candidate_public_id):
         """ Create Credit Report Account """
-        data = request.json
+        request_data = request.json
 
         # TODO: retrieve campaign information for candidate
         campaign_data = {'ad_id': 5000, 'affiliate_id': 1662780, 'campaign_id': 'ABR:DBL_OD_WOULDYOULIKETOADD_041615'}
@@ -124,7 +127,7 @@ class CreditReportAccount(Resource):
                 }
                 return response_object, 409
 
-            email_exists, error = does_email_exist(data.get('email'), credit_report_account.tracking_token)
+            email_exists, error = does_email_exist(request_data.get('email'), credit_report_account.tracking_token)
             if email_exists or error:
                 response_object = {
                     'success': False,
@@ -133,8 +136,8 @@ class CreditReportAccount(Resource):
                 return response_object, 409
 
             password = Auth.generate_password()
-            data.update(dict(password=password))
-            new_customer = create_customer(data, credit_report_account.tracking_token, sponsor_code='BTX5DY2SZK')
+            request_data.update(dict(password=password))
+            new_customer = create_customer(request_data, credit_report_account.tracking_token, sponsor_code='BTX5DY2SZK')
 
             credit_report_account.password = password
             credit_report_account.customer_token = new_customer.get('customerToken')
@@ -145,7 +148,8 @@ class CreditReportAccount(Resource):
 
             response_object = {
                 'success': True,
-                'message': f'Successfully created credit report account with {credit_report_account.provider}'
+                'message': f'Successfully created credit report account with {credit_report_account.provider}',
+                'public_id': credit_report_account.public_id
             }
             return response_object, 201
 
@@ -168,6 +172,7 @@ class CreditReportAccount(Resource):
 @api.param('public_id', 'The Credit Report Account Identifier')
 class UpdateCreditReportAccount(Resource):
     @api.doc('update credit report account')
+    @api.expect(_update_credit_report_account, validate=True)
     def put(self, candidate_public_id, public_id):
         """ Update Credit Report Account """
         try:
@@ -219,6 +224,9 @@ class CreditReporAccounttVerification(Resource):
                 return error_response
 
             questions = get_id_verification_question(account.customer_token, account.tracking_token)
+            account.status = CreditReportSignupStatus.ACCOUNT_VALIDATING
+            update_credit_report_account(account)
+
             return questions, 200
 
         except LockedException as e:
@@ -235,6 +243,7 @@ class CreditReporAccounttVerification(Resource):
             return response_object, 500
 
     @api.doc('submit answers to verification questions')
+    @api.expect(_credit_account_verification_answers, validate=False)
     def put(self, candidate_public_id, public_id):
         """ Submit Account Verification Answers """
         try:
@@ -248,10 +257,52 @@ class CreditReporAccounttVerification(Resource):
 
             data = request.json
             answer_id_verification_questions(account.customer_token, data, account.tracking_token)
+            account.status = CreditReportSignupStatus.ACCOUNT_VALIDATED
+            update_credit_report_account(account)
 
             response_object = {
                 'success': True,
                 'message': 'Successfully submitted verification answers'
+            }
+            return response_object, 200
+
+        except LockedException as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+
+@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/complete')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CompleteCreditReportAccount(Resource):
+    @api.doc('complete credit report account signup')
+    def put(self, candidate_public_id, credit_account_public_id):
+        """ Complete Credit Report Account Sign Up"""
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                return error_response
+
+            account, error_response = _handle_get_credit_report(candidate, credit_account_public_id)
+            if not account:
+                return error_response
+
+            complete_credit_account_signup(account.customer_token, account.tracking_token)
+            account.status = CreditReportSignupStatus.FULL_MEMBER
+            update_credit_report_account(account)
+
+            response_object = {
+                'success': True,
+                'message': 'Successfully completed credit account signup'
             }
             return response_object, 200
 

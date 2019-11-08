@@ -31,9 +31,6 @@ def _handle_errors(response):
 
 
 def start_signup(data):
-    # return {
-    #     "trackingToken": "53679db0-093e-11e5-b939-0800200c9a66"
-    # }
     response = requests.get('https://stage-sc.consumerdirect.com/api/signup/start',
                             headers=headers,
                             params={
@@ -83,12 +80,6 @@ def does_ssn_exist(customer_token, ssn, tracking_token):
 
 
 def create_customer(data, tracking_token, sponsor_code=None, plan_type=None):
-    # return {
-    #     "customerToken": "b3e9f907-8cc8-4e3a-849b-b16c6eb23682",
-    #     "isFinancialObligationMet": False,
-    #     "planType": "SPONSORED",
-    #     "PID": "12345"
-    # }
     data = {
         'clientKey': client_key,
         'email': data.get('email'),
@@ -148,7 +139,7 @@ def update_customer(customer_token, data, tracking_token):
         'isBrowserConnection': False,
         'trackingToken': tracking_token
     }
-    optionally_add_to_payload(optional_fields)
+    optionally_add_to_payload(optional_fields, payload=payload, data=data)
     response = requests.post('https://stage-sc.consumerdirect.com/api/signup/customer/update/identity',
                              headers=headers.update({'Content-Type': 'application/x-www-form-urlencoded'}),
                              data=payload)
@@ -175,19 +166,34 @@ def get_id_verification_question(customer_token, tracking_token):
 
 
 def answer_id_verification_questions(customer_token, data, tracking_token):
+    payload = {
+        'clientKey': client_key,
+        'customerToken': customer_token,
+        'trackingToken': tracking_token,
+        'idVerificationCriteria.referenceNumber': data.get('reference_number')
+    }
+    for answer_key, answer_value in data.get('answers').items():
+        payload[f'idVerificationCriteria.{answer_key}'] = answer_value
+
     response = requests.post('https://stage-sc.consumerdirect.com/api/signup/id-verification',
                              headers=headers,
-                             data={
-                                 'clientKey': client_key,
-                                 'customerToken': customer_token,
-                                 'trackingToken': tracking_token,
-                                 'idVerificationCriteria.referenceNumber': data.get('reference_number'),
-                                 'idVerificationCriteria.answer1': data.get('answer1'),
-                                 'idVerificationCriteria.answer2': data.get('answer2'),
-                                 'idVerificationCriteria.answer3': data.get('answer3'),
-                                 'idVerificationCriteria.answer4': data.get('answer4'),
-                                 'idVerificationCriteria.answer5': data.get('answer5')
-                             })
+                             data=payload)
+    result, error = _handle_errors(response)
+    if error:
+        raise Exception(error)
+    else:
+        return result
+
+
+def complete_credit_account_signup(customer_token, tracking_token):
+    payload = {
+        'clientKey': client_key,
+        'customerToken': customer_token,
+        'trackingToken': tracking_token,
+    }
+    response = requests.post('https://stage-sc.consumerdirect.com/api/signup/complete',
+                             headers=headers,
+                             data=payload)
     result, error = _handle_errors(response)
     if error:
         raise Exception(error)
@@ -200,99 +206,6 @@ def optionally_add_to_payload(optional_keys, payload, data):
         if key in data:
             payload.update({value: data[key]})
 
-
-questions = {
-    "idVerificationCriteria": {
-        "referenceNumber": "07271524018421870957",
-        "question1": {
-            "name": "YEAR_FOUNDED",
-            "displayName": "What year was ConsumerDirect (aka PathwayData, aka MyPerfectCredit) founded?",
-            "type": "MC",
-            "choiceList": {
-                "choice": [
-                    {
-                        "key": "1980",
-                        "display": "1980"
-                    },
-                    {
-                        "key": "1969",
-                        "display": "1969"
-                    },
-                    {
-                        "key": "2012",
-                        "display": "2012"
-                    },
-                    {
-                        "key": "2003",
-                        "display": "2003"
-                    },
-                    {
-                        "key": "!(1980^1969^2012^2003)",
-                        "display": "None of the above"
-                    }
-                ]
-            }
-        },
-        "question2": {
-            "name": "NOT_CREDIT_BUREAU",
-            "displayName": "Which company is NOT a credit bureau?",
-            "type": "MC",
-            "choiceList": {
-                "choice": [
-                    {
-                        "key": "Experian",
-                        "display": "Experian"
-                    },
-                    {
-                        "key": "ConsumerDirect",
-                        "display": "ConsumerDirect"
-                    },
-                    {
-                        "key": "Equifax",
-                        "display": "Equifax"
-                    },
-                    {
-                        "key": "TransUnion",
-                        "display": "TransUnion"
-                    },
-                    {
-                        "key": "!(Experian^ConsumerDirect^Equifax^TransUnion^)",
-                        "display": "None of the above"
-                    }
-                ]
-            }
-        },
-        "question3": {
-            "name": "INVENTED_INTERNET",
-            "displayName": "Who invented the internet?",
-            "type": "MC",
-            "choiceList": {
-                "choice": [
-                    {
-                        "key": "J. C. R. Licklider",
-                        "display": "J. C. R. Licklider"
-                    },
-                    {
-                        "key": "George Clooney",
-                        "display": "George Clooney"
-                    },
-                    {
-                        "key": "Al Gore",
-                        "display": "Al Gore"
-                    },
-                    {
-                        "key": "Howard Stark",
-                        "display": "Howard Stark"
-                    },
-                    {
-                        "key": "!(J. C. R. Licklider^George Clooney^Al Gore^Howard Stark^)",
-                        "display": "None of the above"
-                    }
-                ]
-            }
-        }
-    }
-}
 
 if __name__ == '__main__':
     signup_data = {'adid': 1000, 'aid': 1662780, 'cid': 'ABR:DBL_OD_WOULDYOULIKETOADD_041615', 'pid': '12345',

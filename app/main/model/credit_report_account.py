@@ -7,7 +7,8 @@ from app.main import db
 class CreditReportSignupStatus(enum.Enum):
     INITIATING_SIGNUP = 'initiating_signup'
     ACCOUNT_CREATED = 'account_created'
-    ACCOUNT_VALIDATING = 'validating_account'
+    ACCOUNT_VALIDATING = 'account_validating'
+    ACCOUNT_VALIDATED = 'account_validated'
     FULL_MEMBER = 'full_member'
 
 
