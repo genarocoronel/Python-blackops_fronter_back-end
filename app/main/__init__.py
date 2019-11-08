@@ -1,6 +1,7 @@
 import rq
 from cryptography.fernet import Fernet
 from flask import Flask
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from redis import Redis
@@ -16,6 +17,10 @@ def create_app(config_name):
     app = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.config.from_object(config_by_name[config_name])
+
+    if app.config['ENABLE_CORS']:
+        app.logger.debug('Enabled CORS support')
+        CORS(app, resources={r"/*": {"origins": "*"}})
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
