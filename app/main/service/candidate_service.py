@@ -37,7 +37,8 @@ def save_new_candidate(data):
         sav15=data.get('sav15'),
         sav315=data.get('sav315'),
 
-        inserted_on=datetime.datetime.utcnow()
+        inserted_on=datetime.datetime.utcnow(),
+        import_record=data.get('import_record')
     )
 
     save_changes(new_candidate)
@@ -47,6 +48,28 @@ def save_new_candidate(data):
         'message': 'Successfully created candidate'
     }
     return response_object, 201
+
+
+def update_candidate(public_id, data):
+    candidate = Candidate.query.filter_by(public_id=public_id).first()
+    if candidate:
+        for attr in data:
+            if hasattr(candidate, attr):
+                setattr(candidate, attr, data.get(attr))
+
+        save_changes(candidate)
+
+        response_object = {
+            'success': True,
+            'message': 'Candidate updated successfully',
+        }
+        return response_object, 200
+    else:
+        response_object = {
+            'success': False,
+            'message': 'Candidate not found',
+        }
+        return response_object, 404
 
 
 def get_all_candidate_imports():

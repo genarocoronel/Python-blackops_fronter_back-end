@@ -94,7 +94,8 @@ def parse_candidate_file(import_id):
                     'total_interest': total_interest,
                     'sav215': sav215,
                     'sav15': sav15,
-                    'sav315': sav315
+                    'sav315': sav315,
+                    'import_record': import_request
                 }
                 result, _ = save_new_candidate(data)
                 if 'success' == result['status']:

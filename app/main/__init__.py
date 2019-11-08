@@ -22,6 +22,8 @@ def create_app(config_name):
         app.logger.debug('Enabled CORS support')
         CORS(app, resources={r"/*": {"origins": "*"}})
 
+    app.config['ERROR_404_HELP'] = False
+
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
     app.cipher = Fernet(app.config['SECRET_KEY'])

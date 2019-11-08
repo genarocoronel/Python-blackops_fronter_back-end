@@ -57,7 +57,7 @@ def upgrade():
     sa.Column('state', sa.String(length=2), nullable=False),
     sa.Column('zip', sa.String(length=5), nullable=False),
     sa.Column('zip4', sa.String(length=4), nullable=False),
-    sa.Column('status', sa.Enum('IMPORTED', 'CAMPAIGNED', 'WORKING', 'HUNGUP', 'DEAD', 'SUBMITTED', name='candidatestatus'), nullable=True),
+    sa.Column('status', sa.Enum('IMPORTED', 'CAMPAIGNED', 'WORKING', 'SUBMITTED', name='candidatestatus'), nullable=True),
     sa.Column('estimated_debt', sa.Integer(), nullable=False),
     sa.Column('prequal_number', sa.String(length=12), nullable=True),
     sa.Column('debt3', sa.Integer(), nullable=False),
