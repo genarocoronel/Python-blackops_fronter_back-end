@@ -114,7 +114,7 @@ class FileToFilenameField(fields.String):
 
 
 class CandidateDto:
-    api = Namespace('candidates', description='candidate related operations')
+    api = Namespace('candidate', description='candidate related operations')
     candidates = api.model('candidate', {
         'public_id': fields.String(),
         'first_name': fields.String(),

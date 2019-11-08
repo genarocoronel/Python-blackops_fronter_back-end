@@ -12,6 +12,7 @@ class Config:
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')
     SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')
+    ENABLE_CORS = False
     DEBUG = False
 
 
@@ -19,6 +20,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'flask_boilerplate_main.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    ENABLE_CORS = True
 
 
 class TestingConfig(Config):
