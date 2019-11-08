@@ -154,7 +154,24 @@ class CandidateDto:
         'email': fields.String(),
         'language': fields.String(),
         'phone': fields.String(),
+        'status': CandidateStatusField(),
+        'disposition': fields.String()
+    })
+    update_candidate = api.model('update_candidate', {
+        'first_name': fields.String(),
+        'last_name': fields.String(),
+        'middle_initial': fields.String(),
+        'suffix': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'zip': fields.String(),
+        'county': fields.String(),
+        'email': fields.String(),
+        'language': fields.String(),
+        'phone': fields.String(),
         'status': CandidateStatusField()
+
     })
     imports = api.model('candidate_import_request', {
         'id': fields.Integer(required=True),
