@@ -8,6 +8,27 @@ from app.main.service.auth_helper import Auth
 from app.main.util import parsers
 
 
+class CampaignDto(object):
+    api = Namespace('campaign', description='campaign related operations')
+    campaign = api.model('campaign', {
+        'public_id': fields.String(required=True),
+        'name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'phone': fields.String(required=False),
+        'inserted_on': fields.DateTime()
+    })
+    new_campaign = api.model('new_campaign', {
+        'name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'phone': fields.String(required=True),
+    })
+    update_campaign = api.model('update_campaign', {
+        'name': fields.String(required=False),
+        'description': fields.String(required=False),
+        'phone': fields.String(required=False),
+    })
+
+
 class UserDto:
     api = Namespace('user', description='user related operations')
     new_user = api.model('new_user', {

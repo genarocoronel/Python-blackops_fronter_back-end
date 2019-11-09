@@ -38,11 +38,13 @@ class Candidate(db.Model):
     # foreign keys
     disposition_id = db.Column(db.Integer, db.ForeignKey('candidate_dispositions.id'))
     import_id = db.Column(db.Integer, db.ForeignKey('candidate_imports.id'))
+    campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id'))
 
     # relationships
     import_record = db.relationship('CandidateImport', back_populates='candidates')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='candidate')
     disposition = db.relationship('CandidateDisposition', back_populates='candidates')
+    campaign = db.relationship('Campaign', back_populates='candidates')
 
     # fields
     first_name = db.Column(db.String(25), nullable=False)
