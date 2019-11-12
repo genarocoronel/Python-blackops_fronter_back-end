@@ -81,18 +81,18 @@ class CandidateImports(Resource):
         return imports, 200
 
 
-@api.route('/imports/<import_id>')
-@api.param('import_id', 'The Candidate Import Identifier')
+@api.route('/imports/<public_id>')
+@api.param('public_id', 'The Candidate Import Identifier')
 @api.response(404, 'Candidate Import not found')
 class CandidateImportRecords(Resource):
-    @api.doc('retrieve all imports candidates')
-    @api.marshal_list_with(_candidates, envelope='data')
-    def get(self, import_id):
-        """ Get All Import Candidates """
-        candidate_import = CandidateImport.query.filter_by(id=import_id).first()
+    @api.doc('retrieve candidate import information')
+    @api.marshal_with(_import)
+    def get(self, public_id):
+        """ Get Candidate Import Information """
+        candidate_import = CandidateImport.query.filter_by(public_id=public_id).first()
+        candidate_import.tasks.all()
         if candidate_import:
-            candidates = candidate_import.candidates.all()
-            return candidates, 200
+            return candidate_import, 200
         else:
             response_object = {
                 'success': False,

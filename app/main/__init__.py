@@ -25,6 +25,7 @@ def create_app(config_name):
     app.config['ERROR_404_HELP'] = False
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
+    app.mailer_file_queue = rq.Queue('mailer-file-tasks', connection=app.redis, default_timeout=3600)
     app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
     app.cipher = Fernet(app.config['SECRET_KEY'])
 

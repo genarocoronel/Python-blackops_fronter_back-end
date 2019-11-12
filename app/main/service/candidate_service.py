@@ -77,7 +77,7 @@ def get_all_candidate_imports():
 
 
 def get_all_candidates():
-    return Candidate.query.all()
+    return Candidate.query.paginate(1, 50, False).items
 
 
 def get_candidate(public_id):
@@ -92,6 +92,7 @@ def save_changes(data=None):
 def save_new_candidate_import(data):
     new_candidate_import = CandidateImport(
         file=data['file_path'],
+        public_id=str(uuid.uuid4()),
         inserted_on=datetime.datetime.utcnow(),
         updated_on=datetime.datetime.utcnow()
     )

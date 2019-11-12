@@ -15,6 +15,10 @@ class ImportTask(db.Model):
     import_id = db.Column(db.Integer, db.ForeignKey('candidate_imports.id'))
     complete = db.Column(db.Boolean, default=False)
 
+    @property
+    def progress(self):
+        return self.get_progress()
+
     def get_rq_job(self):
         try:
             rq_job = rq.job.Job.fetch(self.id, connection=current_app.redis)
