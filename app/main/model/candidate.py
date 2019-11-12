@@ -84,6 +84,10 @@ class Candidate(db.Model):
     def zip(self):
         return f'{self._zip}-{self.zip4}'
 
+    @property
+    def zip5(self):
+        return self._zip
+
     @zip.setter
     def zip(self, zip):
         self._zip = zip.zfill(5)
@@ -102,6 +106,7 @@ class CandidateImport(db.Model):
     __tablename__ = "candidate_imports"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    public_id = db.Column(db.String(100), unique=True, nullable=False)
 
     # relationships
     candidates = db.relationship('Candidate', back_populates='import_record', lazy='dynamic')

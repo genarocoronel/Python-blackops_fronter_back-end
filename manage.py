@@ -30,6 +30,11 @@ def candidate_parser_worker():
 
 
 @manager.command
+def mailer_file_worker():
+    run_worker('mailer-file-tasks')
+
+
+@manager.command
 def seed():
     create_super_admin()
 
