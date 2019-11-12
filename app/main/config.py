@@ -9,6 +9,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'UtmqEhIIcPuNbXiKLi3Ufk5C6yv8cEiyiiywfsQSdtE=')
     UPLOAD_LOCATION = os.getenv('UPLOAD_LOCATION', f'{basedir}/files')
+    PREQUAL_ID_COUNTER_FILE = os.getenv('PREQUAL_ID_COUNTER_LOCATION', f'{basedir}/prequal_id_counter.txt')
+    PREQUAL_ID_COUNTER_LOCK_FILE = os.getenv('PREQUAL_ID_COUNTER_LOCATION', f'{basedir}/prequal_id_counter.txt.lock')
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')
     SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')
@@ -52,3 +54,5 @@ config_by_name = dict(
 
 key = Config.SECRET_KEY
 upload_location = Config.UPLOAD_LOCATION
+prequal_id_counter_file = Config.PREQUAL_ID_COUNTER_FILE
+prequal_id_counter_lock_file = Config.PREQUAL_ID_COUNTER_LOCK_FILE

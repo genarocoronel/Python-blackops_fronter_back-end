@@ -8,6 +8,42 @@ from app.main.service.auth_helper import Auth
 from app.main.util import parsers
 
 
+class FileToFilenameField(fields.String):
+    def format(self, value):
+        return os.path.basename(value) if value else ''
+
+
+class CampaignDto(object):
+    api = Namespace('campaign', description='campaign related operations')
+    campaign = api.model('campaign', {
+        'public_id': fields.String(required=True),
+        'name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'phone': fields.String(required=False),
+        'job_number': fields.String(required=True),
+        'offer_expire_date': fields.String(required=True),
+        'mailing_date': fields.String(required=True),
+        'mailer_file': FileToFilenameField(required=False),
+        'inserted_on': fields.DateTime()
+    })
+    new_campaign = api.model('new_campaign', {
+        'name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'phone': fields.String(required=True),
+        'job_number': fields.String(required=True),
+        'offer_expire_date': fields.String(required=True),
+        'mailing_date': fields.String(required=True)
+    })
+    update_campaign = api.model('update_campaign', {
+        'name': fields.String(required=False),
+        'description': fields.String(required=False),
+        'phone': fields.String(required=False),
+        'job_number': fields.String(required=False),
+        'offer_expire_date': fields.String(required=False),
+        'mailing_date': fields.String(required=False)
+    })
+
+
 class UserDto:
     api = Namespace('user', description='user related operations')
     new_user = api.model('new_user', {
@@ -131,11 +167,6 @@ class CandidateStatusField(fields.String):
             return 'unknown'
 
 
-class FileToFilenameField(fields.String):
-    def format(self, value):
-        return os.path.basename(value)
-
-
 class CandidateDto:
     api = Namespace('candidate', description='candidate related operations')
     candidates = api.model('candidate', {
@@ -173,12 +204,20 @@ class CandidateDto:
         'status': CandidateStatusField()
 
     })
+    tasks = api.model('import_task', {
+        'name': fields.String(),
+        'description': fields.String(),
+        'message': fields.String(),
+        'complete': fields.Boolean(),
+        'progress': fields.Integer()
+    })
     imports = api.model('candidate_import_request', {
-        'id': fields.Integer(required=True),
+        'public_id': fields.String(required=True),
         'file': FileToFilenameField(required=True),
         'status': CandidateImportStatusField(required=True),
         'inserted_on': fields.DateTime(required=True),
-        'updated_on': fields.DateTime(required=True)
+        'updated_on': fields.DateTime(required=True),
+        'tasks': fields.List(fields.Nested(tasks))
     })
     candidate_upload = parsers.file_upload
     new_credit_report_account = api.model('candidate_create_request', {
