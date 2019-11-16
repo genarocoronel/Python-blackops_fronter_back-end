@@ -1,0 +1,15 @@
+stages:
+- name: Docker Build
+  steps:
+  - publishImageConfig:
+      dockerfilePath: ./docker/Dockerfile
+      buildContext: .
+      tag: api:{CICD_EXECUTION_SEQUENCE}
+      pushRemote: true
+      registry: registry.thedeathstarco.com
+    when:
+      event:
+        include:
+        - pull_request
+timeout: 60
+notification: {}
