@@ -10,4 +10,7 @@ stages:
     when:
       event: {}
 timeout: 60
+branch:
+  include:
+  - develop
 notification: {}
