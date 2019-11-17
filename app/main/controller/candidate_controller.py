@@ -22,22 +22,31 @@ _import = CandidateDto.imports
 _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _credit_account_verification_answers = CandidateDto.account_verification_answers
-_candidates = CandidateDto.candidates
+_candidate = CandidateDto.candidate
 _update_candidate = CandidateDto.update_candidate
 
 
 @api.route('/')
 class GetCandidates(Resource):
     @api.doc('get all candidates')
-    @api.marshal_list_with(_candidates, envelope='data')
+    @api.marshal_list_with(_candidate, envelope='data')
     def get(self):
         """ Get all Candidates """
         candidates = get_all_candidates()
         return candidates, 200
 
 
-@api.route('/<public_id>')
+@api.route('/<candidate_id>')
+@api.response(404, 'Candidate not found')
 class UpdateCandidate(Resource):
+    @api.doc('get candidate')
+    @api.marshal_with(_candidate)
+    def get(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        return candidate, 200
+
     @api.doc('update candidate')
     @api.expect(_update_candidate, validate=True)
     def put(self, public_id):
@@ -108,7 +117,7 @@ def _handle_get_candidate(candidate_public_id):
             'success': False,
             'message': 'Candidate does not exist'
         }
-        return None, (response_object, 404)
+        return None, response_object
     else:
         return candidate, None
 
@@ -141,7 +150,7 @@ class CreditReportAccount(Resource):
         try:
             candidate, error_response = _handle_get_candidate(candidate_public_id)
             if not candidate:
-                return error_response
+                api.abort(404, **error_response)
 
             # look for existing credit report account
             credit_report_account = candidate.credit_report_account
@@ -206,7 +215,7 @@ class CreditReportAccountPassword(Resource):
         try:
             candidate, error_response = _handle_get_candidate(candidate_public_id)
             if not candidate:
-                return error_response
+                api.abort(404, **error_response)
 
             credit_report_account = candidate.credit_report_account
             if not credit_report_account:
@@ -240,7 +249,7 @@ class UpdateCreditReportAccount(Resource):
         try:
             candidate, error_response = _handle_get_candidate(candidate_public_id)
             if not candidate:
-                return error_response
+                api.abort(404, **error_response)
 
             account, error_response = _handle_get_credit_report(candidate, public_id)
             if not account:
@@ -281,7 +290,7 @@ class CreditReporAccounttVerification(Resource):
         try:
             candidate, error_response = _handle_get_candidate(candidate_public_id)
             if not candidate:
-                return error_response
+                api.abort(404, **error_response)
 
             account, error_response = _handle_get_credit_report(candidate, public_id)
             if not account:
@@ -313,7 +322,7 @@ class CreditReporAccounttVerification(Resource):
         try:
             candidate, error_response = _handle_get_candidate(candidate_public_id)
             if not candidate:
-                return error_response
+                api.abort(404, **error_response)
 
             account, error_response = _handle_get_credit_report(candidate, public_id)
             if not account:
@@ -354,7 +363,7 @@ class CompleteCreditReportAccount(Resource):
         try:
             candidate, error_response = _handle_get_candidate(candidate_public_id)
             if not candidate:
-                return error_response
+                api.abort(404, **error_response)
 
             account, error_response = _handle_get_credit_report(candidate, credit_account_public_id)
             if not account:

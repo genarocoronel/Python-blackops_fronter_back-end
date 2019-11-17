@@ -4,6 +4,7 @@ from flask_restplus import Namespace, fields
 
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
 from app.main.model.client import ClientType
+from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.util import parsers
 
@@ -163,9 +164,21 @@ class CandidateStatusField(fields.String):
             return 'unknown'
 
 
+class CreditReportAccountStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportSignupStatus):
+            return value.name
+        else:
+            return 'unknown'
+
+
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
-    candidates = api.model('candidate', {
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'status': CreditReportAccountStatusField()
+    })
+    candidate = api.model('candidate', {
         'public_id': fields.String(),
         'first_name': fields.String(),
         'last_name': fields.String(),
@@ -182,7 +195,8 @@ class CandidateDto:
         'language': fields.String(),
         'phone': fields.String(),
         'status': CandidateStatusField(),
-        'disposition': fields.String()
+        'disposition': fields.String(),
+        'credit_report_account': fields.Nested(credit_report_account)
     })
     update_candidate = api.model('update_candidate', {
         'first_name': fields.String(),
