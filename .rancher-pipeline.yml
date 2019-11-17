@@ -8,8 +8,6 @@ stages:
       pushRemote: true
       registry: registry.thedeathstarco.com
     when:
-      event:
-        include:
-        - pull_request
+      event: {}
 timeout: 60
 notification: {}
