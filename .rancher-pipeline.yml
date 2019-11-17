@@ -4,7 +4,7 @@ stages:
   - publishImageConfig:
       dockerfilePath: ./docker/Dockerfile
       buildContext: .
-      tag: api:${CICD_EXECUTION_SEQUENCE}
+      tag: api:dev-${CICD_EXECUTION_SEQUENCE}
       pushRemote: true
       registry: registry.thedeathstarco.com
     when:
