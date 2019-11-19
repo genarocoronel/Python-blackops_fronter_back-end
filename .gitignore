@@ -1,0 +1,10 @@
+#exclude files
+
+*.py[co]
+*.egg-info
+
+# C extensions
+*.so
+
+*.log
+*.log.*

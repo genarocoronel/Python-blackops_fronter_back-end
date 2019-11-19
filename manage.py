@@ -11,6 +11,7 @@ from app.main.seed.admins import create_super_admin
 from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
+from docsign.models import DocusignTemplate, DocusignSignature
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')

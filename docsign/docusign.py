@@ -1,4 +1,4 @@
-from docusign_esign import ApiClient, EnvelopeDefinition, TemplateRole, EnvelopesApi, Configuration, Recipients, Document, Signer, Recipients
+from docusign_esign import ApiClient, EnvelopeDefinition, TemplateRole, EnvelopesApi, Configuration, Recipients, Document, Signer, Recipients, TemplatesApi
 import base64, os
 from datetime import datetime, timedelta
 import time
@@ -27,10 +27,16 @@ class DocuSign(object):
     # Generate access token using oAuth
     def authorize(self):
         self._client = ApiClient()
-        self._update_token()
+        # check the token details in the cache
+        if self._check_token() is False:
+            self._update_token()
+        # set the access token in Authorization headers
         self._client.set_base_path(self._BASE_PATH)
         self._client.host = self._BASE_PATH
         self._client.set_default_header("Authorization", "Bearer " + self._access_token)
+
+    def _check_token(self):
+        return False
        
     def _update_token(self):
         client = self._client
@@ -188,7 +194,7 @@ class DocuSign(object):
 
             #make an envelope
             envelope = self._make_tmpl_envelope(template_id, signer_name, signer_email, cc_name, cc_mail)
-            envelope_api = EnvelopesApi(self._client);
+            envelope_api = EnvelopesApi(self._client)
             
             result = envelope_api.create_envelope(self._ACCOUNT_ID, envelope_definition=envelope);
             print(result)
@@ -201,7 +207,7 @@ class DocuSign(object):
     def envelope_status(self, 
                         envelope_id):
         try:
-            envelope_api = EnvelopesApi(self._client);
+            envelope_api = EnvelopesApi(self._client)
             result = envelope_api.get_envelope(self._ACCOUNT_ID, envelope_id=envelope_id)
             print(result)
             return result.status
@@ -212,7 +218,7 @@ class DocuSign(object):
     def envelopes_status(self, from_date):
         try:
             status_list = []
-            envelope_api = EnvelopesApi(self._client);
+            envelope_api = EnvelopesApi(self._client)
             result = envelope_api.list_status_changes(self._ACCOUNT_ID, from_date = from_date) 
             for envelope in result.envelopes:
                 status = {}
@@ -224,6 +230,25 @@ class DocuSign(object):
 
         except Exception as err: 
             print("Error in envelopes status {}".format(str(err)))
+
+    """
+    Fetch template details from the docuserver
+    """
+    def fetch_templates(self):
+        try:
+            template_list = []
+            template_api = TemplatesApi(self._client)
+            result = template_api.list_templates(self._ACCOUNT_ID)
+            for tmpl in result.envelope_templates:
+                template = {}
+                template['name'] = tmpl.name
+                template['id']   = tmpl.template_id
+                template_list.append(template)
+
+            print(template_list)
+            return template_list
+        except Exception as err:
+            print("Error in fetch templates {}".format(str(err)))
 
 
 nda_template_id = '8d29c360-f878-48e2-9782-8914679ecdac'
