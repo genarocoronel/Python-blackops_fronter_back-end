@@ -1,0 +1,10 @@
+.DS_Store
+.idea
+poc
+
+.env*
+*.db
+*.txt
+*.txt.lock
+**/__pycache__/**
+*.csv

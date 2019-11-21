@@ -4,6 +4,7 @@ from flask_restplus import Namespace, fields
 
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
 from app.main.model.client import ClientType
+from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.util import parsers
 
@@ -14,7 +15,7 @@ class FileToFilenameField(fields.String):
 
 
 class CampaignDto(object):
-    api = Namespace('campaign', description='campaign related operations')
+    api = Namespace('campaigns', description='campaign related operations')
     campaign = api.model('campaign', {
         'public_id': fields.String(required=True),
         'name': fields.String(required=True),
@@ -45,7 +46,7 @@ class CampaignDto(object):
 
 
 class UserDto:
-    api = Namespace('user', description='user related operations')
+    api = Namespace('users', description='user related operations')
     new_user = api.model('new_user', {
         'email': fields.String(required=True, description='user email address'),
         'username': fields.String(required=True, description='user username'),
@@ -100,7 +101,7 @@ class AuthDto:
 
 
 class AppointmentDto:
-    api = Namespace('appointment', description='appointment related operations')
+    api = Namespace('appointments', description='appointment related operations')
     appointment = api.model('appointment', {
         'client_id': fields.Integer(required=True, description='identifier for client'),
         'employee_id': fields.Integer(required=True, description='identifier for employee'),
@@ -122,10 +123,8 @@ class ClientTypeField(fields.String):
 
 
 class ClientDto:
-    NAMESPACE = 'client'
-
-    api = Namespace(NAMESPACE, description='client related operations')
-    client = api.model(NAMESPACE, {
+    api = Namespace('clients', description='client related operations')
+    client = api.model('client', {
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
         'email': fields.String(required=True, description='client email address'),
@@ -137,10 +136,8 @@ class ClientDto:
 
 
 class LeadDto:
-    NAMESPACE = 'lead'
-
-    api = Namespace(NAMESPACE, description='lead related operations')
-    lead = api.model(NAMESPACE, {
+    api = Namespace('leads', description='lead related operations')
+    lead = api.model('lead', {
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
         'email': fields.String(required=True, description='lead email address'),
@@ -167,9 +164,21 @@ class CandidateStatusField(fields.String):
             return 'unknown'
 
 
+class CreditReportAccountStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportSignupStatus):
+            return value.name
+        else:
+            return 'unknown'
+
+
 class CandidateDto:
-    api = Namespace('candidate', description='candidate related operations')
-    candidates = api.model('candidate', {
+    api = Namespace('candidates', description='candidate related operations')
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'status': CreditReportAccountStatusField()
+    })
+    candidate = api.model('candidate', {
         'public_id': fields.String(),
         'first_name': fields.String(),
         'last_name': fields.String(),
@@ -186,7 +195,8 @@ class CandidateDto:
         'language': fields.String(),
         'phone': fields.String(),
         'status': CandidateStatusField(),
-        'disposition': fields.String()
+        'disposition': fields.String(),
+        'credit_report_account': fields.Nested(credit_report_account)
     })
     update_candidate = api.model('update_candidate', {
         'first_name': fields.String(),

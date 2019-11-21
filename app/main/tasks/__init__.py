@@ -52,7 +52,7 @@ def parse_candidate_file(import_id):
         line_num = 0
         for row in csvreader:
             try:
-                estimated_debt_str = row[keys.index('EST RVLV')].replace(',', '')
+                estimated_debt_str = row[keys.index('EST DEBT ')].replace(',', '')
                 estimated_debt = convert_to_int(estimated_debt_str)
                 debt3 = round(0.03 * estimated_debt)
                 debt15 = round((estimated_debt + (estimated_debt * 0.06)) / 60)
