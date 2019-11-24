@@ -1,0 +1,76 @@
+version: '3'
+services:
+
+  # ReactJS Frontend
+  frontend:
+    depends_on:
+      - app
+    image: registry.thedeathstarco.com/elitedoc/web:dev
+    container_name: crmweb
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3001:3000"
+    working_dir: /app
+    command: ['npm', 'start']
+    networks:
+      - app-network
+
+  #Python Service
+  app:
+    depends_on:
+      - worker
+      - redis
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: registry.thedeathstarco.com/elitedoc/api:dev
+    container_name: crmapi
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "5000:5000"
+    environment:
+      BOILERPLATE_ENV: dev
+      REDIS_URL: redis://redis
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - ./docker/.env.local:/app/.env
+    networks:
+      - app-network
+
+  #Candidate Parser
+  worker:
+    depends_on:
+      - redis
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: registry.thedeathstarco.com/elitedoc/api:dev
+    container_name: worker
+    restart: unless-stopped
+    tty: true
+    environment:
+      BOILERPLATE_ENV: dev
+      REDIS_URL: redis://redis
+    working_dir: /app
+    command: ['python', 'manage.py', 'candidate_parser_worker']
+    volumes:
+      - ./:/app
+      - ./docker/.env.local:/app/.env
+    networks:
+      - app-network
+
+  redis:
+    image: redis
+    container_name: redis
+    expose:
+      - 6379
+    networks:
+      - app-network
+
+#Docker Networks
+networks:
+  app-network:
+    driver: bridge
