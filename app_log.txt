@@ -1,0 +1,11 @@
+Loading notifications
+Generating voip route!
+SELECT * FROM tb_employee_call_tracking INNER JOIN db_call.tb_call WHERE db_call.tb_call.call_id = tb_employee_call_tracking.call_id AND ( employee_id = %s OR employee_id = %s)
+Getting employee route number from their ID
+Initializing a call from a VoIP route
+Recieved status callback!
+Called=%2B18584139754&ToState=CA&CallerCountry=US&Direction=inbound&Timestamp=Fri%2C%2012%20Apr%202019%2021%3A59%3A36%20%2B0000&CallbackSource=call-progress-events&CallerState=CA&ToZip=92064&SequenceNumber=0&To=%2B18584139754&CallSid=CA556c3e5adb7c18162f9bd937435ef1a4&ToCountry=US&CallerZip=92121&CalledZip=92064&ApiVersion=2010-04-01&CallStatus=completed&CalledCity=POWAY&Duration=1&From=%2B18585364147&CallDuration=5&AccountSid=AC27a28affdf746d9c7b06788016b35c8c&CalledCountry=US&CallerCity=SAN%20DIEGO&ToCity=POWAY&FromCountry=US&Caller=%2B18585364147&FromCity=SAN%20DIEGO&CalledState=CA&FromZip=92121&FromState=CA
+[]
+Call ending id: 
+[]
+<?xml version="1.0" encoding="UTF-8"?><Response><Hangup /></Response>

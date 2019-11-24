@@ -4,8 +4,6 @@ from app.main import db
 from app.main.model.candidate import Candidate
 from app.main.model.credit_report_account import CreditReportAccount,\
     CreditReportSignupStatus, CreditReportData
-from app.main.model.task import ScrapeTask
-from flask import jsonify
 
 
 def get_report_data(candidate_public_id):
