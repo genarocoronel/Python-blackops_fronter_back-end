@@ -30,8 +30,15 @@ def create_app(config_name):
     app.spider_queue = rq.Queue('credit-report-spider', connection=app.redis, default_timeout=3600)
     app.cipher = Fernet(app.config['SECRET_KEY'])
 
+    app.smart_credit_url = app.config['SMART_CREDIT_URL']
     app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']
     app.smart_credit_publisher_id = app.config['SMART_CREDIT_PUBLISHER_ID']
+    app.smart_credit_sponsor_code = app.config['SMART_CREDIT_SPONSOR_CODE']
+
+    app.datax_url = app.config['DATAX_URL']
+    app.datax_call_type = app.config['DATAX_CALL_TYPE']
+    app.datax_license_key = app.config['DATAX_LICENSE_KEY']
+    app.datax_password = app.config['DATAX_PASSWORD']
 
     db.init_app(app)
     flask_bcrypt.init_app(app)

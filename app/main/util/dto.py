@@ -133,6 +133,16 @@ class ClientDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
     })
+    new_bank_account = api.model('new_bank_account', {
+        'account_number': fields.String(required=True, description='client bank account number'),
+        'routing_number': fields.String(required=True, description='client bank routing number')
+    })
+    bank_account = api.model('bank_account', {
+        'bank_name': fields.String(required=True, description='client bank name'),
+        'account_number': fields.String(required=True, description='client bank account number'),
+        'routing_number': fields.String(required=True, description='client bank routing number'),
+        'valid': fields.Boolean(required=True)
+    })
 
 
 class LeadDto:
