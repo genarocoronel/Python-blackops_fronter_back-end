@@ -2,7 +2,12 @@ import uuid
 
 from app.main import db
 from app.main.model.candidate import Candidate
-from app.main.model.credit_report_account import CreditReportAccount, CreditReportSignupStatus
+from app.main.model.credit_report_account import CreditReportAccount, CreditReportSignupStatus, CreditReportData
+
+
+def get_report_data(candidate_public_id):
+    data = CreditReportData.query.filter_by(candidate_id=candidate_public_id).all()
+    return data
 
 
 def save_new_credit_report_account(data, candidate: Candidate, status: CreditReportSignupStatus = None):

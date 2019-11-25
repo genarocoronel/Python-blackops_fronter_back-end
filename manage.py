@@ -30,6 +30,11 @@ def candidate_parser_worker():
 
 
 @manager.command
+def credit_report_spider_worker():
+    run_worker('credit-report-spider')
+
+
+@manager.command
 def mailer_file_worker():
     run_worker('mailer-file-tasks')
 

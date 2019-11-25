@@ -27,6 +27,7 @@ def create_app(config_name):
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.mailer_file_queue = rq.Queue('mailer-file-tasks', connection=app.redis, default_timeout=3600)
     app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
+    app.spider_queue = rq.Queue('credit-report-spider', connection=app.redis, default_timeout=3600)
     app.cipher = Fernet(app.config['SECRET_KEY'])
 
     app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']

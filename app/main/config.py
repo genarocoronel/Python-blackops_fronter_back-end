@@ -16,6 +16,8 @@ class Config:
     SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')
     ENABLE_CORS = False
     DEBUG = False
+    SMART_CREDIT_HTTP_USER = os.environ.get('SMART_CREDIT_HTTP_USER') or 'documentservicesolutions'
+    SMART_CREDIT_HTTP_PASS = os.environ.get('SMART_CREDIT_HTTP_PASS') or 'grapackerown'
 
 
 class DevelopmentConfig(Config):
