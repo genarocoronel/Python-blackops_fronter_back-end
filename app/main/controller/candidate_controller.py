@@ -6,13 +6,12 @@ from werkzeug.utils import secure_filename
 
 from app.main.config import upload_location
 from app.main.model.candidate import CandidateImport
-from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportData, CreditReportAccount
+from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportData
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
     get_candidate, get_all_candidates, update_candidate
-from app.main.service.credit_report_account_service import\
-    save_new_credit_report_account, update_credit_report_account,\
-    get_report_data
+from app.main.service.credit_report_account_service import save_new_credit_report_account,\
+    update_credit_report_account, get_report_data
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist, \
     complete_credit_account_signup
