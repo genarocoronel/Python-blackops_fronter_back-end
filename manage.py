@@ -13,7 +13,6 @@ from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
 from app.main.model.client import Client
 
-from app.main.tasks import jive_email_listener as listen_for_jive_emails
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
