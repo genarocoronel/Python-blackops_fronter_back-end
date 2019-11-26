@@ -3,9 +3,63 @@ import base64, os
 from datetime import datetime, timedelta
 import time
 
+DS_ACCOUNT_ID = '910decab-18f3-4eae-8456-74552da97b03'
 
 TOKEN_REPLACEMENT_IN_SECONDS = 10 * 60
 TOKEN_EXPIRATION_IN_SECONDS = 3600
+
+TEST_ENVELOPE_TABS = {  
+ "textTabs":[
+  {
+    "tabLabel": "ClientFirstName",
+    "value": "Trevos",
+    "documentId": "1",
+    "pageNumber": "1",
+    "xPosition":"115","yPosition":"175"
+  },
+  {
+    "tabLabel": "ClientLastName",
+    "value": "Smith",
+    "documentId": "1",
+    "pageNumber": "1",
+    "xPosition":"343","yPosition":"175"
+  },
+  {
+    "tabLabel": "ClientAddress",
+    "value": "1234, queens blvd, San Jose",
+    "documentId": "1",
+    "pageNumber": "1",
+    "xPosition":"115","yPosition":"200"
+  },
+  {
+    "tabLabel": "ClientState",
+    "value": "CA",
+    "documentId": "1",
+    "pageNumber": "1",
+    "xPosition":"115","yPosition":"273"
+  },
+  {
+    "tabLabel": "ClientZip",
+    "value": "92111",
+    "documentId": "1",
+    "pageNumber": "1"
+  },
+  ],
+
+  "signHereTabs": [{
+                    "xPosition": "100",
+                    "yPosition": "100",
+                    "documentId": "1",
+                    "pageNumber": "1"
+                }],
+                "initialHereTabs": [{
+                    "xPosition": "200",
+                    "yPosition": "100",
+                    "documentId": "1",
+                    "pageNumber": "1"
+                }]
+}
+
 
 # Docsign object to interface with Docsign cloud service
 class DocuSign(object):
@@ -34,6 +88,7 @@ class DocuSign(object):
         self._client.set_base_path(self._BASE_PATH)
         self._client.host = self._BASE_PATH
         self._client.set_default_header("Authorization", "Bearer " + self._access_token)
+        return self._client
 
     def _check_token(self):
         return False
@@ -69,14 +124,17 @@ class DocuSign(object):
                             signer_name,
                             signer_email,
                             cc_name,
-                            cc_email):
+                            cc_email,
+                            tabs):
 
         try:
             recipients = []
             # Signer 
             signer = TemplateRole(email=signer_email,
                                   name=signer_name,
-                                  role_name='signer')
+                                  role_name='signer',
+                                  tabs=tabs)
+            #print(signer)
             recipients.append(signer)
 
             if cc_email is not None:
@@ -85,7 +143,7 @@ class DocuSign(object):
                                   name=cc_name,
                                   role_name = 'cc')
                 recipients.append(cc)
- 
+
             # create an envelope definition
             envelope_definition = EnvelopeDefinition(status='sent',
                                                      template_id=template_id) 
@@ -186,14 +244,18 @@ class DocuSign(object):
                           signer_name, 
                           signer_email, 
                           cc_name=None,
-                          cc_mail=None): 
+                          cc_mail=None,
+                          tabs=None): 
 
         try: 
             if self._client is None:
                 return None
 
             #make an envelope
-            envelope = self._make_tmpl_envelope(template_id, signer_name, signer_email, cc_name, cc_mail)
+            envelope = self._make_tmpl_envelope(template_id, 
+                                                signer_name, signer_email, 
+                                                cc_name, cc_mail,
+                                                tabs)
             envelope_api = EnvelopesApi(self._client)
             
             result = envelope_api.create_envelope(self._ACCOUNT_ID, envelope_definition=envelope);
@@ -250,16 +312,51 @@ class DocuSign(object):
         except Exception as err:
             print("Error in fetch templates {}".format(str(err)))
 
+    def fetch_template_documents(self, template_id):
+        try:
+            document_list = []
+            template_api = TemplatesApi(self._client)
+            result = template_api.list_documents(DS_ACCOUNT_ID, template_id)
+            for doc in result.template_documents:
+                print(doc.document_id)
+                print(doc.name)
+
+        except Exception as err:
+            print("Error in fetch documents {}".format(str(err)))
+
+    def fetch_page_tabs(self, template_id, doc_id, page_num):
+        template_api = TemplatesApi(self._client)
+        result = template_api.get_page_tabs(DS_ACCOUNT_ID, doc_id, page_num, template_id) 
+        print(result)
+
+    def update_tabs(self, template_id, recipient_id):
+        try:
+            kwargs = {}
+            kwargs['template_tabs'] = TEST_ENVELOPE_TABS
+            template_api = TemplatesApi(self._client)
+            result = template_api.update_tabs(DS_ACCOUNT_ID, recipient_id=1, template_id=template_id, **kwargs)
+            print(result)
+            
+
+        except Exception as err:
+            print("Error in update tabs {}".format(str(err)))
+
+
 
 nda_template_id = '8d29c360-f878-48e2-9782-8914679ecdac'
 tmpl1 = '9f12ec63-484c-4d84-ad73-5aa33455e827'
 tmpl2 = 'ffb8ec43-3574-4343-a140-ccd7c6807d2f'
 
+elite_dms_contract1_signed = '5ac45a69-e135-4ff3-8547-67abf0d50b3a'
+
 # test - request signature for template
-def send_for_signature():
+def send_for_signature(name, email):
     ds = DocuSign()
     ds.authorize()
-    key = ds.request_signature(tmpl2, 'Full Stack Dev', 'saji.nx@gmail.com')
+    key = ds.request_signature(template_id=elite_dms_contract1_signed, 
+                               signer_name=name, 
+                               signer_email=email, 
+                               tabs=TEST_ENVELOPE_TABS)
     if key is not None:
         print("Envelope send {}".format(key))
    
