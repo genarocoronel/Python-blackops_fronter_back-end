@@ -178,7 +178,8 @@ class CreateCreditReportAccount(Resource):
 
             password = Auth.generate_password()
             request_data.update(dict(password=password))
-            new_customer = create_customer(request_data, credit_report_account.tracking_token, sponsor_code='BTX5DY2SZK')
+            new_customer = create_customer(request_data, credit_report_account.tracking_token,
+                                           sponsor_code=current_app.smart_credit_sponsor_code)
 
             credit_report_account.password = password
             credit_report_account.customer_token = new_customer.get('customerToken')
