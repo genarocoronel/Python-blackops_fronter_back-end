@@ -2,6 +2,7 @@ import enum
 
 from flask import current_app
 
+from app.main.model import Frequency, EmploymentStatus
 from app.main.model.task import ImportTask
 from .. import db
 

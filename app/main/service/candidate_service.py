@@ -6,7 +6,10 @@ from app.main import db
 from app.main.model.candidate import CandidateImport, Candidate, CandidateContactNumber, CandidateEmployment
 from app.main.model.employment import Employment
 from app.main.model.contact_number import ContactNumber, ContactNumberType
+from app.main.model.candidate import CandidateImport, Candidate
+from app.main.model.client import ClientType
 from app.main.model.credit_report_account import CreditReportAccount
+from app.main.service.client_service import save_new_client
 
 
 def save_new_candidate(data):
@@ -189,8 +192,9 @@ def get_candidate(public_id):
         return Candidate.query.filter_by(public_id=public_id).first()
 
 
-def save_changes(data=None):
-    db.session.add(data) if data else None
+def save_changes(*data):
+    for entry in data:
+        db.session.add(entry)
     db.session.commit()
 
 
@@ -204,3 +208,16 @@ def save_new_candidate_import(data):
     save_changes(new_candidate_import)
     db.session.refresh(new_candidate_import)
     return new_candidate_import
+
+
+def transfer_to_lead(candidate_id):
+    candidate = Candidate.query.filter_by(public_id=candidate_id).first()
+    if not candidate:
+        raise Exception('Candidate does not exist')
+
+    data = dict(email=candidate.email, first_name=candidate.first_name, last_name=candidate.last_name,
+         address=candidate.address, city=candidate.city, state=candidate.state, zip=candidate.zip,
+         phone=candidate.phone, language=candidate.language, zip4=candidate.zip4,
+         estimated_debt=candidate.estimated_debt)
+
+    save_new_client(data, ClientType.lead)

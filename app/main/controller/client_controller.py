@@ -3,9 +3,9 @@ from flask_restplus import Resource
 
 from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
 from app.main.model.client import ClientType
-from app.main.service.client_service import get_all_clients, save_new_client, get_client_appointments, get_client_employments, \
-    update_client_employments, save_changes
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
+from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments, \
+    update_client, get_client_employments, update_client_employments, save_changes
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
@@ -49,6 +49,17 @@ class Client(Resource):
             api.abort(404, **error_response)
         else:
             return client
+
+    @api.doc('update client')
+    @api.marshal_with(_client)
+    def put(self, public_id):
+        """ Update client with provided identifier"""
+        client = get_client(public_id, client_type=CLIENT)
+        if not client:
+            api.abort(404)
+        else:
+            updated_client = update_client(client, request.json)
+            return updated_client, 200
 
 
 @api.route('/<public_id>/appointments')
