@@ -82,7 +82,11 @@ def get_all_candidates():
 
 
 def get_candidate(public_id):
-    return Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
+    candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
+    if candidate:
+        return candidate
+    else:
+        return Candidate.query.filter_by(public_id=public_id).first()
 
 
 def save_changes(data=None):

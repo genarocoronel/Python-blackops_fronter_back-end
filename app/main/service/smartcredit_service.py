@@ -1,4 +1,5 @@
 import requests
+from lxml import html
 from flask import current_app
 
 headers = {
@@ -203,6 +204,30 @@ def optionally_add_to_payload(optional_keys, payload, data):
     for value, key in optional_keys.items():
         if key in data:
             payload.update({value: data[key]})
+
+def activate_smart_credit_insurance():
+    print("calling activate insurance")
+    with requests.Session() as session:
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36'
+        }
+        session.headers.update(headers)
+        response = session.get('https://stage-sc.consumerdirect.com/login/',
+                               auth=('documentservicesolutions', 'grapackerown'))
+        tree = html.fromstring(response.text)
+        authenticity_token = list(set(tree.xpath("//input[@name='_csrf']/@value")))[0]
+        payload = {'_csrf': authenticity_token, 'loginType': 'CUSTOMER',
+                   'j_username': 'test1@consumerdirect.com', 'j_password': '12345678'}
+        session.headers.update({'Referer': 'https://stage-sc.consumerdirect.com/login/'})
+        response = session.post('https://stage-sc.consumerdirect.com/login', data=payload,
+                                auth=('documentservicesolutions', 'grapackerown'))
+        print(response)
+        response = session.post('https://stage-sc.consumerdirect.com/member/id-fraud-insurance/register.htm', auth=('documentservicesolutions', 'grapackerown'))
+        print(response.status_code)
+        print(response.headers)
+        return response.text
+
 
 
 if __name__ == '__main__':

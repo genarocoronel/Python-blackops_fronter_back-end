@@ -13,7 +13,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist, \
-    complete_credit_account_signup
+    complete_credit_account_signup, activate_smart_credit_insurance
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
@@ -385,6 +385,36 @@ class CompleteCreditReportAccount(Resource):
                 'message': str(e)
             }
             return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/fraud-insurance/register')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CandidateFraudInsurance(Resource):
+    @api.doc('register candidate for fraud insurance')
+    def post(self, candidate_public_id, credit_account_public_id):
+        try:
+            print("called register insurance")
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                api.abort(404, **error_response)
+
+            credit_report_account, error_response = _handle_get_credit_report(candidate, credit_account_public_id)
+            if not credit_report_account:
+                return error_response
+
+            password = current_app.cipher.decrypt(credit_report_account.password).decode()
+            result = activate_smart_credit_insurance(credit_report_account.username, password)
+            response_object = {
+                'success': True,
+                'message': result
+            }
+            return response_object, 200
         except Exception as e:
             response_object = {
                 'success': False,
