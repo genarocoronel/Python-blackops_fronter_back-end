@@ -206,7 +206,11 @@ def activate_smart_credit_insurance(username, password):
     with login_with_session(username, password) as session:
         response = session.post(f'{current_app.smart_credit_url}/member/id-fraud-insurance/register.htm',
                                 auth=('documentservicesolutions', 'grapackerown'))
-        return response.text
+
+        if response.text.find("Insurance Activated") != -1:
+            return "Successfully registered id fraud insurance"
+        else:
+            raise Exception(f'Could not register for fraud insurance {response.text}')
 
 
 def login_with_session(username, password):

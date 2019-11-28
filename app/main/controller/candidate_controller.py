@@ -402,7 +402,6 @@ class CandidateFraudInsurance(Resource):
     @api.doc('register candidate for fraud insurance')
     def post(self, candidate_public_id, credit_account_public_id):
         try:
-            print("called register insurance")
             candidate, error_response = _handle_get_candidate(candidate_public_id)
             if not candidate:
                 api.abort(404, **error_response)
@@ -411,8 +410,17 @@ class CandidateFraudInsurance(Resource):
             if not credit_report_account:
                 return error_response
 
+            if credit_report_account.registered_fraud_insurance:
+                response_object = {
+                    'success': False,
+                    'message': 'Credit account already registered for fraud insurance'
+                }
+                return response_object, 409
+
             password = current_app.cipher.decrypt(credit_report_account.password).decode()
             result = activate_smart_credit_insurance(credit_report_account.email, password)
+            credit_report_account.registered_fraud_insurance = True
+            update_credit_report_account(credit_report_account)
             response_object = {
                 'success': True,
                 'message': result
