@@ -2,6 +2,7 @@ from app.main import db
 from .docusign import DocuSign
 from .models import DocusignTemplate 
 
+
 # scheduled task
 # synchronize template details from Docusign account
 def sync_templates():
@@ -29,7 +30,7 @@ def sync_templates():
 
 # worker task 
 # send template for signing
-def send_template_for_signing(client_id, template_id):
+def send_template_for_signing(client_id, template_id, template_params):
     try:
         client = Client.query.filter_by(id=client_id).first()
         if client is None:
@@ -43,7 +44,8 @@ def send_template_for_signing(client_id, template_id):
         ds.authorize()
         env_id = ds.request_signature(tmpl.ds_key, 
                                       client.first_name, 
-                                      client.email)        
+                                      client.email,
+                                      template_params=template_params)        
         # create a database entry
         signature = DocusignSignature(envelope_id=env_id,
                                       status=SignatureStatus.SENT,
