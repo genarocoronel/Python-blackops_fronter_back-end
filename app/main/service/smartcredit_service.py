@@ -201,29 +201,31 @@ def optionally_add_to_payload(optional_keys, payload, data):
         if key in data:
             payload.update({value: data[key]})
 
-def activate_smart_credit_insurance():
-    print("calling activate insurance")
+
+def activate_smart_credit_insurance(username, password):
+    with login_with_session(username, password) as session:
+        response = session.post(f'{current_app.smart_credit_url}/member/id-fraud-insurance/register.htm',
+                                auth=('documentservicesolutions', 'grapackerown'))
+        return response.text
+
+
+def login_with_session(username, password):
     with requests.Session() as session:
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36'
         }
         session.headers.update(headers)
-        response = session.get('https://stage-sc.consumerdirect.com/login/',
+        response = session.get(f'{current_app.smart_credit_url}/login/',
                                auth=('documentservicesolutions', 'grapackerown'))
         tree = html.fromstring(response.text)
         authenticity_token = list(set(tree.xpath("//input[@name='_csrf']/@value")))[0]
         payload = {'_csrf': authenticity_token, 'loginType': 'CUSTOMER',
-                   'j_username': 'test1@consumerdirect.com', 'j_password': '12345678'}
-        session.headers.update({'Referer': 'https://stage-sc.consumerdirect.com/login/'})
-        response = session.post('https://stage-sc.consumerdirect.com/login', data=payload,
-                                auth=('documentservicesolutions', 'grapackerown'))
-        print(response)
-        response = session.post('https://stage-sc.consumerdirect.com/member/id-fraud-insurance/register.htm', auth=('documentservicesolutions', 'grapackerown'))
-        print(response.status_code)
-        print(response.headers)
-        return response.text
-
+                   'j_username': username, 'j_password': password}
+        session.headers.update({'Referer': f'{current_app.smart_credit_url}/login/'})
+        session.post(f'{current_app.smart_credit_url}/login', data=payload,
+                     auth=('documentservicesolutions', 'grapackerown'))
+        return session
 
 
 if __name__ == '__main__':

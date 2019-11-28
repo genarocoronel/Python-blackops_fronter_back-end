@@ -412,7 +412,7 @@ class CandidateFraudInsurance(Resource):
                 return error_response
 
             password = current_app.cipher.decrypt(credit_report_account.password).decode()
-            result = activate_smart_credit_insurance(credit_report_account.username, password)
+            result = activate_smart_credit_insurance(credit_report_account.email, password)
             response_object = {
                 'success': True,
                 'message': result
