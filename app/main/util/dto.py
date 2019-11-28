@@ -133,6 +133,16 @@ class ClientDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
     })
+    new_bank_account = api.model('new_bank_account', {
+        'account_number': fields.String(required=True, description='client bank account number'),
+        'routing_number': fields.String(required=True, description='client bank routing number')
+    })
+    bank_account = api.model('bank_account', {
+        'bank_name': fields.String(required=True, description='client bank name'),
+        'account_number': fields.String(required=True, description='client bank account number'),
+        'routing_number': fields.String(required=True, description='client bank routing number'),
+        'valid': fields.Boolean(required=True)
+    })
 
 
 class LeadDto:
@@ -260,4 +270,24 @@ class CandidateDto:
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
 
+    })
+    credit_report_data = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'candidate_id': fields.String(),
+        'debt_name': fields.String(),
+        'creditor': fields.String(),
+        'ecoa': fields.String(),
+        'account_number': fields.String(),
+        'account_type': fields.String(),
+        'push': fields.Boolean(),
+        'last_collector': fields.String(),
+        'collector_account': fields.String(),
+        'last_debt_status': fields.Integer(),
+        'bureaus': fields.DateTime(),
+        'days_delinquent': fields.String(),
+        'balance_original': fields.String(),
+        'payment_amount': fields.String(),
+        'credit_limit': fields.String(),
+        'graduation': fields.String(),
+        'last_update': fields.DateTime(required=True)
     })

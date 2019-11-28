@@ -19,10 +19,6 @@ def save_new_client(data, client_type=ClientType.lead):
         state=data.get('state'),
         zip=data.get('zip'),
         zip4=data.get('zip'),
-        county=data.get('county'),
-        crrt=data.get('crrt'),
-        dpbc=data.get('dpbc'),
-        fips=data.get('fips'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),
         phone=data.get('phone'),
@@ -46,6 +42,19 @@ def get_client(public_id, client_type=ClientType.client):
     return Client.query.filter_by(public_id=public_id, type=client_type).first()
 
 
+def update_client(client, data):
+    pass
+
+
+def get_client_bank_account(client):
+    if isinstance(client, str):
+        client = get_client(client)
+    if not isinstance(client, Client):
+        raise ValueError('accepts client public_id or client object')
+
+    return client.bank_account
+
+
 def get_client_appointments(public_id, client_type=ClientType.client):
     client = get_client(public_id)
     if client:
@@ -54,6 +63,7 @@ def get_client_appointments(public_id, client_type=ClientType.client):
         return None
 
 
-def save_changes(data=None):
-    db.session.add(data) if data else None
+def save_changes(*data):
+    for entry in data:
+        db.session.add(entry)
     db.session.commit()
