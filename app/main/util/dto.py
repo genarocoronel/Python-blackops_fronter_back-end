@@ -175,6 +175,16 @@ class LeadDto:
     lead = api.model('lead', {
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
+        'address': fields.String(required=True, description='client address'),
+        'city': fields.String(required=True, description='client city'),
+        'state': fields.String(required=True, description='client state'),
+        'zip': fields.String(required=True, description='client zip'),
+        'zip4': fields.String(required=True, description='client zip4'),
+        'crrt': fields.String(required=True, description='client crrt'),
+        'dpbc': fields.Integer(required=True, description='client dpbc'),
+        'fips': fields.Integer(required=True, description='client fips'),
+        'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
+        'county': fields.String(required=True, description='client county'),
         'email': fields.String(required=True, description='lead email address'),
         'language': fields.String(required=True, description='lead language preference'),
         'phone': fields.String(required=True, description='lead phone number'),
@@ -327,7 +337,6 @@ class CandidateDto:
     })
     credit_report_data = api.model('credit_report_account', {
         'public_id': fields.String(),
-        'candidate_id': fields.String(),
         'debt_name': fields.String(),
         'creditor': fields.String(),
         'ecoa': fields.String(),
@@ -344,4 +353,48 @@ class CandidateDto:
         'credit_limit': fields.String(),
         'graduation': fields.String(),
         'last_update': fields.DateTime(required=True)
+    })
+
+
+class TestAPIDto:
+    api = Namespace('tests', description='Test operations for Dev/QA')
+
+
+class DebtDto:
+    api = Namespace('debts', description='Debt related operations')
+    credit_report_data = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'debt_name': fields.String(),
+        'creditor': fields.String(),
+        'ecoa': fields.String(),
+        'account_number': fields.String(),
+        'account_type': fields.String(),
+        'push': fields.Boolean(),
+        'last_collector': fields.String(),
+        'collector_account': fields.String(),
+        'last_debt_status': fields.Integer(),
+        'bureaus': fields.DateTime(),
+        'days_delinquent': fields.String(),
+        'balance_original': fields.String(),
+        'payment_amount': fields.String(),
+        'credit_limit': fields.String(),
+        'graduation': fields.String(),
+        'last_update': fields.DateTime(required=True)
+    })
+    new_report_data = api.model('new_report_data', {
+        'debt_name': fields.String(),
+        'creditor': fields.String(),
+        'ecoa': fields.String(),
+        'account_number': fields.String(),
+        'account_type': fields.String(),
+        'push': fields.Boolean(),
+        'last_collector': fields.String(),
+        'collector_account': fields.String(),
+        'last_debt_status': fields.Integer(),
+        'bureaus': fields.DateTime(),
+        'days_delinquent': fields.String(),
+        'balance_original': fields.String(),
+        'payment_amount': fields.String(),
+        'credit_limit': fields.String(),
+        'graduation': fields.String(),
     })

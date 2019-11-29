@@ -20,6 +20,7 @@ class Client(db.Model):
     # relationships
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
     employment = db.relationship('ClientEmployment')
+    credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='client')
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)

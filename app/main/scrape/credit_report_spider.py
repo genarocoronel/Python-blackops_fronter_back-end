@@ -1,3 +1,4 @@
+import os
 import re
 import uuid
 import sqlite3
@@ -16,6 +17,8 @@ from app.main.model.task import ScrapeTask
 
 
 DAYS_DELINQUENT_PATTERN = re.compile(r' (\d+)')
+REPORT_PATH = 'report.pdf'
+CSS_FOLDER = 'report_css'
 
 
 def normalize(string: str):
@@ -42,14 +45,15 @@ class CreditReportSpider(scrapy.Spider):
     name = 'credit_report_spider'
     allowed_domains = ["consumerdirect.com", "cc2-live.sd.demo.truelink.com"]
 
-    def __init__(self, candidate_id, user, password):
-        self.candidate_id, self.username, self.password = candidate_id, user, password
+    def __init__(self, *args):
+        self.account_id, self.username, self.password = args
         self.report_url = 'https://stage-sc.consumerdirect.com/member/credit-report/3b/'
         self.login_url = 'https://stage-sc.consumerdirect.com/login/'
         self.auth = basic_auth_header(
             current_app.config['SMART_CREDIT_HTTP_USER'],
             current_app.config['SMART_CREDIT_HTTP_PASS']
         )
+        self.set_css()
         self.headers = {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,'
                       'image/webp,image/apng,*/*;q=0.8,'
@@ -70,6 +74,15 @@ class CreditReportSpider(scrapy.Spider):
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
                           'Chrome/78.0.3904.97 Safari/537.36'
         }
+
+    def set_css(self,):
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        css_path = os.path.join(basedir, CSS_FOLDER)
+        self.css = [
+            os.path.join(css_path, f) for f in os.listdir(css_path)
+            if os.path.isfile(os.path.join(css_path, f))
+            and f.endswith('.css')
+        ]
 
     def start_requests(self):
         yield scrapy.Request(
@@ -127,6 +140,7 @@ class CreditReportSpider(scrapy.Spider):
         tables = response.xpath(
             '//table[@border="1" and '
             './/table[@class="crLightTableBackground"]]')
+        scraped_data = list()
         for table in tables:
             debt_name = creditor = table.xpath(
                 './/td[@class="crWhiteTradelineHeader"]/b/text()')[0]
@@ -192,10 +206,10 @@ class CreditReportSpider(scrapy.Spider):
                 graduation = datetime.strptime(last_payment, '%m/%d/%Y') +\
                     timedelta(days=360 * limitation)
 
-            last_update = datetime.now()
+            last_update = datetime.utcnow()
 
             report_data = CreditReportData(
-                candidate_id=self.candidate_id,
+                account_id=self.account_id,
                 public_id=str(uuid.uuid4()),
                 debt_name=debt_name,
                 creditor=creditor,
@@ -209,20 +223,41 @@ class CreditReportSpider(scrapy.Spider):
                 graduation=graduation,
                 last_update=last_update
                 )
-            db.session.add(report_data)
-        db.session.commit()
+            scraped_data.append(report_data)
+
+        self.remove_old_data()
+        self.update_new_data(scraped_data)
+        self.mark_complete()
+
         # ------ FOR PDF Converson -----------
-        # pdfkit.from_string(converted_data,
-        #                    'report.pdf')
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        report_path = os.path.join(basedir, REPORT_PATH)
+        pdfkit.from_string(
+            converted_data.replace('\xa0', '').replace('®', ''),
+            report_path,
+            css=self.css
+        )
 
-
-def mark_complete(candidate_id):
-    task = ScrapeTask.query.filter_by(
-        candidate_id=candidate_id).first()
-    if task:
-        setattr(task, 'complete', True)
-        db.session.add(task)
+    def remove_old_data(self,):
+        existing_data = CreditReportData.query.filter_by(
+            account_id=self.account_id).all()
+        for d in existing_data:
+            db.session.delete(d)
         db.session.commit()
+
+    def update_new_data(self, scraped_data):
+        for d in scraped_data:
+            db.session.add(d)
+        db.session.commit()
+
+    def mark_complete(self,):
+        task = ScrapeTask.query.filter_by(
+            account_id=self.account_id, complete=False).first()
+        if task:
+            setattr(task, 'complete', True)
+            setattr(task, 'updated_on', datetime.utcnow())
+            db.session.add(task)
+            db.session.commit()
 
 
 def run(*args):
@@ -232,11 +267,9 @@ def run(*args):
         'RETRY_HTTP_CODES': [403, 405, 429, 500, 503],
         'RETRY_TIMES': 2,
     }
-    candidate_id, user, password = args
     process = CrawlerProcess(settings)
-    process.crawl(CreditReportSpider, candidate_id, user, password)
+    process.crawl(CreditReportSpider, *args)
     process.start()
-    mark_complete(candidate_id)
 
 
 if __name__ == '__main__':
