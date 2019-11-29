@@ -158,7 +158,8 @@ class CreateCreditReportAccount(Resource):
             credit_report_account = candidate.credit_report_account
             if not credit_report_account:
                 signup_data = start_signup(campaign_data)
-                credit_report_account = save_new_credit_report_account(signup_data, candidate, request_data.get("email"),
+                signup_data["email"] = request_data.get("email")
+                credit_report_account = save_new_credit_report_account(signup_data, candidate,
                                                                        CreditReportSignupStatus.INITIATING_SIGNUP)
 
             if credit_report_account.status == CreditReportSignupStatus.ACCOUNT_CREATED:

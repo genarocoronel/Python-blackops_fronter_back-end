@@ -10,7 +10,7 @@ def get_report_data(candidate_public_id):
     return data
 
 
-def save_new_credit_report_account(data, candidate: Candidate, email, status: CreditReportSignupStatus = None):
+def save_new_credit_report_account(data, candidate: Candidate, status: CreditReportSignupStatus = None):
     account = CreditReportAccount.query.filter_by(customer_token=data.get('customer_token'),
                                                   tracking_token=data.get('tracking_token')).first()
     if not account:
@@ -23,7 +23,7 @@ def save_new_credit_report_account(data, candidate: Candidate, email, status: Cr
             financial_obligation_met=data.get('financial_obligation_met'),
             status=status or CreditReportSignupStatus.INITIATING_SIGNUP,
             candidate=candidate,
-            email=email
+            email=data.get('email')
         )
         save_changes(new_account)
         return new_account
