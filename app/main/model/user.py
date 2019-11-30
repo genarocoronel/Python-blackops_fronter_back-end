@@ -105,8 +105,10 @@ class UserPasswordReset(db.Model):
         return flask_bcrypt.check_password_hash(self.code_hash, code)
 
     def is_expired(self):
-        now = datetime.datetime.now(tz=utc)
-        duration = now - self.datetime
+        # now = datetime.datetime.now(tz=utc)
+        # duration = now - self.datetime
+        now = datetime.datetime.utcnow()
+        duration = now - self.datetime.utcnow()
 
         # password reset expires in 24 hours / 1 day
         if self.has_activated or duration.days >= 1:
