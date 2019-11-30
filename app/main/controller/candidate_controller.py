@@ -13,7 +13,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
 from app.main.service.credit_report_account_service import save_new_credit_report_account,\
     update_credit_report_account, get_report_data
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist, \
+    get_id_verification_question, answer_id_verification_questions, update_customer, \
     complete_credit_account_signup
 from ..util.dto import CandidateDto
 
