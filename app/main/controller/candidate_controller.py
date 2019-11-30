@@ -131,7 +131,7 @@ def _handle_get_credit_report(candidate, account_public_id):
             'success': False,
             'message': 'Credit Report Account does not exist'
         }
-        return None, (response_object, 404)
+        return None, response_object
     else:
         return account, None
 
@@ -408,7 +408,7 @@ class CandidateFraudInsurance(Resource):
 
             credit_report_account, error_response = _handle_get_credit_report(candidate, credit_account_public_id)
             if not credit_report_account:
-                return error_response
+                api.abort(404, **error_response)
 
             if credit_report_account.registered_fraud_insurance:
                 response_object = {
