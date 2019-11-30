@@ -403,66 +403,29 @@ additional_debts2_id = '8d121a9f-d34d-489b-ae14-43156fa34e5f'
 modify_debts1_id = '6f7fe7ff-1407-4772-acc0-fd969c91b47a'
 modify_debts2_id = '12af2e6f-c1ce-4100-9dce-5a18a820a353'
 
-_test_removal_debts = {
-    'Creditor1': 'Bank of America',
-    'Creditor2': 'Citibank',
-    'Creditor3': 'Wells Fargo',
-    'Creditor4': 'Discover',
-    'Creditor5': 'Chase',
-    'Creditor6': 'USAA',
-    'Creditor7': 'American Express',
-    'Creditor8': 'Bank of America',
-    'Creditor9': 'Citibank',
-    'Creditor10': 'Wells Fargo',
-    'Creditor11': 'Discover',
-    'Creditor12': 'Chase',
-    'Creditor13': 'USAA',
-    'Creditor14': 'American Express',
-    'Creditor15': 'Bank of America',
-    'Creditor16': 'Citibank',
-    'Creditor17': 'Wells Fargo',
-    'Creditor18': 'Discover',
-    'Creditor19': 'Chase',
-    'AccountNumber1': '1234567890',
-    'AccountNumber2': '2345678901',
-    'AccountNumber3': '3456789012',
-    'AccountNumber4': '4567890123',
-    'AccountNumber5': '5678901234',
-    'AccountNumber6': '6789012345',
-    'AccountNumber7': '7890123456',
-    'AccountNumber8': '8901234567',
-    'AccountNumber9': '9012345678',
-    'AccountNumber10': '10697302239',
-    'AccountNumber11': '11728395060',
-    'AccountNumber12': '12759487881',
-    'AccountNumber13': '13790580702',
-    'AccountNumber14': '14821673523',
-    'AccountNumber15': '15852766344',
-    'AccountNumber16': '16883859165',
-    'AccountNumber17': '17914951986',
-    'AccountNumber18': '18946044807',
-    'AccountNumber19': '19977137628',
-    'BalanceOriginal1': '$111.00',
-    'BalanceOriginal2': '$222.00',
-    'BalanceOriginal3': '$333.00',
-    'BalanceOriginal4': '$444.00',
-    'BalanceOriginal5': '$555.00',
-    'BalanceOriginal6': '$666.00',
-    'BalanceOriginal7': '$777.00',
-    'BalanceOriginal8': '$888.00',
-    'BalanceOriginal9': '$999.00',
-    'BalanceOriginal10': '$1,110.00',
-    'BalanceOriginal11': '$1,221.00',
-    'BalanceOriginal12': '$1,332.00',
-    'BalanceOriginal13': '$1,443.00',
-    'BalanceOriginal14': '$1,554.00',
-    'BalanceOriginal15': '$1,665.00',
-    'BalanceOriginal16': '$1,776.00',
-    'BalanceOriginal17': '$1,887.00',
-    'BalanceOriginal18': '$1,998.00',
-    'BalanceOriginal19': '$2,109.00',
-    'PushTotal': '$21,090.00',
-}
+
+_credit_data = [
+    ['Bank of America', '1234567890', 111],
+    ['Citibank', '2345678901', 222],
+    ['Wells Fargo', '3456789012', 333],
+    ['Discover', '4567890123', 444],
+    ['Chase', '5678901234', 555],
+    ['USAA', '6789012345', 666],
+    ['American Express', '7890123456', 777],
+    ['Bank of America', '8901234567', 888],
+    ['Citibank', '9012345678', 999],
+    ['Wells Fargo', '10697302239', 1110],
+    ['Discover', '11728395060', 1221],
+    ['Chase', '12759487881', 1332],
+    ['USAA', '13790580702', 1443],
+    ['American Express', '14821673523', 1554],
+    ['Bank of America', '15852766344', 1665],
+    ['Citibank', '16883859165', 1776],
+    ['Wells Fargo', '17914951986', 1887],
+    ['Discover', '18946044807', 1998],
+    ['Chase', '19977137628', 2109],
+
+]
 
 def send_removal_debts_for_signature(first_name, 
                                      last_name,
@@ -472,11 +435,22 @@ def send_removal_debts_for_signature(first_name,
                                      co_sign=False,
                                      co_first_name = 'Melanie',
                                      co_last_name = 'Johnson'):
-    t_params = _test_removal_debts
+    t_params = {}
 
     ds = DocuSign()
     ds.authorize()
 
+    n = 0
+    total = 0
+    for c in _credit_data:
+        n = n + 1
+        total = total + c[2]
+        t_params['Creditor{}'.format(n)] = c[0] 
+        t_params['AccountNumber{}'.format(n)] = c[1] 
+        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
+    # total
+    t_params['PushTotal'] = "${:.2f}".format(total)
+        
     t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
     t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
     t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
@@ -555,7 +529,7 @@ def send_receive_summon_for_signature(first_name,
                                    co_first_name = 'Melanie',
                                    co_last_name = 'Johnson'):
 
-    t_params = _test_removal_debts
+    t_params = {}
 
     ds = DocuSign()
     ds.authorize()
@@ -563,6 +537,17 @@ def send_receive_summon_for_signature(first_name,
         tid = receive_summon2_id
     else:
         tid = receive_summon1_id
+
+    n = 0
+    total = 0
+    for c in _credit_data:
+        n = n + 1
+        total = total + c[2]
+        t_params['Creditor{}'.format(n)] = c[0] 
+        t_params['AccountNumber{}'.format(n)] = c[1] 
+        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
+    # total
+    t_params['PushTotal'] = "${:.2f}".format(total)
 
     t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
     t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
@@ -597,7 +582,7 @@ def send_additional_debts_for_signature(first_name,
                                    co_first_name = 'Melanie',
                                    co_last_name = 'Johnson'):
 
-    t_params = _test_removal_debts
+    t_params = {}
 
     ds = DocuSign()
     ds.authorize()
@@ -605,6 +590,17 @@ def send_additional_debts_for_signature(first_name,
         tid = additional_debts2_id
     else:
         tid = additional_debts1_id
+
+    n = 0
+    total = 0
+    for c in _credit_data:
+        n = n + 1
+        total = total + c[2]
+        t_params['Creditor{}'.format(n)] = c[0] 
+        t_params['AccountNumber{}'.format(n)] = c[1] 
+        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
+    # total
+    t_params['PushTotal'] = "${:.2f}".format(total)
 
     t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
     t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
@@ -641,7 +637,7 @@ def send_modify_debts_for_signature(first_name,
                                    co_first_name = 'Melanie',
                                    co_last_name = 'Johnson'):
 
-    t_params = _test_removal_debts
+    t_params = {}
 
     ds = DocuSign()
     ds.authorize()
@@ -649,6 +645,24 @@ def send_modify_debts_for_signature(first_name,
         tid = modify_debts2_id
     else:
         tid = modify_debts1_id
+
+    n = 0
+    total = 0
+    for c in _credit_data:
+        n = n + 1
+        total = total + c[2]
+        t_params['Creditor{}'.format(n)] = c[0] 
+        t_params['AccountNumber{}'.format(n)] = c[1] 
+        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
+
+    n = n + 1
+    total = total + 2200 
+    t_params['Creditor{}'.format(n)] = 'USAA'
+    t_params['AccountNumber{}'.format(n)] = '21977137628'
+    t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(2200)
+   
+    # total
+    t_params['PushTotal'] = "${:.2f}".format(total)
 
     t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
     t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
