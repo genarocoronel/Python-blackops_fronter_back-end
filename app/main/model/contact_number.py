@@ -20,6 +20,6 @@ class ContactNumber(db.Model):
     # foreign keys
     contact_number_type_id = db.Column(db.Integer, db.ForeignKey('contact_number_types.id'))
 
-    # +1(314)-609-1500
+    # fields
     phone_number = db.Column(db.String(20), nullable=False)
     preferred = db.Column(db.Boolean, nullable=False, default=False)
