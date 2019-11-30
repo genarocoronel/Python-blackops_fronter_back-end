@@ -224,6 +224,18 @@ class CandidateDto:
         'status': CandidateStatusField()
 
     })
+    candidate_number = api.model('candidate_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_type': fields.String(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
+
+    update_candidate_number = api.model('update_candidate_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
     tasks = api.model('import_task', {
         'name': fields.String(),
         'description': fields.String(),

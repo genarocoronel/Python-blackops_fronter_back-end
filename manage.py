@@ -12,6 +12,7 @@ from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
 from app.main.model.client import Client
+from app.main.model.contact_number import ContactNumberType, ContactNumber
 
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
