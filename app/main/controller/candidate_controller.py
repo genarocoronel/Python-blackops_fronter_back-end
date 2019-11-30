@@ -14,7 +14,7 @@ from app.main.service.credit_report_account_service import save_new_credit_repor
     update_credit_report_account, get_report_data
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, \
-    complete_credit_account_signup
+    complete_credit_account_signup, activate_smart_credit_insurance
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
@@ -131,7 +131,7 @@ def _handle_get_credit_report(candidate, account_public_id):
             'success': False,
             'message': 'Credit Report Account does not exist'
         }
-        return None, (response_object, 404)
+        return None, response_object
     else:
         return account, None
 
@@ -387,6 +387,45 @@ class CompleteCreditReportAccount(Resource):
                 'message': str(e)
             }
             return response_object, 500
+
+@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/fraud-insurance/register')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CandidateFraudInsurance(Resource):
+    @api.doc('register candidate for fraud insurance')
+    def post(self, candidate_public_id, credit_account_public_id):
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                api.abort(404, **error_response)
+
+            credit_report_account, error_response = _handle_get_credit_report(candidate, credit_account_public_id)
+            if not credit_report_account:
+                api.abort(404, **error_response)
+
+            if credit_report_account.registered_fraud_insurance:
+                response_object = {
+                    'success': False,
+                    'message': 'Credit account already registered for fraud insurance'
+                }
+                return response_object, 409
+
+            password = current_app.cipher.decrypt(credit_report_account.password).decode()
+            result = activate_smart_credit_insurance(credit_report_account.email, password)
+            credit_report_account.registered_fraud_insurance = True
+            update_credit_report_account(credit_report_account)
+            response_object = {
+                'success': True,
+                'message': result
+            }
+            return response_object, 200
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
 
 
 @api.route('/<public_id>/credit-report/run_spider')

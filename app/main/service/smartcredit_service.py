@@ -1,4 +1,5 @@
 import requests
+from lxml import html
 from flask import current_app
 
 headers = {
@@ -199,6 +200,36 @@ def optionally_add_to_payload(optional_keys, payload, data):
     for value, key in optional_keys.items():
         if key in data:
             payload.update({value: data[key]})
+
+
+def activate_smart_credit_insurance(username, password):
+    with login_with_session(username, password) as session:
+        response = session.post(f'{current_app.smart_credit_url}/member/id-fraud-insurance/register.htm',
+                                auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
+
+        if response.text.find("Insurance Activated") != -1:
+            return "Successfully registered id fraud insurance"
+        else:
+            raise Exception(f'Could not register for fraud insurance {response.text}')
+
+
+def login_with_session(username, password):
+    with requests.Session() as session:
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36'
+        }
+        session.headers.update(headers)
+        response = session.get(f'{current_app.smart_credit_url}/login/',
+                               auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
+        tree = html.fromstring(response.text)
+        authenticity_token = list(set(tree.xpath("//input[@name='_csrf']/@value")))[0]
+        payload = {'_csrf': authenticity_token, 'loginType': 'CUSTOMER',
+                   'j_username': username, 'j_password': password}
+        session.headers.update({'Referer': f'{current_app.smart_credit_url}/login/'})
+        session.post(f'{current_app.smart_credit_url}/login', data=payload,
+                     auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
+        return session
 
 
 if __name__ == '__main__':
