@@ -205,7 +205,7 @@ def optionally_add_to_payload(optional_keys, payload, data):
 def activate_smart_credit_insurance(username, password):
     with login_with_session(username, password) as session:
         response = session.post(f'{current_app.smart_credit_url}/member/id-fraud-insurance/register.htm',
-                                auth=('documentservicesolutions', 'grapackerown'))
+                                auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
 
         if response.text.find("Insurance Activated") != -1:
             return "Successfully registered id fraud insurance"
@@ -221,14 +221,14 @@ def login_with_session(username, password):
         }
         session.headers.update(headers)
         response = session.get(f'{current_app.smart_credit_url}/login/',
-                               auth=('documentservicesolutions', 'grapackerown'))
+                               auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
         tree = html.fromstring(response.text)
         authenticity_token = list(set(tree.xpath("//input[@name='_csrf']/@value")))[0]
         payload = {'_csrf': authenticity_token, 'loginType': 'CUSTOMER',
                    'j_username': username, 'j_password': password}
         session.headers.update({'Referer': f'{current_app.smart_credit_url}/login/'})
         session.post(f'{current_app.smart_credit_url}/login', data=payload,
-                     auth=('documentservicesolutions', 'grapackerown'))
+                     auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
         return session
 
 
