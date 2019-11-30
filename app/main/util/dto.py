@@ -241,7 +241,6 @@ class CandidateDto:
     })
     candidate_upload = parsers.file_upload
     new_credit_report_account = api.model('candidate_create_request', {
-        'email': fields.String(required=True, example='charlie.test-pjndl@gmail.com'),
         'first_name': fields.String(required=True, example='Charlie'),
         'last_name': fields.String(required=True, example='Test-PJNDL'),
         'zip': fields.String(required=True, example='01001'),

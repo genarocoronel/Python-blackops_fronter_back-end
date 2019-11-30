@@ -158,7 +158,6 @@ class CreateCreditReportAccount(Resource):
             credit_report_account = candidate.credit_report_account
             if not credit_report_account:
                 signup_data = start_signup(campaign_data)
-                signup_data["email"] = request_data.get("email")
                 credit_report_account = save_new_credit_report_account(signup_data, candidate,
                                                                        CreditReportSignupStatus.INITIATING_SIGNUP)
 
@@ -169,16 +168,9 @@ class CreateCreditReportAccount(Resource):
                 }
                 return response_object, 409
 
-            email_exists, error = does_email_exist(request_data.get('email'), credit_report_account.tracking_token)
-            if email_exists or error:
-                response_object = {
-                    'success': False,
-                    'message': error or 'Email already exists'
-                }
-                return response_object, 409
-
             password = Auth.generate_password()
             request_data.update(dict(password=password))
+            request_data['email'] = credit_report_account.email
             new_customer = create_customer(request_data, credit_report_account.tracking_token,
                                            sponsor_code=current_app.smart_credit_sponsor_code)
 
