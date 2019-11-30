@@ -13,6 +13,8 @@ from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
 from docsign.models import DocusignTemplate, DocusignSignature
 
+from app.main.model.client import Client
+
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
 
@@ -28,6 +30,11 @@ manager.add_command('db', MigrateCommand)
 @manager.command
 def candidate_parser_worker():
     run_worker('candidate-upload-tasks')
+
+
+@manager.command
+def credit_report_spider_worker():
+    run_worker('credit-report-spider')
 
 
 @manager.command

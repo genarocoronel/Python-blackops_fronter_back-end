@@ -3,6 +3,7 @@ import datetime
 
 from app.main import db
 from app.main.model.candidate import CandidateImport, Candidate
+from app.main.model.credit_report_account import CreditReportAccount
 
 
 def save_new_candidate(data):
@@ -77,11 +78,15 @@ def get_all_candidate_imports():
 
 
 def get_all_candidates():
-    return Candidate.query.paginate(1, 50, False).items
+    return Candidate.query.outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
 
 def get_candidate(public_id):
-    return Candidate.query.filter_by(public_id=public_id).first()
+    candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
+    if candidate:
+        return candidate
+    else:
+        return Candidate.query.filter_by(public_id=public_id).first()
 
 
 def save_changes(data=None):

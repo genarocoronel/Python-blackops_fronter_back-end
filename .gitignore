@@ -1,4 +1,12 @@
-#exclude files
+.DS_Store
+.idea
+poc
+
+.env*
+*.db
+*.txt.lock
+**/__pycache__/**
+*.csv
 
 *.py[co]
 *.egg-info

@@ -12,10 +12,21 @@ class Config:
     PREQUAL_ID_COUNTER_FILE = os.getenv('PREQUAL_ID_COUNTER_LOCATION', f'{basedir}/prequal_id_counter.txt')
     PREQUAL_ID_COUNTER_LOCK_FILE = os.getenv('PREQUAL_ID_COUNTER_LOCATION', f'{basedir}/prequal_id_counter.txt.lock')
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
+
+    SMART_CREDIT_URL = os.environ.get('SMART_CREDIT_URL', 'https://stage-sc.consumerdirect.com')
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')
     SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')
+    SMART_CREDIT_SPONSOR_CODE = os.environ.get('SMART_CREDIT_SPONSOR_CODE')
+
+    DATAX_URL = os.environ.get('DATAX_URL', 'https://rc.verihub.com/datax/')
+    DATAX_LICENSE_KEY = os.environ.get('DATAX_LICENSE_KEY', '1753b6c00f084840f9dfed9d5735cffc')
+    DATAX_PASSWORD = os.environ.get('DATAX_PASSWORD')
+    DATAX_CALL_TYPE = os.environ.get('DATAX_CALL_TYPE', 'dkwconsulting-bavnew')
+
     ENABLE_CORS = False
     DEBUG = False
+    SMART_CREDIT_HTTP_USER = os.environ.get('SMART_CREDIT_HTTP_USER') or 'documentservicesolutions'
+    SMART_CREDIT_HTTP_PASS = os.environ.get('SMART_CREDIT_HTTP_PASS') or 'grapackerown'
 
 
 class DevelopmentConfig(Config):
