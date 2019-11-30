@@ -399,19 +399,17 @@ class ScrapeCreditReportAccount(Resource):
             candidate, error_response = _handle_get_candidate(public_id)
             if not candidate:
                 api.abort(404, **error_response)
-            account, error_response = _handle_get_credit_report(candidate, public_id)
-            if not account:
+            credit_account, error_response = _handle_get_credit_report(candidate, public_id)
+            if not credit_account:
                 return error_response
 
-            # --------Need to update this email---------
-            email = 'test1@consumerdirect.com'
             task = CreditReportData().launch_spider(
                 'run',
                 'Scrapes credit report for given candidate',
                 public_id,
-                candidate.email,
+                credit_account.email,
                 current_app.cipher.decrypt(
-                    account.password).decode()
+                    credit_account.password).decode()
             )
 
             save_changes()
