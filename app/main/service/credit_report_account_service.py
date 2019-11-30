@@ -22,7 +22,8 @@ def save_new_credit_report_account(data, candidate: Candidate, status: CreditRep
             plan_type=data.get('plan_type'),
             financial_obligation_met=data.get('financial_obligation_met'),
             status=status or CreditReportSignupStatus.INITIATING_SIGNUP,
-            candidate=candidate
+            candidate=candidate,
+            email=data.get('email')
         )
         save_changes(new_account)
         return new_account
