@@ -42,6 +42,21 @@ def start_signup(data):
         return result
 
 
+def does_email_exist(email, tracking_token):
+    response = requests.get(f'{current_app.smart_credit_url}/api/signup/validate/email',
+                            headers=headers,
+                            params={
+                                'clientKey': current_app.smart_credit_client_key,
+                                'email': email,
+                                'trackingToken': tracking_token
+                            })
+    _, error = _handle_errors(response)
+    if error:
+        return True, error
+    else:
+        return False, None
+
+
 def does_ssn_exist(customer_token, ssn, tracking_token):
     response = requests.get(f'{current_app.smart_credit_url}/api/signup/validate/ssn',
                             headers=headers,
