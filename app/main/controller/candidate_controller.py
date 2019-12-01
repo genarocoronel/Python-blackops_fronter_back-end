@@ -13,7 +13,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
 from app.main.service.credit_report_account_service import save_new_credit_report_account,\
     update_credit_report_account, get_report_data
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist, \
+    get_id_verification_question, answer_id_verification_questions, update_customer, \
     complete_credit_account_signup, activate_smart_credit_insurance
 from ..util.dto import CandidateDto
 
@@ -193,7 +193,6 @@ class CreateCreditReportAccount(Resource):
             credit_report_account = candidate.credit_report_account
             if not credit_report_account:
                 signup_data = start_signup(campaign_data)
-                signup_data["email"] = request_data.get("email")
                 credit_report_account = save_new_credit_report_account(signup_data, candidate,
                                                                        CreditReportSignupStatus.INITIATING_SIGNUP)
 
@@ -204,16 +203,9 @@ class CreateCreditReportAccount(Resource):
                 }
                 return response_object, 409
 
-            email_exists, error = does_email_exist(request_data.get('email'), credit_report_account.tracking_token)
-            if email_exists or error:
-                response_object = {
-                    'success': False,
-                    'message': error or 'Email already exists'
-                }
-                return response_object, 409
-
             password = Auth.generate_password()
             request_data.update(dict(password=password))
+            request_data['email'] = credit_report_account.email
             new_customer = create_customer(request_data, credit_report_account.tracking_token,
                                            sponsor_code=current_app.smart_credit_sponsor_code)
 
@@ -481,19 +473,17 @@ class ScrapeCreditReportAccount(Resource):
             candidate, error_response = _handle_get_candidate(public_id)
             if not candidate:
                 api.abort(404, **error_response)
-            account, error_response = _handle_get_credit_report(candidate, public_id)
-            if not account:
+            credit_account, error_response = _handle_get_credit_report(candidate, public_id)
+            if not credit_account:
                 return error_response
 
-            # --------Need to update this email---------
-            email = 'test1@consumerdirect.com'
             task = CreditReportData().launch_spider(
                 'run',
                 'Scrapes credit report for given candidate',
                 public_id,
-                candidate.email,
+                credit_account.email,
                 current_app.cipher.decrypt(
-                    account.password).decode()
+                    credit_account.password).decode()
             )
 
             save_changes()
