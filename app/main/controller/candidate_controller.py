@@ -12,18 +12,10 @@ from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
     get_candidate, get_all_candidates, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers
-from app.main.service.credit_report_account_service import save_new_credit_report_account,\
-    update_credit_report_account
-
-from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer, \
-    complete_credit_account_signup, activate_smart_credit_insurance
-    get_candidate, get_all_candidates, update_candidate, transfer_to_lead
-from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account, \
-    get_report_data
+from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.third_party.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer, does_email_exist, \
-    complete_credit_account_signup
+    get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
+    activate_smart_credit_insurance
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
@@ -179,16 +171,6 @@ def _handle_get_credit_report(candidate):
         return None, response_object
     else:
         return account, None
-
-
-@api.route('/<candidate_id>/underwriter')
-@api.param('candidate_id', 'The Candidate Identifier')
-class SubmitCandidateToUnderwriter(Resource):
-    @api.doc('submit candidate to underwriter')
-    def put(self, candidate_id):
-        """ Submit Candidate to Underwriter """
-        transfer_to_lead(candidate_id)
-        return None, 204
 
 
 @api.route('/<candidate_public_id>/credit-report/account')
