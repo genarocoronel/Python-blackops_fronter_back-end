@@ -17,6 +17,7 @@ class Config:
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')
     SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')
     SMART_CREDIT_SPONSOR_CODE = os.environ.get('SMART_CREDIT_SPONSOR_CODE')
+    SMART_CREDIT_EMAIL_DOMAIN = os.environ.get('SMART_CREDIT_EMAIL_DOMAIN', 'thedeathstarco.com')
 
     DATAX_URL = os.environ.get('DATAX_URL', 'https://rc.verihub.com/datax/')
     DATAX_LICENSE_KEY = os.environ.get('DATAX_LICENSE_KEY', '1753b6c00f084840f9dfed9d5735cffc')
