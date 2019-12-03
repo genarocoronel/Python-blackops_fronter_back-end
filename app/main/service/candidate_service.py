@@ -1,8 +1,11 @@
 import uuid
 import datetime
 
+from flask import current_app
 from app.main import db
-from app.main.model.candidate import CandidateImport, Candidate
+from app.main.model.candidate import CandidateImport, Candidate, CandidateContactNumber
+from app.main.model.contact_number import ContactNumber, ContactNumberType
+from app.main.model.credit_report_account import CreditReportAccount
 
 
 def save_new_candidate(data):
@@ -72,16 +75,68 @@ def update_candidate(public_id, data):
         return response_object, 404
 
 
+def get_candidate_contact_numbers(candidate):
+    contact_number_assoc = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+    contact_numbers = [num.contact_number for num in contact_number_assoc]
+    phone_types = ContactNumberType.query.filter(
+        ContactNumberType.id.in_([num.contact_number_type_id for num in contact_numbers])).all()
+
+    number_data = []
+    for contact_number in contact_numbers:
+        data = {}
+        data['phone_type_id'] = contact_number.contact_number_type_id
+        data['phone_type'] = next((phone_type.name for phone_type in phone_types), 'UNKNOWN')
+        data['phone_number'] = contact_number.phone_number
+        data['preferred'] = contact_number.preferred
+        number_data.append(data)
+
+    return number_data, None
+
+
+def update_candidate_contact_numbers(candidate, contact_numbers):
+    prev_contact_numbers = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+
+    # create new records first
+    for data in contact_numbers:
+        phone_type = ContactNumberType.query.filter_by(id=data.get('phone_type_id')).first()
+        if phone_type:
+            new_candidate_number = CandidateContactNumber()
+            new_candidate_number.candidate = candidate
+            new_candidate_number.contact_number = ContactNumber(
+                inserted_on=datetime.datetime.utcnow(),
+                contact_number_type_id=data.get('phone_type_id'),
+                phone_number=data.get('phone_number'),
+                preferred=data.get('preferred')
+            )
+            db.session.add(new_candidate_number)
+        else:
+            return None, 'Invalid Contact Number Type'
+    save_changes()
+
+    # remove previous records
+    for prev_number in prev_contact_numbers:
+        CandidateContactNumber.query.filter(CandidateContactNumber.candidate_id == candidate.id,
+                                            CandidateContactNumber.contact_number_id == prev_number.contact_number_id).delete()
+        ContactNumber.query.filter_by(id=prev_number.contact_number_id).delete()
+    save_changes()
+
+    return {'message': 'Successfully updated contact numbers'}, None
+
+
 def get_all_candidate_imports():
     return CandidateImport.query.all();
 
 
 def get_all_candidates():
-    return Candidate.query.paginate(1, 50, False).items
+    return Candidate.query.outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
 
 def get_candidate(public_id):
-    return Candidate.query.filter_by(public_id=public_id).first()
+    candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
+    if candidate:
+        return candidate
+    else:
+        return Candidate.query.filter_by(public_id=public_id).first()
 
 
 def save_changes(data=None):

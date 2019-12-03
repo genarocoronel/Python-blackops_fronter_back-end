@@ -1,0 +1,16 @@
+stages:
+- name: Docker Build
+  steps:
+  - publishImageConfig:
+      dockerfilePath: ./docker/Dockerfile
+      buildContext: .
+      tag: api:dev-${CICD_GIT_COMMIT}
+      pushRemote: true
+      registry: registry.thedeathstarco.com
+    when:
+      event: {}
+timeout: 60
+branch:
+  include:
+  - develop
+notification: {}
