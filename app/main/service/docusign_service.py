@@ -3,9 +3,11 @@ import base64, os
 from datetime import datetime, timedelta
 import time
 
+DS_ACCOUNT_ID = '910decab-18f3-4eae-8456-74552da97b03'
 
 TOKEN_REPLACEMENT_IN_SECONDS = 10 * 60
 TOKEN_EXPIRATION_IN_SECONDS = 3600
+
 
 # Docsign object to interface with Docsign cloud service
 class DocuSign(object):
@@ -18,8 +20,6 @@ class DocuSign(object):
     
     # AUTH
     _DS_AUTH_HOST = 'account-d.docusign.com'
-
-    
 
     def __init__(self):
         self._client = None
@@ -34,6 +34,7 @@ class DocuSign(object):
         self._client.set_base_path(self._BASE_PATH)
         self._client.host = self._BASE_PATH
         self._client.set_default_header("Authorization", "Bearer " + self._access_token)
+        return self._client
 
     def _check_token(self):
         return False
@@ -58,7 +59,7 @@ class DocuSign(object):
         #                                     pk_bytes,
         #                                     TOKEN_EXPIRATION_IN_SECONDS
         #                                    )
-        print(jwt_token)
+        # print(jwt_token)
         if jwt_token is not None:
             self._access_token = jwt_token.access_token
             self._client.set_default_header("Authorization", jwt_token.token_type+ " " + self._access_token)
@@ -68,24 +69,51 @@ class DocuSign(object):
                             template_id,
                             signer_name,
                             signer_email,
-                            cc_name,
-                            cc_email):
+                            template_params,
+                            primary=True):
 
         try:
             recipients = []
+
+            recipient_tabs = {}
+            tmpl_tabs = self.fetch_tabs(template_id)
+            # add tabs only if template params is given
+            if template_params is not None:
+                recipient_tabs['textTabs'] = [] 
+
+                for key, value in template_params.items():
+                    if key in tmpl_tabs['text_tabs'].keys():
+                        #print(key)
+                        tab = tmpl_tabs['text_tabs'][key] 
+                        tab.value = value
+                        recipient_tabs['textTabs'].append(tab)
+
+            recipient_tabs['signHereTabs'] = []
+            for tab in tmpl_tabs['signhere_tabs']:
+                print(tab.tab_label)
+                if primary is True and 'CoClientSignature' in tab.tab_label:
+                    continue
+                recipient_tabs['signHereTabs'].append(tab) 
+
+            recipient_tabs['initialHereTabs'] = []
+            for tab in tmpl_tabs['initial_here_tabs']:
+                recipient_tabs['initialHereTabs'].append(tab)
+
             # Signer 
             signer = TemplateRole(email=signer_email,
                                   name=signer_name,
-                                  role_name='signer')
+                                  role_name='signer',
+                                  tabs=recipient_tabs)
+            #print(signer)
             recipients.append(signer)
 
-            if cc_email is not None:
-                # Recepient
-                cc = TemplateRole(email=cc_email,
-                                  name=cc_name,
-                                  role_name = 'cc')
-                recipients.append(cc)
- 
+            #if cc_email is not None:
+            #    # Recepient
+            #    cc = TemplateRole(email=cc_email,
+            #                      name=cc_name,
+            #                      role_name = 'cc')
+            #    recipients.append(cc)
+
             # create an envelope definition
             envelope_definition = EnvelopeDefinition(status='sent',
                                                      template_id=template_id) 
@@ -185,15 +213,16 @@ class DocuSign(object):
                           template_id, 
                           signer_name, 
                           signer_email, 
-                          cc_name=None,
-                          cc_mail=None): 
+                          template_params=None): 
 
         try: 
             if self._client is None:
                 return None
 
             #make an envelope
-            envelope = self._make_tmpl_envelope(template_id, signer_name, signer_email, cc_name, cc_mail)
+            envelope = self._make_tmpl_envelope(template_id, 
+                                                signer_name, signer_email, 
+                                                template_params)
             envelope_api = EnvelopesApi(self._client)
             
             result = envelope_api.create_envelope(self._ACCOUNT_ID, envelope_definition=envelope);
@@ -250,18 +279,49 @@ class DocuSign(object):
         except Exception as err:
             print("Error in fetch templates {}".format(str(err)))
 
+    def fetch_template_documents(self, template_id):
+        try:
+            document_list = []
+            template_api = TemplatesApi(self._client)
+            result = template_api.list_documents(DS_ACCOUNT_ID, template_id)
+            for doc in result.template_documents:
+                print(doc.document_id)
+                print(doc.name)
 
-nda_template_id = '8d29c360-f878-48e2-9782-8914679ecdac'
-tmpl1 = '9f12ec63-484c-4d84-ad73-5aa33455e827'
-tmpl2 = 'ffb8ec43-3574-4343-a140-ccd7c6807d2f'
+        except Exception as err:
+            print("Error in fetch documents {}".format(str(err)))
 
-# test - request signature for template
-def send_for_signature():
-    ds = DocuSign()
-    ds.authorize()
-    key = ds.request_signature(tmpl2, 'Full Stack Dev', 'saji.nx@gmail.com')
-    if key is not None:
-        print("Envelope send {}".format(key))
+    def fetch_tabs(self, template_id):
+        try:
+            tabs = {}
+            tabs['text_tabs'] = {}
+            tabs['signhere_tabs'] = []
+            tabs['initial_here_tabs'] = []
+
+            template_api = TemplatesApi(self._client)
+            result = template_api.get(DS_ACCOUNT_ID, template_id)
+            num_pages = int(result.page_count)
+            page = 0
+            while page < num_pages:
+                page = page + 1
+                result = template_api.get_page_tabs(DS_ACCOUNT_ID, 1, page, template_id)
+                if result.text_tabs is not None:
+                    for tab in result.text_tabs:
+                        tabs['text_tabs'][tab.tab_label] = tab
+
+                if result.sign_here_tabs is not None:
+                    for tab in result.sign_here_tabs:
+                        tabs['signhere_tabs'].append(tab)
+
+                if result.initial_here_tabs is not None:
+                    for tab in result.initial_here_tabs:
+                        tabs['initial_here_tabs'].append(tab)
+
+            return tabs 
+                
+        except Exception as err:
+            print("Error in fetch documents {}".format(str(err)))
+
    
 # test - envelope status
 def fetch_envelope_status():

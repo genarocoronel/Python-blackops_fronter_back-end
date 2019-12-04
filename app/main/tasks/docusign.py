@@ -1,9 +1,9 @@
 from app.main import db
-from .docusign import DocuSign
-from .models import DocusignTemplate 
+from app.main.service.docusign_service import DocuSign
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from app.main.model.client import Client
+from app.main.model.docsign import DocusignTemplate 
 
 
 BANKFEE_FOR_1SIGNER = 59.00
@@ -172,16 +172,16 @@ def send_contract_for_signature(client_id,
     t_params['ClientEmail'] = client.email
     t_params['ClientDOB'] = '1/1/1973'
     t_params['AcctOwnerDOB'] = '1/1/1973'
-    t_params['BankName'] =  'Bank Of America'
     t_params['ClientLast4SSN'] = '2341'
     t_params['AcctOwnerName'] = '{} {}'.format(client.first_name, client.last_name)
     t_params['ClientFullName1'] = '{} {}'.format(client.first_name, client.last_name)
     t_params['ClientFullName2'] = '{} {}'.format(client.first_name, client.last_name)
 
     t_params['AcctOwnerSSN'] =  '2341'
-    t_params['BankRoutingNbr'] =  '12345678'
-    t_params['BankAccountNbr'] = '9876543210'
-    t_params['BankAccountType'] ='Checking'
+    t_params['BankName'] =  client.bank_account.name
+    t_params['BankRoutingNbr'] =  client.bank_account.routing_number
+    t_params['BankAccountNbr'] = client.bank_account.account_number
+    t_params['BankAccountType'] = client.bank_account.type.value
 
     t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")
     t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")
@@ -189,8 +189,10 @@ def send_contract_for_signature(client_id,
     t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")
     t_params['CurrentDate102'] = datetime.now().strftime("%m/%d/%Y")
     t_params['CurrentDate3'] = datetime.now().strftime("%m/%d/%Y")
+    t_params['CurrentDate4'] = datetime.now().strftime("%m/%d/%Y")
     tmp = datetime.now() + timedelta(days=7)
     t_params['7businessdaysafterCurrentDate'] = tmp.strftime("%m/%d/%Y")
+    t_params['7businessdaysafterCurrentDate1'] = tmp.strftime("%m/%d/%Y")
 
     t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
     t_params['SavingsAmount42'] = "${:.2f}".format(savings_amount)

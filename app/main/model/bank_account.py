@@ -1,5 +1,9 @@
+import enum
 from .. import db
 
+class BankAccountType(enum.Enum):
+    checking = "checking"
+    savings = "savings"
 
 class BankAccount(db.Model):
     """ Client Bank Account Model """
@@ -16,3 +20,4 @@ class BankAccount(db.Model):
     account_number = db.Column(db.String(100), nullable=False)
     routing_number = db.Column(db.String(100), nullable=False)
     valid = db.Column(db.Boolean, nullable=False)
+    type = db.Column(db.Enum(BankAccountType), nullable=True, default=BankAccountType.checking)

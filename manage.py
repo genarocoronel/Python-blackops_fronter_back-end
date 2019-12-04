@@ -11,7 +11,7 @@ from app.main.seed.admins import create_super_admin
 from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
-from docsign.models import DocusignTemplate, DocusignSignature
+from app.main.model.docsign import DocusignTemplate, DocusignSignature
 from app.main.model.client import Client
 from app.main.model.contact_number import ContactNumberType, ContactNumber
 
