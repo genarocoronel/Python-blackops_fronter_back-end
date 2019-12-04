@@ -16,7 +16,6 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, nullable=False)
 
     # relationships
-    candidate_notes = db.relationship('CandidateNote', back_populates='users')
 
     # fields
     first_name = db.Column(db.String(25), nullable=False)

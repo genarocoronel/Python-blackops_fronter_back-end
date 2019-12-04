@@ -2,7 +2,7 @@ import os
 
 from flask_restplus import Namespace, fields
 
-from app.main.model import Language
+from app.main.model import Language, Frequency
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
@@ -14,6 +14,14 @@ from app.main.util import parsers
 class FileToFilenameField(fields.String):
     def format(self, value):
         return os.path.basename(value) if value else ''
+
+
+class FrequencyTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, Frequency):
+            return value.name
+        else:
+            return 'UNKNOWN'
 
 
 class CampaignDto(object):
@@ -293,20 +301,20 @@ class CandidateDto:
     candidate_employment = api.model('candidate_employment', {
         'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
+        'gross_salary': fields.Float(required=False),
         'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
         'current': fields.Boolean(required=True, default=False)
     })
 
     update_candidate_employment = api.model('update_candidate_employment', {
-        'start_date': fields.DateTime(required=True),
+        'start_date': fields.DateTime(dt_format='rfc822'),
         'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
-        'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
+        'gross_salary': fields.Float(required=False),
+        'gross_salary_frequency': FrequencyStatusField(required=False),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
         'current': fields.Boolean(required=True, default=False)
     })
     candidate_number = api.model('candidate_number', {
@@ -320,6 +328,17 @@ class CandidateDto:
         'phone_type_id': fields.Integer(required=True),
         'phone_number': fields.String(required=True),
         'preferred': fields.Boolean(required=True, default=False)
+    })
+    candidate_income = api.model('candidate_income', {
+        'income_type_id': fields.Integer(required=True),
+        'income_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    update_candidate_income = api.model('update_candidate_income', {
+        'income_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
     })
     tasks = api.model('import_task', {
         'name': fields.String(),

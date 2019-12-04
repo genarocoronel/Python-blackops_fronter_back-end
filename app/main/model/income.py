@@ -1,8 +1,9 @@
+from app.main.model import Frequency
 from .. import db
 
 
-class ExpenseType(db.Model):
-    __tablename__ = 'expense_types'
+class IncomeType(db.Model):
+    __tablename__ = 'income_types'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     inserted_on = db.Column(db.DateTime, nullable=False)
@@ -12,14 +13,15 @@ class ExpenseType(db.Model):
     description = db.Column(db.Text, nullable=True)
 
 
-class MonthlyExpense(db.Model):
-    __tablename__ = 'monthly_expenses'
+class Income(db.Model):
+    __tablename__ = 'income_sources'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     inserted_on = db.Column(db.DateTime, nullable=False)
 
     # foreign keys
-    expense_type_id = db.Column(db.Integer, db.ForeignKey('expense_types.id'))
+    income_type_id = db.Column(db.Integer, db.ForeignKey('income_types.id'))
 
     # fields
     value = db.Column(db.Integer, nullable=False)
+    frequency = db.Column(db.Enum(Frequency), nullable=False, default=Frequency.MONTHLY)

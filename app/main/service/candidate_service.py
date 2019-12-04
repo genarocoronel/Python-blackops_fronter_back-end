@@ -1,15 +1,14 @@
 import uuid
 import datetime
 
-from flask import current_app
 from app.main import db
-from app.main.model.candidate import CandidateImport, Candidate, CandidateContactNumber, CandidateEmployment
 from app.main.model.employment import Employment
+from app.main.model import Frequency
+from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.candidate import CandidateImport, Candidate
-from app.main.model.client import ClientType
 from app.main.model.credit_report_account import CreditReportAccount
-from app.main.service.client_service import save_new_client
+from app.main.model.income import IncomeType, Income
 
 
 def save_new_candidate(data):
@@ -128,6 +127,54 @@ def update_candidate_employments(candidate, employments):
     return {'message': 'Successfully updated employments'}, None
 
 
+def get_candidate_income_sources(candidate):
+    income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+    income_sources = [assoc.income_source for assoc in income_sources_assoc]
+    income_types = IncomeType.query.filter(
+        IncomeType.id.in_([income.income_type_id for income in income_sources])
+    ).all()
+
+    response = []
+    for income in income_sources:
+        data = {}
+        data['income_type_id'] = income.income_type_id
+        data['income_type'] = next(
+            (income_type.name for income_type in income_types if income_type.id == income.income_type_id), 'UNKNOWN')
+        data['value'] = income.value
+        data['frequency'] = income.frequency
+        response.append(data)
+    return response, None
+
+
+def update_candidate_income_sources(candidate, income_sources):
+    prev_income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+
+    # create new records first
+    for data in income_sources:
+        income_type = IncomeType.query.filter_by(id=data.get('income_type_id')).first()
+        if income_type:
+            new_candidate_income = CandidateIncome()
+            new_candidate_income.candidate = candidate
+            new_candidate_income.income_source = Income(
+                inserted_on=datetime.datetime.utcnow(),
+                income_type_id=data.get('income_type_id'),
+                value=data.get('value'),
+                frequency=Frequency[data.get('frequency')]
+            )
+            db.session.add(new_candidate_income)
+        else:
+            return None, 'Invalid Income Type'
+
+    # remove previous records
+    for income_assoc in prev_income_sources_assoc:
+        CandidateIncome.query.filter(CandidateIncome.candidate_id == candidate.id,
+                                     CandidateIncome.income_id == income_assoc.income_id).delete()
+        Income.query.filter_by(id=income_assoc.income_id).delete()
+    save_changes()
+
+    return {'message': 'Successfully updated income sources'}, None
+
+
 def get_candidate_contact_numbers(candidate):
     contact_number_assoc = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     contact_numbers = [num.contact_number for num in contact_number_assoc]
@@ -138,7 +185,9 @@ def get_candidate_contact_numbers(candidate):
     for contact_number in contact_numbers:
         data = {}
         data['phone_type_id'] = contact_number.contact_number_type_id
-        data['phone_type'] = next((phone_type.name for phone_type in phone_types), 'UNKNOWN')
+        data['phone_type'] = next(
+            (phone_type.name for phone_type in phone_types if phone_type.id == contact_number.contact_number_type_id),
+            'UNKNOWN')
         data['phone_number'] = contact_number.phone_number
         data['preferred'] = contact_number.preferred
         number_data.append(data)
@@ -208,16 +257,3 @@ def save_new_candidate_import(data):
     save_changes(new_candidate_import)
     db.session.refresh(new_candidate_import)
     return new_candidate_import
-
-
-def transfer_to_lead(candidate_id):
-    candidate = Candidate.query.filter_by(public_id=candidate_id).first()
-    if not candidate:
-        raise Exception('Candidate does not exist')
-
-    data = dict(email=candidate.email, first_name=candidate.first_name, last_name=candidate.last_name,
-         address=candidate.address, city=candidate.city, state=candidate.state, zip=candidate.zip,
-         phone=candidate.phone, language=candidate.language, zip4=candidate.zip4,
-         estimated_debt=candidate.estimated_debt)
-
-    save_new_client(data, ClientType.lead)

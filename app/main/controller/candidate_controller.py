@@ -11,7 +11,8 @@ from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
     get_candidate, get_all_candidates, update_candidate, \
-    get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers
+    get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
+    get_candidate_income_sources, update_candidate_income_sources
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.third_party.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -30,6 +31,32 @@ _candidate_employment = CandidateDto.candidate_employment
 _update_candidate_employment = CandidateDto.update_candidate_employment
 _update_candidate_number = CandidateDto.update_candidate_number
 _candidate_number = CandidateDto.candidate_number
+_candidate_income = CandidateDto.candidate_income
+_update_candidate_income = CandidateDto.update_candidate_income
+
+
+def _handle_get_candidate(candidate_public_id):
+    candidate = get_candidate(candidate_public_id)
+    if not candidate:
+        response_object = {
+            'success': False,
+            'message': 'Candidate does not exist'
+        }
+        return None, response_object
+    else:
+        return candidate, None
+
+
+def _handle_get_credit_report(candidate, account_public_id):
+    account = candidate.credit_report_account
+    if not account or account.public_id != account_public_id:
+        response_object = {
+            'success': False,
+            'message': 'Credit Report Account does not exist'
+        }
+        return None, response_object
+    else:
+        return account, None
 
 
 @api.route('/')
@@ -58,6 +85,38 @@ class UpdateCandidate(Resource):
     @api.expect(_update_candidate, validate=True)
     def put(self, public_id):
         return update_candidate(public_id, request.json)
+
+
+@api.route('/<candidate_id>/income-sources')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateContactNumbers(Resource):
+    @api.doc('get candidate income sources')
+    @api.marshal_list_with(_candidate_income)
+    def get(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_candidate_income_sources(candidate)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update candidate income sources')
+    @api.expect([_update_candidate_income], validate=True)
+    def put(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            numbers = request.json
+            result, err_msg = update_candidate_income_sources(candidate, numbers)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
 
 
 @api.route('/<candidate_id>/contact_numbers')

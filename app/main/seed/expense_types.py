@@ -1,5 +1,4 @@
 import datetime
-import uuid
 from typing import List
 
 from pytz import utc
@@ -20,9 +19,13 @@ expense_types = [
 ]  # type: List[dict]
 
 
-def seed_candidate_disposition_values():
+def seed_expense_type_values():
     db_values = []
     for expense_type in expense_types:
         db_values.append(
-            expense_type.update({'public_id': str(uuid.uuid4()), 'inserted_on': datetime.datetime.now(tz=utc)}))
+            {
+                'name': expense_type['name'],
+                'display_name': expense_type['display_name'],
+                'inserted_on': datetime.datetime.now(tz=utc)
+            })
     return db_values
