@@ -46,6 +46,7 @@ class Candidate(db.Model):
     disposition = db.relationship('CandidateDisposition', back_populates='candidates')
     campaign = db.relationship('Campaign', back_populates='candidates')
     employment = db.relationship('Employment')
+    contact_numbers = db.relationship('CandidateContactNumber')
 
     # fields
     first_name = db.Column(db.String(25), nullable=False)
@@ -92,6 +93,17 @@ class Candidate(db.Model):
     @zip.setter
     def zip(self, zip):
         self._zip = zip.zfill(5)
+
+
+class CandidateContactNumber(db.Model):
+    __tablename = ""
+
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
+    contact_number_id = db.Column(db.Integer, db.ForeignKey('contact_numbers.id'), primary_key=True)
+
+    # relationships
+    candidate = db.relationship('Candidate', backref='candidate_assoc')
+    contact_number = db.relationship('ContactNumber', backref='contact_number_assoc')
 
 
 class CandidateImportStatus(enum.Enum):

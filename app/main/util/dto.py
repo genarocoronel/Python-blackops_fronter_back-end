@@ -267,7 +267,18 @@ class CandidateDto:
         'other_income_frequency': FrequencyStatusField(),
         'current': fields.Boolean(required=True, default=False)
     })
-    
+    candidate_number = api.model('candidate_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_type': fields.String(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
+
+    update_candidate_number = api.model('update_candidate_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
     tasks = api.model('import_task', {
         'name': fields.String(),
         'description': fields.String(),
@@ -285,7 +296,6 @@ class CandidateDto:
     })
     candidate_upload = parsers.file_upload
     new_credit_report_account = api.model('candidate_create_request', {
-        'email': fields.String(required=True, example='charlie.test-pjndl@gmail.com'),
         'first_name': fields.String(required=True, example='Charlie'),
         'last_name': fields.String(required=True, example='Test-PJNDL'),
         'zip': fields.String(required=True, example='01001'),

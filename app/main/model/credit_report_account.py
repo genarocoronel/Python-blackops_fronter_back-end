@@ -35,7 +35,8 @@ class CreditReportAccount(db.Model):
     _password_enc = db.Column('password_enc', db.String(128), nullable=True)
     status = db.Column(db.Enum(CreditReportSignupStatus), nullable=False,
                        default=CreditReportSignupStatus.INITIATING_SIGNUP)
-
+    email = db.Column(db.String(30), nullable=True, unique=True)
+    registered_fraud_insurance = db.Column(db.Boolean, nullable=False, default=False)
     @property
     def password(self):
         return self._password_enc
