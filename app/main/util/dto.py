@@ -122,6 +122,12 @@ class ClientTypeField(fields.String):
         else:
             return 'unknown'
 
+class FrequencyStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, FrequencyStatus):
+            return value.name
+        else:
+            return 'unknown'
 
 class ClientDto:
     api = Namespace('clients', description='client related operations')
@@ -143,6 +149,24 @@ class ClientDto:
         'account_number': fields.String(required=True, description='client bank account number'),
         'routing_number': fields.String(required=True, description='client bank routing number'),
         'valid': fields.Boolean(required=True)
+    })
+    client_employment = api.model('client_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
+    })
+    update_client_employment = api.model('update_client_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
     })
 
 
@@ -170,13 +194,6 @@ class CandidateImportStatusField(fields.String):
 class CandidateStatusField(fields.String):
     def format(self, value):
         if isinstance(value, CandidateStatus):
-            return value.name
-        else:
-            return 'unknown'
-
-class FrequencyStatusField(fields.String):
-    def format(self, value):
-        if isinstance(value, FrequencyStatus):
             return value.name
         else:
             return 'unknown'
@@ -250,25 +267,7 @@ class CandidateDto:
         'other_income_frequency': FrequencyStatusField(),
         'current': fields.Boolean(required=True, default=False)
     })
-    client_employment = api.model('client_employment', {
-        'start_date': fields.DateTime(required=True),
-        'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
-        'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
-        'current': fields.Boolean(required=True, default=False)
-    })
-
-    update_client_employment = api.model('update_client_employment', {
-        'start_date': fields.DateTime(required=True),
-        'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
-        'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
-        'current': fields.Boolean(required=True, default=False)
-    })
+    
     tasks = api.model('import_task', {
         'name': fields.String(),
         'description': fields.String(),
