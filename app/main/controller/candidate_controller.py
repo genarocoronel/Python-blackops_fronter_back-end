@@ -9,7 +9,8 @@ from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportData
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, get_all_candidates, update_candidate, get_candidate_employments, update_candidate_employments
+    get_candidate, get_all_candidates, update_candidate, \
+    get_candidate_employments, update_candidate_employments
 from app.main.service.credit_report_account_service import save_new_credit_report_account,\
     update_credit_report_account, get_report_data
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
