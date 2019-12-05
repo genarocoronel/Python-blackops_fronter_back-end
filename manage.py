@@ -47,11 +47,6 @@ def mailer_file_worker():
 
 
 @manager.command
-def jive_email_listener():
-    listen_for_jive_emails.run()
-
-
-@manager.command
 def seed():
     create_super_admin()
 

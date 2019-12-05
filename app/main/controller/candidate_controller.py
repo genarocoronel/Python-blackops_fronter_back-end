@@ -14,7 +14,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
-from app.main.service.third_party.smartcredit_service import start_signup, LockedException, create_customer, \
+from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
     activate_smart_credit_insurance
 from ..util.dto import CandidateDto
@@ -33,30 +33,6 @@ _update_candidate_number = CandidateDto.update_candidate_number
 _candidate_number = CandidateDto.candidate_number
 _candidate_income = CandidateDto.candidate_income
 _update_candidate_income = CandidateDto.update_candidate_income
-
-
-def _handle_get_candidate(candidate_public_id):
-    candidate = get_candidate(candidate_public_id)
-    if not candidate:
-        response_object = {
-            'success': False,
-            'message': 'Candidate does not exist'
-        }
-        return None, response_object
-    else:
-        return candidate, None
-
-
-def _handle_get_credit_report(candidate, account_public_id):
-    account = candidate.credit_report_account
-    if not account or account.public_id != account_public_id:
-        response_object = {
-            'success': False,
-            'message': 'Credit Report Account does not exist'
-        }
-        return None, response_object
-    else:
-        return account, None
 
 
 @api.route('/')
