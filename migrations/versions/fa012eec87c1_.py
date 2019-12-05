@@ -30,7 +30,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('envelope_id')
     )
-    op.create_unique_constraint(None, 'docusign_template', ['ds_key'])
     # ### end Alembic commands ###
 
 
