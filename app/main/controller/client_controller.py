@@ -2,11 +2,13 @@ from flask import request
 from flask_restplus import Resource
 
 from app.main.model.client import ClientType
-from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments
+from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments, get_client_employments, update_client_employments
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
 _client = ClientDto.client
+_client_employment = ClientDto.client_employment
+_update_client_employment = ClientDto.update_client_employment
 _appointment = AppointmentDto.appointment
 
 CLIENT = ClientType.client
@@ -58,3 +60,35 @@ class ClientAppointmentList(Resource):
             api.abort(404)
         else:
             return result
+
+
+@api.route('/<public_id>/employments')
+@api.param('public_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientEmployments(Resource):
+    @api.doc('get client employments')
+    @api.marshal_list_with(_client_employment)
+    def get(self, public_id):
+        client, error_response = get_client(public_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_employments(client)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update client employment')
+    @api.expect([_update_client_employment], validate=True)
+    def put(self, public_id):
+        client, error_response = get_client(public_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            employments = request.json
+            result, err_msg = update_client_employments(client, employments)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200

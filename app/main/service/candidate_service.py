@@ -2,7 +2,8 @@ import uuid
 import datetime
 
 from app.main import db
-from app.main.model.candidate import CandidateImport, Candidate
+from app.main.model.candidate import CandidateImport, Candidate, CandidateEmployment
+from app.main.model.employment import Employment
 from app.main.model.credit_report_account import CreditReportAccount
 
 
@@ -71,6 +72,54 @@ def update_candidate(public_id, data):
             'message': 'Candidate not found',
         }
         return response_object, 404
+
+def get_candidate_employments(candidate):
+    employment_assoc = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+    employments = [num.employment for num in employment_assoc]
+
+    employment_data = []
+    for employment in employments:
+        data = {}
+        data['start_date'] = employment.start_date
+        data['end_date'] = employment.end_date
+        data['gross_salary'] = employment.gross_salary
+        data['gross_salary_frequency'] = employment.gross_salary_frequency
+        data['other_income'] = employment.other_income
+        data['other_income_frequency'] = employment.other_income_frequency
+        data['current'] = employment.current
+        employment_data.append(data)
+
+    return employment_data, None
+
+
+def update_candidate_employments(candidate, employments):
+    prev_employments = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+
+    # create new records first
+    for data in employments:
+        new_employment = CandidateEmployment()
+        new_employment.candidate = candidate
+        new_employment.employment = Employment(
+            inserted_on=datetime.datetime.utcnow(),
+            start_date=data.get('start_date'),
+            end_date=data.get('end_date'),
+            gross_salary=data.get('gross_salary'),
+            gross_salary_frequency=data.get('gross_salary_frequency'),
+            other_income=data.get('other_income'),
+            other_income_frequency=data.get('other_income_frequency'),
+            current=data.get('current')
+        )
+        db.session.add(new_employment)
+    save_changes()
+
+    # remove previous records
+    for prev_employment in prev_employments:
+        CandidateEmployment.query.filter(CandidateEmployment.candidate_id == candidate.id,
+                                            CandidateEmployment.employment_id == prev_employment.employment_id).delete()
+        Employment.query.filter_by(id=prev_employment.employment_id).delete()
+    save_changes()
+
+    return {'message': 'Successfully updated employments'}, None
 
 
 def get_all_candidate_imports():

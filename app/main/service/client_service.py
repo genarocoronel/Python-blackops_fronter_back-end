@@ -3,7 +3,8 @@ import datetime
 
 from app.main import db
 from app.main.model.appointment import Appointment
-from app.main.model.client import Client, ClientType
+from app.main.model.client import Client, ClientType, ClientEmployment
+from app.main.model.employment import Employment
 
 
 def save_new_client(data, client_type=ClientType.lead):
@@ -67,3 +68,53 @@ def save_changes(*data):
     for entry in data:
         db.session.add(entry)
     db.session.commit()
+
+
+def get_client_employments(client):
+    employment_assoc = ClientEmployment.query.join(Client).filter(Client.id == client.id).all()
+    employments = [num.employment for num in employment_assoc]
+
+    employment_data = []
+    for employment in employments:
+        data = {}
+        data['start_date'] = employment.start_date
+        data['end_date'] = employment.end_date
+        data['gross_salary'] = employment.gross_salary
+        data['gross_salary_frequency'] = employment.gross_salary_frequency
+        data['other_income'] = employment.other_income
+        data['other_income_frequency'] = employment.other_income_frequency
+        data['current'] = employment.current
+        employment_data.append(data)
+
+    return employment_data, None
+
+
+def update_client_employments(client, employments):
+    prev_employments = ClientEmployment.query.join(Client).filter(Client.id == client.id).all()
+
+    # create new records first
+    for data in employments:
+        new_employment = ClientEmployment()
+        new_employment.client = client
+        new_employment.employment = Employment(
+            inserted_on=datetime.datetime.utcnow(),
+            start_date=data.get('start_date'),
+            end_date=data.get('end_date'),
+            gross_salary=data.get('gross_salary'),
+            gross_salary_frequency=data.get('gross_salary_frequency'),
+            other_income=data.get('other_income'),
+            other_income_frequency=data.get('other_income_frequency'),
+            current=data.get('current')
+        )
+        db.session.add(new_employment)
+    save_changes()
+
+    # remove previous records
+    for prev_employment in prev_employments:
+        ClientEmployment.query.filter(ClientEmployment.client_id == client.id,
+                                            ClientEmployment.employment_id == prev_employment.employment_id).delete()
+        Employment.query.filter_by(id=prev_employment.employment_id).delete()
+    save_changes()
+
+    return {'message': 'Successfully updated employments'}, None
+

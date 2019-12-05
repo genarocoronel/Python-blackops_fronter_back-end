@@ -3,6 +3,7 @@ import os
 from flask_restplus import Namespace, fields
 
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
+from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
@@ -173,6 +174,12 @@ class CandidateStatusField(fields.String):
         else:
             return 'unknown'
 
+class FrequencyStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, FrequencyStatus):
+            return value.name
+        else:
+            return 'unknown'
 
 class CreditReportAccountStatusField(fields.String):
     def format(self, value):
@@ -223,6 +230,44 @@ class CandidateDto:
         'phone': fields.String(),
         'status': CandidateStatusField()
 
+    })
+    candidate_employment = api.model('candidate_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
+    })
+
+    update_candidate_employment = api.model('update_candidate_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
+    })
+    client_employment = api.model('client_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
+    })
+
+    update_client_employment = api.model('update_client_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
     })
     tasks = api.model('import_task', {
         'name': fields.String(),
