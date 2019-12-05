@@ -323,7 +323,6 @@ class CandidateDto:
         'phone_number': fields.String(required=True),
         'preferred': fields.Boolean(required=True, default=False)
     })
-
     update_candidate_number = api.model('update_candidate_number', {
         'phone_type_id': fields.Integer(required=True),
         'phone_number': fields.String(required=True),
