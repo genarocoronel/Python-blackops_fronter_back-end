@@ -5,6 +5,7 @@ from flask_restplus import Namespace, fields
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
+from app.main.model.address import AddressType
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.util import parsers
@@ -13,6 +14,41 @@ from app.main.util import parsers
 class FileToFilenameField(fields.String):
     def format(self, value):
         return os.path.basename(value) if value else ''
+
+
+class AddressTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, AddressType):
+            return value.name
+        else:
+            return 'unknown'
+
+
+class AddressDto(object):
+    api = Namespace('addresses', description='address related operations')
+    address = api.model('address', {
+        'public_id': fields.String(required=True),
+        'candidate_id': fields.String(required=True),
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'fromDate': fields.Date(required=True),
+        'toDate': fields.Date(required=True),
+        'type': AddressTypeField(required=True)
+    })
+    new_address = api.model('new_address', {
+        'candidate_id': fields.String(required=True),
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'fromDate': fields.Date(required=True),
+        'toDate': fields.Date(required=True),
+        'type': AddressTypeField(required=True)
+    })
 
 
 class CampaignDto(object):

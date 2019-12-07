@@ -14,9 +14,8 @@ from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSignature
 from app.main.model.client import Client
 from app.main.model.contact_number import ContactNumberType, ContactNumber
+from app.main.model.address import AddressType, Address
 
-
-from app.main.model.client import Client
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
