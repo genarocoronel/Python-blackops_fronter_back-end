@@ -19,7 +19,7 @@ class Client(db.Model):
 
     # relationships
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
-    employment = db.relationship('Employment')
+    employment = db.relationship('ClientEmployment')
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)
@@ -44,5 +44,5 @@ class ClientEmployment(db.Model):
     employment_id = db.Column(db.Integer, db.ForeignKey('employments.id'), primary_key=True)
 
     # relationships
-    client = db.relationship('Client', backref='client_assoc')
-    employment = db.relationship('Employment', backref='employment_assoc')
+    client = db.relationship('Client', backref='client_employment_assoc')
+    employment = db.relationship('Employment', backref='employment_client_assoc')
