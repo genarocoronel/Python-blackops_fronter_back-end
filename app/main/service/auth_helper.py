@@ -143,7 +143,6 @@ class Auth:
                 app.logger.debug(f'password reset request id: {reset_request.reset_key}, code: {code}')
                 sms_send_raw(user.personal_phone,
                              f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes', user.id)
-
                 response_object = {
                     'success': True,
                     'message': 'Password reset request successful',
@@ -151,8 +150,19 @@ class Auth:
                     'phone_last_4': user.personal_phone[-4:]
                 }
                 return response_object, 201
+            else:
+                response_object = {
+                    'success': False,
+                    'message': 'No such user exist.'
+                }
+                return response_object, 403
         except Exception as e:
             print(e)
+            response_object = {
+                    'success': False,
+                    'message': 'Failed Password Reset.'
+            }
+            return response_object, 404
 
     @staticmethod
     def validate_reset_password_request(data):

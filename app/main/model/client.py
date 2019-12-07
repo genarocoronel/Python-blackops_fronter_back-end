@@ -19,6 +19,7 @@ class Client(db.Model):
 
     # relationships
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
+    employment = db.relationship('Employment')
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)
@@ -35,3 +36,13 @@ class Client(db.Model):
     language = db.Column(db.String(25), nullable=True)
     phone = db.Column(db.String(25), nullable=True)
     type = db.Column(db.Enum(ClientType), nullable=False, default=ClientType.lead)
+
+class ClientEmployment(db.Model):
+    __tablename__ = "client_employments"
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    employment_id = db.Column(db.Integer, db.ForeignKey('employments.id'), primary_key=True)
+
+    # relationships
+    client = db.relationship('Client', backref='client_assoc')
+    employment = db.relationship('Employment', backref='employment_assoc')

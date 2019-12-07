@@ -9,7 +9,8 @@ from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportData
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, get_all_candidates, update_candidate, update_candidate_contact_numbers, get_candidate_contact_numbers
+    get_candidate, get_all_candidates, update_candidate, \
+    get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers
 from app.main.service.credit_report_account_service import save_new_credit_report_account,\
     update_credit_report_account, get_report_data
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
@@ -26,6 +27,8 @@ _credit_account_verification_answers = CandidateDto.account_verification_answers
 _candidate = CandidateDto.candidate
 _credit_report_data = CandidateDto.credit_report_data
 _update_candidate = CandidateDto.update_candidate
+_candidate_employment = CandidateDto.candidate_employment
+_update_candidate_employment = CandidateDto.update_candidate_employment
 _update_candidate_number = CandidateDto.update_candidate_number
 _candidate_number = CandidateDto.candidate_number
 
@@ -516,3 +519,34 @@ class ScrapeCreditReportData(Resource):
         """View Credit Report Data"""
         data = get_report_data(public_id)
         return data, 200
+
+@api.route('/<candidate_id>/employments')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateEmployments(Resource):
+    @api.doc('get candidate employments')
+    @api.marshal_list_with(_candidate_employment)
+    def get(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_candidate_employments(candidate)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update candidate employment')
+    @api.expect([_update_candidate_employment], validate=True)
+    def put(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            employments = request.json
+            result, err_msg = update_candidate_employments(candidate, employments)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200

@@ -45,6 +45,7 @@ class Candidate(db.Model):
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='candidate')
     disposition = db.relationship('CandidateDisposition', back_populates='candidates')
     campaign = db.relationship('Campaign', back_populates='candidates')
+    employment = db.relationship('Employment')
     contact_numbers = db.relationship('CandidateContactNumber')
 
     # fields
@@ -141,3 +142,13 @@ class CandidateImport(db.Model):
 
     def get_task_in_progress(self, name):
         return ImportTask.query.filter_by(name=name, user=self, complete=False).first()
+
+class CandidateEmployment(db.Model):
+    __tablename__ = "candidate_employments"
+
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
+    employment_id = db.Column(db.Integer, db.ForeignKey('employments.id'), primary_key=True)
+
+    # relationships
+    candidate = db.relationship('Candidate', backref='candidate_assoc')
+    employment = db.relationship('Employment', backref='employment_assoc')
