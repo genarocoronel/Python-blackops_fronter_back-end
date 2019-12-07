@@ -45,8 +45,8 @@ class Candidate(db.Model):
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='candidate')
     disposition = db.relationship('CandidateDisposition', back_populates='candidates')
     campaign = db.relationship('Campaign', back_populates='candidates')
-    employment = db.relationship('Employment')
     contact_numbers = db.relationship('CandidateContactNumber')
+    employments = db.relationship('CandidateEmployment')
 
     # fields
     first_name = db.Column(db.String(25), nullable=False)
@@ -150,5 +150,5 @@ class CandidateEmployment(db.Model):
     employment_id = db.Column(db.Integer, db.ForeignKey('employments.id'), primary_key=True)
 
     # relationships
-    candidate = db.relationship('Candidate', backref='candidate_assoc')
-    employment = db.relationship('Employment', backref='employment_assoc')
+    candidate = db.relationship('Candidate', backref='candidate_employment_assoc')
+    employment = db.relationship('Employment', backref='employment_candidate_assoc')
