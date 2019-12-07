@@ -1,4 +1,4 @@
-from flask import request, current_app
+from flask import request
 from flask_restplus import Resource
 
 from app.main.model.client import ClientType
@@ -63,6 +63,7 @@ def _get_codes_for_current_user():
 
 @api.route('/<public_id>/credit-report/debts')
 @api.param('public_id', 'The client Identifier')
+@api.response(404, 'lead or credit report account does not exist')
 class CreditReportDebts(Resource):
     @api.doc('fetch credit report data')
     def put(self, public_id):
@@ -70,15 +71,15 @@ class CreditReportDebts(Resource):
         try:
             client, error_response = _handle_get_client(public_id)
             if not client:
-                return error_response
+                api.abort(404, **error_response)
 
             credit_account, error_response = _handle_get_credit_report(client)
             if not credit_account:
-                return error_response
+                api.abort(404, **error_response)
 
             exists, error_response = check_existing_scrape_task(credit_account)
             if exists:
-                return error_response
+                api.aport(409, **error_response)
 
             task = credit_account.launch_spider(
                 'capture',
@@ -101,15 +102,15 @@ class CreditReportDebts(Resource):
     @api.doc('view credit report data')
     @api.marshal_list_with(_credit_report_debt, envelope='data')
     def get(self, public_id):
-        """View Credit Report Data"""
+        """ View Credit Report Data """
         try:
             client, error_response = _handle_get_client(public_id)
             if not client:
-                return error_response
+                api.abort(404, **error_response)
 
             credit_account, error_response = _handle_get_credit_report(client)
             if not credit_account:
-                return error_response
+                api.abort(404, **error_response)
 
             data = get_report_data(credit_account)
             return data, 200
@@ -118,7 +119,7 @@ class CreditReportDebts(Resource):
                 'success': False,
                 'message': str(e)
             }
-            return response_object, 500
+            api.abort(500, **response_object)
 
 
 @api.route('/<lead_id>/bank-account')
@@ -145,16 +146,6 @@ class LeadBankAccount(Resource):
             else:
                 return None, 201
 
-    @api.doc('view credit report data')
-    @api.marshal_list_with(_credit_report_debt, envelope='data')
-    def get(self, public_id):
-        """View Credit Report Data"""
-        client, error_response = _handle_get_client(public_id)
-        if not client:
-            api.abort(404, **error_response)
-        data = get_report_data(client.credit_report_account)
-        return data, 200
-
 
 def _handle_get_client(public_id):
     client = get_client(public_id, client_type=LEAD)
@@ -175,6 +166,6 @@ def _handle_get_credit_report(client):
             'success': False,
             'message': 'Credit Report Account does not exist'
         }
-        return None, (response_object, 404)
+        return None, response_object
     else:
         return account, None

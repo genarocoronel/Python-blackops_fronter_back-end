@@ -16,7 +16,7 @@ def check_existing_scrape_task(account):
         'success': False,
         'message': 'Existing fetch ongoing for this candidate'
     }
-    return True, (response_object, 500)
+    return True, response_object
 
 
 def get_report_data(account, data_public_id=None):

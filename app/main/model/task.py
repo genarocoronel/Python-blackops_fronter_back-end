@@ -36,10 +36,14 @@ class ScrapeTask(db.Model):
     __tablename__ = "scrape_tasks"
 
     id = db.Column(db.String(36), primary_key=True)
-    name = db.Column(db.String(128), index=True)
-    account_id = db.Column(db.Integer, db.ForeignKey('credit_report_accounts.id', name='fk_scrape_tasks'))
     inserted_on = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
     updated_on = db.Column(db.DateTime, nullable=True)
+
+    # foreign keys
+    account_id = db.Column(db.Integer, db.ForeignKey('credit_report_accounts.id', name='fk_scrape_tasks'))
+
+    # fields
+    name = db.Column(db.String(128), index=True)
     complete = db.Column(db.Boolean, default=False)
 
     @property

@@ -143,6 +143,7 @@ class CandidateImport(db.Model):
     def get_task_in_progress(self, name):
         return ImportTask.query.filter_by(name=name, user=self, complete=False).first()
 
+
 class CandidateEmployment(db.Model):
     __tablename__ = "candidate_employments"
 

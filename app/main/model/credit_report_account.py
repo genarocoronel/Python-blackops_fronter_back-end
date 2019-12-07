@@ -17,9 +17,13 @@ class CreditReportAccount(db.Model):
     __tablename__ = "credit_report_accounts"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    public_id = db.Column(db.String(100), unique=True)
+
+    # foreign keys
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'))
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_client'))
-    public_id = db.Column(db.String(100), unique=True)
+
+    # fields
     provider = db.Column(db.String(50), nullable=False, default='Smart Credit')
     customer_token = db.Column(db.String(), unique=True, nullable=True)
     tracking_token = db.Column(db.String(100), nullable=False)
@@ -58,7 +62,10 @@ class CreditReportData(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     last_update = db.Column(db.DateTime, nullable=True)
 
+    # foreign keys
     account_id = db.Column(db.Integer, db.ForeignKey('credit_report_accounts.id', name='fk_credit_report_data'))
+
+    # fields
     debt_name = db.Column(db.String(100), nullable=True)
     creditor = db.Column(db.String(100), nullable=True)
     ecoa = db.Column(db.String(50), nullable=True)

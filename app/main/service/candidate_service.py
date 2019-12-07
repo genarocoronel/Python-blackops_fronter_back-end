@@ -75,6 +75,7 @@ def update_candidate(public_id, data):
         }
         return response_object, 404
 
+
 def get_candidate_employments(candidate):
     employment_assoc = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     employments = [num.employment for num in employment_assoc]

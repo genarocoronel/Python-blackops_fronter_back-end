@@ -45,7 +45,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('candidate_id', 'employment_id')
     )
     with op.batch_alter_table('docusign_template', schema=None) as batch_op:
-        batch_op.create_unique_constraint(None, ['ds_key'])
+        batch_op.create_unique_constraint('ds_key', ['ds_key'])
 
     # ### end Alembic commands ###
 
