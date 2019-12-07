@@ -69,8 +69,6 @@ class Candidate(db.Model):
 
     estimated_debt = db.Column(db.Integer, nullable=False)
 
-    prequal_number = db.Column(db.String(12), unique=True, nullable=True)
-
     # mailer fields
     debt3 = db.Column(db.Integer, nullable=False)  # Debt3 = 3% of revolving debt so =DEBT*3% assuming Debt is column L
     debt15 = db.Column(db.Integer, nullable=False)  # DEBT*1.5% = (L9+(L9*0.06))/60 assuming that L is the column that has the persons revolving debt
@@ -85,11 +83,6 @@ class Candidate(db.Model):
     sav215 = db.Column(db.Integer, nullable=False)  # SAV215 = (((O9*0.03)-P9)*12)-4 Assuming that O is the Debt 2 column and P is the Debt215 column
     sav15 = db.Column(db.Integer, nullable=False)  # SAV15 = (M9*12)-(N9*12) assuming that column M is Debt3 and Column N is Debt15
     sav315 = db.Column(db.Integer, nullable=False)  # Sav315 = (((Q9*0.03)-R9)*12)+4 assuming that Q is the Debt3 column and R is the Debt 315 column
-
-    county = db.Column(db.String(50), nullable=True)
-    email = db.Column(db.String(255), unique=True, nullable=True)
-    language = db.Column(db.String(25), nullable=True)
-    phone = db.Column(db.String(25), nullable=True)
 
     @property
     def zip(self):

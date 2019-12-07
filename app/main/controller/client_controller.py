@@ -5,7 +5,8 @@ from app.main.controller import _convert_payload_datetime_values, _handle_get_cl
 from app.main.model.client import ClientType
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments, \
-    update_client, get_client_employments, update_client_employments, save_changes
+    update_client, get_client_employments, update_client_employments, get_client_income_sources, update_client_income_sources, \
+    get_client_monthly_expenses, update_client_monthly_expenses, save_changes
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
@@ -13,6 +14,10 @@ _client = ClientDto.client
 _client_employment = ClientDto.client_employment
 _update_client_employment = ClientDto.update_client_employment
 _appointment = AppointmentDto.appointment
+_client_income = ClientDto.client_income
+_update_client_income = ClientDto.update_client_income
+_client_monthly_expense = ClientDto.client_monthly_expense
+_update_client_monthly_expense = ClientDto.update_client_monthly_expense
 _credit_report_debt = ClientDto.credit_report_debt
 
 CLIENT = ClientType.client
@@ -60,6 +65,70 @@ class Client(Resource):
         else:
             updated_client = update_client(client, request.json)
             return updated_client, 200
+
+
+@api.route('/<client_id>/income-sources')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientIncomeSources(Resource):
+    @api.doc('get client income sources')
+    @api.marshal_list_with(_client_income)
+    def get(self, client_id):
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_income_sources(client)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update client income sources')
+    @api.expect([_update_client_income], validate=True)
+    def put(self, client_id):
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            numbers = request.json
+            result, err_msg = update_client_income_sources(client, numbers)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
+
+
+@api.route('/<client_id>/monthly-expenses')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientMonthlyExpenses(Resource):
+    @api.doc('get client monthly expenses')
+    @api.marshal_list_with(_client_monthly_expense)
+    def get(self, client_id):
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_monthly_expenses(client)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update client monthly expenses')
+    @api.expect([_update_client_monthly_expense], validate=True)
+    def put(self, client_id):
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            expenses = request.json
+            result, err_msg = update_client_monthly_expenses(client, expenses)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
 
 
 @api.route('/<public_id>/appointments')

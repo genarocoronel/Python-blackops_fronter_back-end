@@ -189,6 +189,17 @@ class ClientDto:
         'routing_number': fields.String(required=True, description='client bank routing number'),
         'valid': fields.Boolean(required=True)
     })
+    client_income = api.model('client_income', {
+        'income_type_id': fields.Integer(required=True),
+        'income_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    update_client_income = api.model('update_client_income', {
+        'income_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
     client_employment = api.model('client_employment', {
         'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
@@ -208,6 +219,15 @@ class ClientDto:
         'current': fields.Boolean(required=True, default=False)
     })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
+    client_monthly_expense = api.model('client_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'expense_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+    })
+    update_client_monthly_expense = api.model('update_client_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+    })
 
 
 class LeadDto:
@@ -228,7 +248,6 @@ class LeadDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
     })
-
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
 
@@ -309,7 +328,7 @@ class CandidateDto:
     })
 
     update_candidate_employment = api.model('update_candidate_employment', {
-        'start_date': fields.DateTime(dt_format='rfc822'),
+        'start_date': fields.DateTime(),
         'end_date': fields.DateTime(),
         'gross_salary': fields.Float(required=False),
         'gross_salary_frequency': FrequencyStatusField(required=False),
@@ -338,6 +357,15 @@ class CandidateDto:
         'income_type_id': fields.Integer(required=True),
         'value': fields.Integer(required=True),
         'frequency': FrequencyTypeField(required=True),
+    })
+    candidate_monthly_expense = api.model('candidate_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'expense_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+    })
+    update_candidate_monthly_expense = api.model('update_candidate_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
     })
     tasks = api.model('import_task', {
         'name': fields.String(),

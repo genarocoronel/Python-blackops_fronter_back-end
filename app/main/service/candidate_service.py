@@ -4,11 +4,12 @@ import datetime
 from app.main import db
 from app.main.model.employment import Employment
 from app.main.model import Frequency
-from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment
+from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, CandidateMonthlyExpense
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.candidate import CandidateImport, Candidate
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
+from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 
 
 def save_new_candidate(data):
@@ -120,7 +121,7 @@ def update_candidate_employments(candidate, employments):
     # remove previous records
     for prev_employment in prev_employments:
         CandidateEmployment.query.filter(CandidateEmployment.candidate_id == candidate.id,
-                                            CandidateEmployment.employment_id == prev_employment.employment_id).delete()
+                                         CandidateEmployment.employment_id == prev_employment.employment_id).delete()
         Employment.query.filter_by(id=prev_employment.employment_id).delete()
     save_changes()
 
@@ -173,6 +174,52 @@ def update_candidate_income_sources(candidate, income_sources):
     save_changes()
 
     return {'message': 'Successfully updated income sources'}, None
+
+
+def get_candidate_monthly_expenses(candidate):
+    monthly_expense_assoc = CandidateMonthlyExpense.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+    monthly_expenses = [assoc.income_source for assoc in monthly_expense_assoc]
+    expense_types = ExpenseType.query.filter(
+        ExpenseType.id.in_([expense.expense_type_id for expense in monthly_expenses])
+    ).all()
+
+    response = []
+    for expense in monthly_expenses:
+        data = {}
+        data['expense_type_id'] = expense.expense_type_id
+        data['expense_type'] = next(
+            (expense_type.name for expense_type in expense_types if expense_type.id == expense.expense_type_id), 'UNKNOWN')
+        data['value'] = expense.value
+        response.append(data)
+    return response, None
+
+
+def update_candidate_monthly_expenses(candidate, expenses):
+    prev_monthly_expense_assoc = CandidateMonthlyExpense.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+
+    # create new records first
+    for data in expenses:
+        expense_type = ExpenseType.query.filter_by(id=data.get('expense_type_id')).first()
+        if expense_type:
+            new_candidate_expense = CandidateMonthlyExpense()
+            new_candidate_expense.candidate = candidate
+            new_candidate_expense.monthly_expense = MonthlyExpense(
+                inserted_on=datetime.datetime.utcnow(),
+                expense_type_id=data.get('expense_type_id'),
+                value=data.get('value'),
+            )
+            db.session.add(new_candidate_expense)
+        else:
+            return None, 'Invalid Income Type'
+
+    # remove previous records
+    for expense_assoc in prev_monthly_expense_assoc:
+        CandidateMonthlyExpense.query.filter(CandidateMonthlyExpense.candidate_id == candidate.id,
+                                             CandidateMonthlyExpense.expense_id == expense_assoc.expense_id).delete()
+        MonthlyExpense.query.filter_by(id=expense_assoc.expense_id).delete()
+    save_changes()
+
+    return {'message': 'Successfully updated monthly expenses'}, None
 
 
 def get_candidate_contact_numbers(candidate):
