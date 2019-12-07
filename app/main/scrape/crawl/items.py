@@ -10,12 +10,12 @@ import scrapy
 
 class Debt(scrapy.Item):
     # define the fields for your item here like:
+    credit_account_id = scrapy.Field()
     name = scrapy.Field()
     creditor = scrapy.Field()
     type = scrapy.Field()
     ecoa = scrapy.Field()
     account_number = scrapy.Field()
-    push = scrapy.Field()
     last_collector = scrapy.Field()
     collector_account_number = scrapy.Field()
     last_debt_status = scrapy.Field()
@@ -23,5 +23,5 @@ class Debt(scrapy.Item):
     balance_original = scrapy.Field()
     payment_amount = scrapy.Field()
     credit_limit = scrapy.Field()
-    graduation = scrapy.Field()
-    last_update = scrapy.Field()
+    last_payment = scrapy.Field()
+    state = scrapy.Field()

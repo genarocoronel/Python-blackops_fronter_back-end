@@ -30,7 +30,7 @@ _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _candidate = CandidateDto.candidate
 _lead = LeadDto.lead
-_credit_report_data = CandidateDto.credit_report_data
+_credit_report_data = LeadDto.credit_report_debt
 _update_candidate = CandidateDto.update_candidate
 
 

@@ -2,7 +2,6 @@ import redis
 import rq as rq
 from flask import current_app
 import datetime
-from sqlalchemy import ForeignKeyConstraint
 
 from app.main import db
 
@@ -42,9 +41,6 @@ class ScrapeTask(db.Model):
     inserted_on = db.Column(db.DateTime, nullable=False, default=datetime.datetime.now)
     updated_on = db.Column(db.DateTime, nullable=True)
     complete = db.Column(db.Boolean, default=False)
-
-    # ForeignKeyConstraint(columns=[account_id], refcolumns=['credit_report_accounts.id'], name='fk_credit_report_data')
-
 
     @property
     def progress(self):

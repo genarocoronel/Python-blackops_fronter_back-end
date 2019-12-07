@@ -22,9 +22,10 @@ def check_existing_scrape_task(account):
 def get_report_data(account, data_public_id=None):
     if not account:
         return []
+
     if data_public_id:
-        return CreditReportData.query.filter_by(
-            account_id=account.id, public_id=data_public_id).first()
+        return CreditReportData.query.filter_by(account_id=account.id, public_id=data_public_id).first()
+
     return CreditReportData.query.filter_by(account_id=account.id).all()
 
 

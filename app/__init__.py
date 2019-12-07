@@ -11,7 +11,6 @@ from .main.controller.candidate_controller import api as candidate_ns
 from .main.controller.client_controller import api as client_ns
 from .main.controller.lead_controller import api as lead_ns
 from .main.controller.test_controller import api as test_ns
-from .main.controller.debt_controller import api as debt_ns
 
 blueprint = Blueprint('api', __name__)
 
@@ -29,4 +28,3 @@ api.add_namespace(lead_ns)
 api.add_namespace(client_ns)
 api.add_namespace(appointment_ns)
 api.add_namespace(test_ns)
-api.add_namespace(debt_ns)

@@ -39,13 +39,26 @@ class CreditReportAccount(db.Model):
     def password(self, password):
         self._password_enc = current_app.cipher.encrypt(password.encode())
 
+    def launch_spider(self, name, description, *args, **kwargs):
+        rq_job = current_app.spider_queue.enqueue(
+            'app.main.tasks.credit_report.' + name,
+            self.id,
+            *args,
+            **kwargs
+        )
+        task = ScrapeTask(id=rq_job.get_id(), name='credit_report_spider', account_id=self.id)
+        db.session.add(task)
+        return task
+
 
 class CreditReportData(db.Model):
     """ Db Model for storing candidate report data """
     __tablename__ = "credit_report_data"
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    last_update = db.Column(db.DateTime, nullable=True)
+
     account_id = db.Column(db.Integer, db.ForeignKey('credit_report_accounts.id', name='fk_credit_report_data'))
-    public_id = db.Column(db.String(100), unique=True)
     debt_name = db.Column(db.String(100), nullable=True)
     creditor = db.Column(db.String(100), nullable=True)
     ecoa = db.Column(db.String(50), nullable=True)
@@ -60,27 +73,10 @@ class CreditReportData(db.Model):
     balance_original = db.Column(db.String(20), nullable=True)
     payment_amount = db.Column(db.String(20), nullable=True)
     credit_limit = db.Column(db.String(20), nullable=True)
-    graduation = db.Column(db.String(30), nullable=True)
-    last_update = db.Column(db.DateTime, nullable=True)
-
-    def launch_spider(self, *args, **kwargs):
-        rq_job = current_app.spider_queue.enqueue(
-            'app.main.scrape.credit_report_spider.run',
-            *args,
-            **kwargs
-        )
-        task = ScrapeTask(
-            id=rq_job.get_id(),
-            name='credit_report_spider',
-            account_id=args[0],
-        )
-        db.session.add(task)
-        return task
+    graduation = db.Column(db.DateTime, nullable=True)
 
     def get_tasks_in_progress(self):
-        return ScrapeTask.query.filter_by(
-            user=self, complete=False).all()
+        return ScrapeTask.query.filter_by(user=self, complete=False).all()
 
     def get_task_in_progress(self, name):
-        return ScrapeTask.query.filter_by(
-            name=name, user=self, complete=False).first()
+        return ScrapeTask.query.filter_by(name=name, user=self, complete=False).first()

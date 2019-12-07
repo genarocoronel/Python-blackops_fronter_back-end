@@ -180,9 +180,6 @@ class LeadDto:
         'state': fields.String(required=True, description='client state'),
         'zip': fields.String(required=True, description='client zip'),
         'zip4': fields.String(required=True, description='client zip4'),
-        'crrt': fields.String(required=True, description='client crrt'),
-        'dpbc': fields.Integer(required=True, description='client dpbc'),
-        'fips': fields.Integer(required=True, description='client fips'),
         'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
         'county': fields.String(required=True, description='client county'),
         'email': fields.String(required=True, description='lead email address'),
@@ -190,6 +187,24 @@ class LeadDto:
         'phone': fields.String(required=True, description='lead phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
+    })
+    credit_report_debt = api.model('credit_report_debt', {
+        'debt_name': fields.String(),
+        'creditor': fields.String(),
+        'ecoa': fields.String(),
+        'account_number': fields.String(),
+        'account_type': fields.String(),
+        'push': fields.Boolean(),
+        'last_collector': fields.String(),
+        'collector_account': fields.String(),
+        'last_debt_status': fields.String(),
+        'bureaus': fields.DateTime(),
+        'days_delinquent': fields.Integer(),
+        'balance_original': fields.Integer(),
+        'payment_amount': fields.Integer(),
+        'credit_limit': fields.Integer(),
+        'graduation': fields.DateTime(),
+        'last_update': fields.DateTime(required=True)
     })
 
 
@@ -333,26 +348,6 @@ class CandidateDto:
             'answer2': fields.String(required=True),
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
-
-    })
-    credit_report_data = api.model('credit_report_account', {
-        'public_id': fields.String(),
-        'debt_name': fields.String(),
-        'creditor': fields.String(),
-        'ecoa': fields.String(),
-        'account_number': fields.String(),
-        'account_type': fields.String(),
-        'push': fields.Boolean(),
-        'last_collector': fields.String(),
-        'collector_account': fields.String(),
-        'last_debt_status': fields.Integer(),
-        'bureaus': fields.DateTime(),
-        'days_delinquent': fields.String(),
-        'balance_original': fields.String(),
-        'payment_amount': fields.String(),
-        'credit_limit': fields.String(),
-        'graduation': fields.String(),
-        'last_update': fields.DateTime(required=True)
     })
 
 
@@ -362,8 +357,7 @@ class TestAPIDto:
 
 class DebtDto:
     api = Namespace('debts', description='Debt related operations')
-    credit_report_data = api.model('credit_report_account', {
-        'public_id': fields.String(),
+    credit_report_debt = api.model('credit_report_debt', {
         'debt_name': fields.String(),
         'creditor': fields.String(),
         'ecoa': fields.String(),
@@ -372,16 +366,16 @@ class DebtDto:
         'push': fields.Boolean(),
         'last_collector': fields.String(),
         'collector_account': fields.String(),
-        'last_debt_status': fields.Integer(),
+        'last_debt_status': fields.String(),
         'bureaus': fields.DateTime(),
-        'days_delinquent': fields.String(),
-        'balance_original': fields.String(),
-        'payment_amount': fields.String(),
-        'credit_limit': fields.String(),
-        'graduation': fields.String(),
+        'days_delinquent': fields.Integer(),
+        'balance_original': fields.Integer(),
+        'payment_amount': fields.Integer(),
+        'credit_limit': fields.Integer(),
+        'graduation': fields.DateTime(),
         'last_update': fields.DateTime(required=True)
     })
-    new_report_data = api.model('new_report_data', {
+    new_credit_report_debt = api.model('new_credit_report_debt', {
         'debt_name': fields.String(),
         'creditor': fields.String(),
         'ecoa': fields.String(),
@@ -390,11 +384,11 @@ class DebtDto:
         'push': fields.Boolean(),
         'last_collector': fields.String(),
         'collector_account': fields.String(),
-        'last_debt_status': fields.Integer(),
+        'last_debt_status': fields.String(),
         'bureaus': fields.DateTime(),
-        'days_delinquent': fields.String(),
-        'balance_original': fields.String(),
-        'payment_amount': fields.String(),
-        'credit_limit': fields.String(),
-        'graduation': fields.String(),
+        'days_delinquent': fields.Integer(),
+        'balance_original': fields.Integer(),
+        'payment_amount': fields.Integer(),
+        'credit_limit': fields.Integer(),
+        'graduation': fields.DateTime(),
     })

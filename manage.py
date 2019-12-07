@@ -14,9 +14,8 @@ from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSignature
 from app.main.model.client import Client
 from app.main.model.contact_number import ContactNumberType, ContactNumber
-
-
 from app.main.model.client import Client
+from app.main.model.credit_report_account import CreditReportData
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -36,8 +35,8 @@ def candidate_parser_worker():
 
 
 @manager.command
-def credit_report_spider_worker():
-    run_worker('credit-report-spider')
+def credit_report_worker():
+    run_worker('credit-report-scrape-tasks')
 
 
 @manager.command
