@@ -5,17 +5,18 @@ from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
 from app.main.config import upload_location
+from app.main.controller import _convert_payload_datetime_values
 from app.main.model.candidate import CandidateImport
-from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportData
+from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
     get_candidate, get_all_candidates, update_candidate, \
-    get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers
-from app.main.service.credit_report_account_service import save_new_credit_report_account,\
-    update_credit_report_account, get_report_data
+    get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
+    get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses
+from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer, \
-    complete_credit_account_signup, activate_smart_credit_insurance
+    get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
+    activate_smart_credit_insurance
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
@@ -25,13 +26,15 @@ _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _credit_account_verification_answers = CandidateDto.account_verification_answers
 _candidate = CandidateDto.candidate
-_credit_report_data = CandidateDto.credit_report_data
 _update_candidate = CandidateDto.update_candidate
 _candidate_employment = CandidateDto.candidate_employment
 _update_candidate_employment = CandidateDto.update_candidate_employment
 _update_candidate_number = CandidateDto.update_candidate_number
 _candidate_number = CandidateDto.candidate_number
-
+_candidate_income = CandidateDto.candidate_income
+_update_candidate_income = CandidateDto.update_candidate_income
+_candidate_monthly_expense = CandidateDto.candidate_monthly_expense
+_update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
 
 @api.route('/')
 class GetCandidates(Resource):
@@ -59,6 +62,70 @@ class UpdateCandidate(Resource):
     @api.expect(_update_candidate, validate=True)
     def put(self, public_id):
         return update_candidate(public_id, request.json)
+
+
+@api.route('/<candidate_id>/income-sources')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateIncomeSources(Resource):
+    @api.doc('get candidate income sources')
+    @api.marshal_list_with(_candidate_income)
+    def get(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_candidate_income_sources(candidate)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update candidate income sources')
+    @api.expect([_update_candidate_income], validate=True)
+    def put(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            numbers = request.json
+            result, err_msg = update_candidate_income_sources(candidate, numbers)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
+
+
+@api.route('/<candidate_id>/monthly-expenses')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateMonthlyExpenses(Resource):
+    @api.doc('get candidate monthly expenses')
+    @api.marshal_list_with(_candidate_monthly_expense)
+    def get(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_candidate_monthly_expenses(candidate)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update candidate monthly expenses')
+    @api.expect([_update_candidate_monthly_expense], validate=True)
+    def put(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            expenses = request.json
+            result, err_msg = update_candidate_monthly_expenses(candidate, expenses)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
 
 
 @api.route('/<candidate_id>/contact_numbers')
@@ -162,9 +229,9 @@ def _handle_get_candidate(candidate_public_id):
         return candidate, None
 
 
-def _handle_get_credit_report(candidate, account_public_id):
+def _handle_get_credit_report(candidate):
     account = candidate.credit_report_account
-    if not account or account.public_id != account_public_id:
+    if not account:
         response_object = {
             'success': False,
             'message': 'Credit Report Account does not exist'
@@ -285,7 +352,7 @@ class UpdateCreditReportAccount(Resource):
             if not candidate:
                 api.abort(404, **error_response)
 
-            account, error_response = _handle_get_credit_report(candidate, public_id)
+            account, error_response = _handle_get_credit_report(candidate)
             if not account:
                 return error_response
 
@@ -326,7 +393,7 @@ class CreditReporAccounttVerification(Resource):
             if not candidate:
                 api.abort(404, **error_response)
 
-            account, error_response = _handle_get_credit_report(candidate, public_id)
+            account, error_response = _handle_get_credit_report(candidate)
             if not account:
                 return error_response
 
@@ -358,7 +425,7 @@ class CreditReporAccounttVerification(Resource):
             if not candidate:
                 api.abort(404, **error_response)
 
-            account, error_response = _handle_get_credit_report(candidate, public_id)
+            account, error_response = _handle_get_credit_report(candidate)
             if not account:
                 return error_response
 
@@ -399,7 +466,7 @@ class CompleteCreditReportAccount(Resource):
             if not candidate:
                 api.abort(404, **error_response)
 
-            account, error_response = _handle_get_credit_report(candidate, credit_account_public_id)
+            account, error_response = _handle_get_credit_report(candidate)
             if not account:
                 return error_response
 
@@ -426,6 +493,7 @@ class CompleteCreditReportAccount(Resource):
             }
             return response_object, 500
 
+
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/fraud-insurance/register')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
@@ -437,7 +505,7 @@ class CandidateFraudInsurance(Resource):
             if not candidate:
                 api.abort(404, **error_response)
 
-            credit_report_account, error_response = _handle_get_credit_report(candidate, credit_account_public_id)
+            credit_report_account, error_response = _handle_get_credit_report(candidate)
             if not credit_report_account:
                 api.abort(404, **error_response)
 
@@ -465,61 +533,6 @@ class CandidateFraudInsurance(Resource):
             return response_object, 500
 
 
-
-@api.route('/<public_id>/credit-report/run_spider')
-@api.param('public_id', 'The Candidate Identifier')
-class ScrapeCreditReportAccount(Resource):
-    @api.doc('scrape credit report')
-    def put(self, public_id):
-        """ Scrape Credit Report """
-        try:
-            candidate, error_response = _handle_get_candidate(public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-            credit_account, error_response = _handle_get_credit_report(candidate, public_id)
-            if not credit_account:
-                return error_response
-
-            task = CreditReportData().launch_spider(
-                'run',
-                'Scrapes credit report for given candidate',
-                public_id,
-                credit_account.email,
-                current_app.cipher.decrypt(
-                    credit_account.password).decode()
-            )
-
-            save_changes()
-
-            resp = {
-                'messsage': 'Spider queued',
-                'task_id': task.id
-            }
-            return resp, 200
-        except LockedException as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 409
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-
-@api.route('/<public_id>/credit-report/report_data')
-@api.param('public_id', 'The Candidate Identifier')
-class ScrapeCreditReportData(Resource):
-    @api.doc('View credit report data')
-    @api.marshal_list_with(_credit_report_data, envelope='data')
-    def get(self, public_id):
-        """View Credit Report Data"""
-        data = get_report_data(public_id)
-        return data, 200
-
 @api.route('/<candidate_id>/employments')
 @api.param('candidate_id', 'Candidate public identifier')
 @api.response(404, 'Candidate not found')
@@ -545,6 +558,8 @@ class CandidateEmployments(Resource):
             api.abort(404, **error_response)
         else:
             employments = request.json
+            _convert_payload_datetime_values(employments, 'start_date', 'end_date')
+
             result, err_msg = update_candidate_employments(candidate, employments)
             if err_msg:
                 api.abort(500, err_msg)
