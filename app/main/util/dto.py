@@ -318,6 +318,7 @@ class CandidateDto:
 
     })
     candidate_employment = api.model('candidate_employment', {
+        'employer_name': fields.String(required=True),
         'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
         'gross_salary': fields.Float(required=False),
@@ -328,6 +329,7 @@ class CandidateDto:
     })
 
     update_candidate_employment = api.model('update_candidate_employment', {
+        'employer_name': fields.String(required=True),
         'start_date': fields.DateTime(),
         'end_date': fields.DateTime(),
         'gross_salary': fields.Float(required=False),
