@@ -8,13 +8,14 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import os
 
 BOT_NAME = 'crawl'
 
-SPIDER_MODULES = ['crawl.spiders']
-NEWSPIDER_MODULE = 'crawl.spiders'
+SPIDER_MODULES = ['app.main.scrape.crawl.spiders']
+NEWSPIDER_MODULE = 'app.main.scrape.crawl.spiders'
 
-SPLASH_URL = 'http://localhost:8050'
+SPLASH_URL = os.environ.get('SCRAPYJS_URL', 'http://localhost:8050')
 DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
 HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
 
@@ -75,9 +76,9 @@ DOWNLOADER_MIDDLEWARES = {
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    'crawl.pipelines.CrawlPipeline': 300,
-#}
+ITEM_PIPELINES = {
+    'app.main.scrape.crawl.pipelines.CreditReportPipeline': 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
