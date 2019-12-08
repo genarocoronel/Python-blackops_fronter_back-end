@@ -580,7 +580,6 @@ class CandidateAddresses(Resource):
     @api.expect([_update_candidate_addresses], validate=True)
     def put(self, candidate_id):
         """ Creates new Address """
-        print(candidate_id)
         addresses = request.json
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:

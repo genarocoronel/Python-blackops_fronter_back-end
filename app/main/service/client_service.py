@@ -10,6 +10,7 @@ from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 from app.main.model.address import Address
 
+
 def save_new_client(data, client_type=ClientType.lead):
     new_client = Client(
         public_id=str(uuid.uuid4()),

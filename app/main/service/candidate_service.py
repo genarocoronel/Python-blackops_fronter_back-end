@@ -12,6 +12,7 @@ from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address
 
+
 def save_new_candidate(data):
     new_candidate = Candidate(
         public_id=str(uuid.uuid4()),

@@ -6,7 +6,8 @@ from app.main.model.client import ClientType
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments, \
     update_client, get_client_employments, update_client_employments, get_client_income_sources, update_client_income_sources, \
-    get_client_monthly_expenses, update_client_monthly_expenses, save_changes
+    get_client_monthly_expenses, update_client_monthly_expenses, save_changes, update_client_addresses, \
+    get_client_addresses
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
@@ -19,6 +20,8 @@ _update_client_income = ClientDto.update_client_income
 _client_monthly_expense = ClientDto.client_monthly_expense
 _update_client_monthly_expense = ClientDto.update_client_monthly_expense
 _credit_report_debt = ClientDto.credit_report_debt
+_update_client_address = ClientDto.update_client_address
+_client_address = ClientDto.client_address
 
 CLIENT = ClientType.client
 
@@ -178,6 +181,36 @@ class ClientEmployments(Resource):
                 api.abort(500, err_msg)
             else:
                 return dict(success=True, **result), 200
+
+
+@api.route('/<client_id>/addresses')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientAddresses(Resource):
+    @api.response(200, 'Address successfully created')
+    @api.doc('create new address')
+    @api.expect([_update_client_address], validate=True)
+    def put(self, client_id):
+        """ Creates new Address """
+        print(client_id)
+        addresses = request.json
+        client, error_response = _handle_get_client(client_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, **error_response)
+        return update_client_addresses(client, addresses)
+
+    @api.doc('get client addresses')
+    @api.marshal_list_with(_client_address)
+    def get(self, client_id):
+        client, error_response = _handle_get_client(client_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_addresses(client)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
 
 
 @api.route('/<public_id>/credit-report/debts')
