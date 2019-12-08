@@ -30,6 +30,7 @@ class AddressDto(object):
     address = api.model('address', {
         'public_id': fields.String(required=True),
         'candidate_id': fields.String(required=True),
+        'client_id': fields.String(required=True),
         'address1': fields.String(required=True),
         'address2': fields.String(required=False),
         'zip_code': fields.String(required=True),
@@ -41,6 +42,7 @@ class AddressDto(object):
     })
     new_address = api.model('new_address', {
         'candidate_id': fields.String(required=True),
+        'client_id': fields.String(required=True),
         'address1': fields.String(required=True),
         'address2': fields.String(required=False),
         'zip_code': fields.String(required=True),

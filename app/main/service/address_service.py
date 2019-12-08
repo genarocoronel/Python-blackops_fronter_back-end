@@ -9,6 +9,7 @@ def save_new_address(address):
     save_changes(Address(
         public_id=str(uuid.uuid4()),
         candidate_id=address['candidate_id'],
+        client_id=address['client_id'],
         address1=address['address1'],
         address2=address['address2'],
         zip_code=address['zip_code'],
