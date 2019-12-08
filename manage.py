@@ -11,6 +11,13 @@ from app.main.seed.admins import create_super_admin
 from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
+from app.main.model.docsign import DocusignTemplate, DocusignSignature
+from app.main.model.client import Client
+from app.main.model.contact_number import ContactNumberType, ContactNumber
+from app.main.model.income import IncomeType, Income
+from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
+from app.main.model.client import Client
+from app.main.model.credit_report_account import CreditReportData
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -27,6 +34,11 @@ manager.add_command('db', MigrateCommand)
 @manager.command
 def candidate_parser_worker():
     run_worker('candidate-upload-tasks')
+
+
+@manager.command
+def credit_report_worker():
+    run_worker('credit-report-scrape-tasks')
 
 
 @manager.command

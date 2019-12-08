@@ -1,4 +1,5 @@
 import requests
+from lxml import html
 from flask import current_app
 
 headers = {
@@ -29,15 +30,11 @@ def _handle_errors(response):
 
 
 def start_signup(data):
-    response = requests.get('https://stage-sc.consumerdirect.com/api/signup/start',
+    response = requests.get(f'{current_app.smart_credit_url}/api/signup/start',
                             headers=headers,
                             params={
                                 'clientKey': current_app.smart_credit_client_key,
-                                'ADID': data.get('ad_id'),
-                                'AID': data.get('affiliate_id'),
-                                'CID': data.get('campaign_id'),
-                                'PID': current_app.smart_credit_publisher_id,
-                                'channel': data.get('channel')
+                                'PID': current_app.smart_credit_publisher_id
                             })
     result, error = _handle_errors(response)
     if error:
@@ -47,7 +44,7 @@ def start_signup(data):
 
 
 def does_email_exist(email, tracking_token):
-    response = requests.get('https://stage-sc.consumerdirect.com/api/signup/validate/email',
+    response = requests.get(f'{current_app.smart_credit_url}/api/signup/validate/email',
                             headers=headers,
                             params={
                                 'clientKey': current_app.smart_credit_client_key,
@@ -62,7 +59,7 @@ def does_email_exist(email, tracking_token):
 
 
 def does_ssn_exist(customer_token, ssn, tracking_token):
-    response = requests.get('https://stage-sc.consumerdirect.com/api/signup/validate/ssn',
+    response = requests.get(f'{current_app.smart_credit_url}/api/signup/validate/ssn',
                             headers=headers,
                             params={
                                 'clientKey': current_app.smart_credit_client_key,
@@ -94,7 +91,7 @@ def create_customer(data, tracking_token, sponsor_code=None, plan_type=None):
     if plan_type:
         data.update({'planType': plan_type or 'SPONSORED'})
 
-    response = requests.post('https://stage-sc.consumerdirect.com/api/signup/customer/create',
+    response = requests.post(f'{current_app.smart_credit_url}/api/signup/customer/create',
                              headers=headers,
                              data=data)
 
@@ -106,7 +103,7 @@ def create_customer(data, tracking_token, sponsor_code=None, plan_type=None):
 
 
 def get_customer_security_questions(tracking_token):
-    response = requests.get('https://stage-sc.consumerdirect.com/api/signup/security-questions',
+    response = requests.get(f'{current_app.smart_credit_url}/api/signup/security-questions',
                             headers=headers,
                             params={
                                 'clientKey': current_app.smart_credit_client_key,
@@ -138,7 +135,7 @@ def update_customer(customer_token, data, tracking_token):
         'trackingToken': tracking_token
     }
     optionally_add_to_payload(optional_fields, payload=payload, data=data)
-    response = requests.post('https://stage-sc.consumerdirect.com/api/signup/customer/update/identity',
+    response = requests.post(f'{current_app.smart_credit_url}/api/signup/customer/update/identity',
                              headers=headers.update({'Content-Type': 'application/x-www-form-urlencoded'}),
                              data=payload)
     result, error = _handle_errors(response)
@@ -149,7 +146,7 @@ def update_customer(customer_token, data, tracking_token):
 
 
 def get_id_verification_question(customer_token, tracking_token):
-    response = requests.get('https://stage-sc.consumerdirect.com/api/signup/id-verification',
+    response = requests.get(f'{current_app.smart_credit_url}/api/signup/id-verification',
                             headers=headers,
                             params={
                                 'clientKey': current_app.smart_credit_client_key,
@@ -173,7 +170,7 @@ def answer_id_verification_questions(customer_token, data, tracking_token):
     for answer_key, answer_value in data.get('answers').items():
         payload[f'idVerificationCriteria.{answer_key}'] = answer_value
 
-    response = requests.post('https://stage-sc.consumerdirect.com/api/signup/id-verification',
+    response = requests.post(f'{current_app.smart_credit_url}/api/signup/id-verification',
                              headers=headers,
                              data=payload)
     result, error = _handle_errors(response)
@@ -189,7 +186,7 @@ def complete_credit_account_signup(customer_token, tracking_token):
         'customerToken': customer_token,
         'trackingToken': tracking_token,
     }
-    response = requests.post('https://stage-sc.consumerdirect.com/api/signup/complete',
+    response = requests.post(f'{current_app.smart_credit_url}/api/signup/complete',
                              headers=headers,
                              data=payload)
     result, error = _handle_errors(response)
@@ -203,6 +200,36 @@ def optionally_add_to_payload(optional_keys, payload, data):
     for value, key in optional_keys.items():
         if key in data:
             payload.update({value: data[key]})
+
+
+def activate_smart_credit_insurance(username, password):
+    with login_with_session(username, password) as session:
+        response = session.post(f'{current_app.smart_credit_url}/member/id-fraud-insurance/register.htm',
+                                auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
+
+        if response.text.find("Insurance Activated") != -1:
+            return "Successfully registered id fraud insurance"
+        else:
+            raise Exception(f'Could not register for fraud insurance {response.text}')
+
+
+def login_with_session(username, password):
+    with requests.Session() as session:
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36'
+        }
+        session.headers.update(headers)
+        response = session.get(f'{current_app.smart_credit_url}/login/',
+                               auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
+        tree = html.fromstring(response.text)
+        authenticity_token = list(set(tree.xpath("//input[@name='_csrf']/@value")))[0]
+        payload = {'_csrf': authenticity_token, 'loginType': 'CUSTOMER',
+                   'j_username': username, 'j_password': password}
+        session.headers.update({'Referer': f'{current_app.smart_credit_url}/login/'})
+        session.post(f'{current_app.smart_credit_url}/login', data=payload,
+                     auth=(current_app.smart_credit_http_user, current_app.smart_credit_http_pass))
+        return session
 
 
 if __name__ == '__main__':

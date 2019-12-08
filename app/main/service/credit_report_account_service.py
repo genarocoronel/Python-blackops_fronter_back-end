@@ -1,8 +1,13 @@
 import uuid
 
+from flask import current_app
 from app.main import db
 from app.main.model.candidate import Candidate
-from app.main.model.credit_report_account import CreditReportAccount, CreditReportSignupStatus
+from app.main.model.credit_report_account import CreditReportAccount, CreditReportSignupStatus, CreditReportData
+
+
+def _generate_email(candidate: Candidate):
+    return f'{candidate.prequal_number}@{current_app.smart_credit_email_domain}'
 
 
 def save_new_credit_report_account(data, candidate: Candidate, status: CreditReportSignupStatus = None):
@@ -17,7 +22,8 @@ def save_new_credit_report_account(data, candidate: Candidate, status: CreditRep
             plan_type=data.get('plan_type'),
             financial_obligation_met=data.get('financial_obligation_met'),
             status=status or CreditReportSignupStatus.INITIATING_SIGNUP,
-            candidate=candidate
+            candidate=candidate,
+            email=_generate_email(candidate)
         )
         save_changes(new_account)
         return new_account

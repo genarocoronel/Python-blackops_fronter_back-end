@@ -2,7 +2,9 @@ import os
 
 from flask_restplus import Namespace, fields
 
+from app.main.model import Language, Frequency
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
+from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
@@ -12,6 +14,14 @@ from app.main.util import parsers
 class FileToFilenameField(fields.String):
     def format(self, value):
         return os.path.basename(value) if value else ''
+
+
+class FrequencyTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, Frequency):
+            return value.name
+        else:
+            return 'UNKNOWN'
 
 
 class CampaignDto(object):
@@ -114,6 +124,14 @@ class AppointmentDto:
     })
 
 
+class LanguageField(fields.String):
+    def format(self, value):
+        if isinstance(value, Language):
+            return value.name
+        else:
+            return 'UNKNOWN'
+
+
 class ClientTypeField(fields.String):
     def format(self, value):
         if isinstance(value, ClientType):
@@ -122,16 +140,93 @@ class ClientTypeField(fields.String):
             return 'unknown'
 
 
+class FrequencyStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, FrequencyStatus):
+            return value.name
+        else:
+            return 'unknown'
+
+
+_credit_report_debt_model = {
+    'debt_name': fields.String(),
+    'creditor': fields.String(),
+    'ecoa': fields.String(),
+    'account_number': fields.String(),
+    'account_type': fields.String(),
+    'push': fields.Boolean(),
+    'last_collector': fields.String(),
+    'collector_account': fields.String(),
+    'last_debt_status': fields.String(),
+    'bureaus': fields.DateTime(),
+    'days_delinquent': fields.Integer(),
+    'balance_original': fields.Integer(),
+    'payment_amount': fields.Integer(),
+    'credit_limit': fields.Integer(),
+    'graduation': fields.DateTime(),
+    'last_update': fields.DateTime(required=True)
+}
+
+
 class ClientDto:
     api = Namespace('clients', description='client related operations')
     client = api.model('client', {
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
         'email': fields.String(required=True, description='client email address'),
-        'language': fields.String(required=True, description='client language preference'),
+        'language': LanguageField(required=True),
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
+    })
+    new_bank_account = api.model('new_bank_account', {
+        'account_number': fields.String(required=True, description='client bank account number'),
+        'routing_number': fields.String(required=True, description='client bank routing number')
+    })
+    bank_account = api.model('bank_account', {
+        'bank_name': fields.String(required=True, description='client bank name'),
+        'account_number': fields.String(required=True, description='client bank account number'),
+        'routing_number': fields.String(required=True, description='client bank routing number'),
+        'valid': fields.Boolean(required=True)
+    })
+    client_income = api.model('client_income', {
+        'income_type_id': fields.Integer(required=True),
+        'income_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    update_client_income = api.model('update_client_income', {
+        'income_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    client_employment = api.model('client_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
+    })
+    update_client_employment = api.model('update_client_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=True),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=True),
+        'other_income_frequency': FrequencyStatusField(),
+        'current': fields.Boolean(required=True, default=False)
+    })
+    credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
+    client_monthly_expense = api.model('client_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'expense_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+    })
+    update_client_monthly_expense = api.model('update_client_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
     })
 
 
@@ -140,12 +235,20 @@ class LeadDto:
     lead = api.model('lead', {
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
+        'address': fields.String(required=True, description='client address'),
+        'city': fields.String(required=True, description='client city'),
+        'state': fields.String(required=True, description='client state'),
+        'zip': fields.String(required=True, description='client zip'),
+        'zip4': fields.String(required=True, description='client zip4'),
+        'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
+        'county': fields.String(required=True, description='client county'),
         'email': fields.String(required=True, description='lead email address'),
-        'language': fields.String(required=True, description='lead language preference'),
+        'language': LanguageField(required=True),
         'phone': fields.String(required=True, description='lead phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
     })
+    credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
 
 class CandidateImportStatusField(fields.String):
@@ -192,7 +295,7 @@ class CandidateDto:
         'inserted_on': fields.DateTime(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': fields.String(),
+        'language': LanguageField(),
         'phone': fields.String(),
         'status': CandidateStatusField(),
         'disposition': fields.String(),
@@ -209,10 +312,60 @@ class CandidateDto:
         'zip': fields.String(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': fields.String(),
+        'language': LanguageField(),
         'phone': fields.String(),
         'status': CandidateStatusField()
 
+    })
+    candidate_employment = api.model('candidate_employment', {
+        'start_date': fields.DateTime(required=True),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=False),
+        'gross_salary_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
+        'current': fields.Boolean(required=True, default=False)
+    })
+
+    update_candidate_employment = api.model('update_candidate_employment', {
+        'start_date': fields.DateTime(),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=False),
+        'gross_salary_frequency': FrequencyStatusField(required=False),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
+        'current': fields.Boolean(required=True, default=False)
+    })
+    candidate_number = api.model('candidate_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_type': fields.String(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
+    update_candidate_number = api.model('update_candidate_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
+    candidate_income = api.model('candidate_income', {
+        'income_type_id': fields.Integer(required=True),
+        'income_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    update_candidate_income = api.model('update_candidate_income', {
+        'income_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    candidate_monthly_expense = api.model('candidate_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'expense_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+    })
+    update_candidate_monthly_expense = api.model('update_candidate_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
     })
     tasks = api.model('import_task', {
         'name': fields.String(),
@@ -231,7 +384,6 @@ class CandidateDto:
     })
     candidate_upload = parsers.file_upload
     new_credit_report_account = api.model('candidate_create_request', {
-        'email': fields.String(required=True, example='charlie.test-pjndl@gmail.com'),
         'first_name': fields.String(required=True, example='Charlie'),
         'last_name': fields.String(required=True, example='Test-PJNDL'),
         'zip': fields.String(required=True, example='01001'),
@@ -259,5 +411,8 @@ class CandidateDto:
             'answer2': fields.String(required=True),
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
-
     })
+
+
+class TestAPIDto:
+    api = Namespace('tests', description='Test operations for Dev/QA')
