@@ -5,6 +5,7 @@ from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
 from app.main.config import upload_location
+from app.main.controller import _convert_payload_datetime_values
 from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
@@ -491,6 +492,8 @@ class CandidateEmployments(Resource):
             api.abort(404, **error_response)
         else:
             employments = request.json
+            _convert_payload_datetime_values(employments, 'start_date', 'end_date')
+
             result, err_msg = update_candidate_employments(candidate, employments)
             if err_msg:
                 api.abort(500, err_msg)

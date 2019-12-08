@@ -10,11 +10,6 @@ def _generate_email(candidate: Candidate):
     return f'{candidate.prequal_number}@{current_app.smart_credit_email_domain}'
 
 
-def get_report_data(candidate_public_id):
-    data = CreditReportData.query.filter_by(candidate_id=candidate_public_id).all()
-    return data
-
-
 def save_new_credit_report_account(data, candidate: Candidate, status: CreditReportSignupStatus = None):
     account = CreditReportAccount.query.filter_by(customer_token=data.get('customer_token'),
                                                   tracking_token=data.get('tracking_token')).first()

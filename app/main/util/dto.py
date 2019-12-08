@@ -122,12 +122,34 @@ class ClientTypeField(fields.String):
         else:
             return 'unknown'
 
+
 class FrequencyStatusField(fields.String):
     def format(self, value):
         if isinstance(value, FrequencyStatus):
             return value.name
         else:
             return 'unknown'
+
+
+_credit_report_debt_model = {
+    'debt_name': fields.String(),
+    'creditor': fields.String(),
+    'ecoa': fields.String(),
+    'account_number': fields.String(),
+    'account_type': fields.String(),
+    'push': fields.Boolean(),
+    'last_collector': fields.String(),
+    'collector_account': fields.String(),
+    'last_debt_status': fields.String(),
+    'bureaus': fields.DateTime(),
+    'days_delinquent': fields.Integer(),
+    'balance_original': fields.Integer(),
+    'payment_amount': fields.Integer(),
+    'credit_limit': fields.Integer(),
+    'graduation': fields.DateTime(),
+    'last_update': fields.DateTime(required=True)
+}
+
 
 class ClientDto:
     api = Namespace('clients', description='client related operations')
@@ -168,6 +190,7 @@ class ClientDto:
         'other_income_frequency': FrequencyStatusField(),
         'current': fields.Boolean(required=True, default=False)
     })
+    credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
 
 class LeadDto:
@@ -188,24 +211,8 @@ class LeadDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
     })
-    credit_report_debt = api.model('credit_report_debt', {
-        'debt_name': fields.String(),
-        'creditor': fields.String(),
-        'ecoa': fields.String(),
-        'account_number': fields.String(),
-        'account_type': fields.String(),
-        'push': fields.Boolean(),
-        'last_collector': fields.String(),
-        'collector_account': fields.String(),
-        'last_debt_status': fields.String(),
-        'bureaus': fields.DateTime(),
-        'days_delinquent': fields.Integer(),
-        'balance_original': fields.Integer(),
-        'payment_amount': fields.Integer(),
-        'credit_limit': fields.Integer(),
-        'graduation': fields.DateTime(),
-        'last_update': fields.DateTime(required=True)
-    })
+
+    credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
 
 class CandidateImportStatusField(fields.String):
@@ -222,6 +229,7 @@ class CandidateStatusField(fields.String):
             return value.name
         else:
             return 'unknown'
+
 
 class CreditReportAccountStatusField(fields.String):
     def format(self, value):

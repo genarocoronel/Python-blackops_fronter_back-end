@@ -1,8 +1,11 @@
 from flask import request
 from flask_restplus import Resource
 
+from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
 from app.main.model.client import ClientType
-from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments, get_client_employments, update_client_employments
+from app.main.service.client_service import get_all_clients, save_new_client, get_client_appointments, get_client_employments, \
+    update_client_employments, save_changes
+from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
@@ -10,6 +13,7 @@ _client = ClientDto.client
 _client_employment = ClientDto.client_employment
 _update_client_employment = ClientDto.update_client_employment
 _appointment = AppointmentDto.appointment
+_credit_report_debt = ClientDto.credit_report_debt
 
 CLIENT = ClientType.client
 
@@ -40,9 +44,9 @@ class Client(Resource):
     @api.marshal_with(_client)
     def get(self, public_id):
         """ Get client with provided identifier"""
-        client = get_client(public_id, client_type=CLIENT)
+        client, error_response = _handle_get_client(public_id, client_type=CLIENT)
         if not client:
-            api.abort(404)
+            api.abort(404, **error_response)
         else:
             return client
 
@@ -69,7 +73,7 @@ class ClientEmployments(Resource):
     @api.doc('get client employments')
     @api.marshal_list_with(_client_employment)
     def get(self, public_id):
-        client, error_response = get_client(public_id, client_type=CLIENT)
+        client, error_response = _handle_get_client(public_id, client_type=CLIENT)
         if not client:
             api.abort(404, **error_response)
         else:
@@ -82,13 +86,62 @@ class ClientEmployments(Resource):
     @api.doc('update client employment')
     @api.expect([_update_client_employment], validate=True)
     def put(self, public_id):
-        client, error_response = get_client(public_id, client_type=CLIENT)
+        client, error_response = _handle_get_client(public_id, client_type=CLIENT)
         if not client:
             api.abort(404, **error_response)
         else:
             employments = request.json
+            _convert_payload_datetime_values(employments, 'start_date', 'end_date')
+
             result, err_msg = update_client_employments(client, employments)
             if err_msg:
                 api.abort(500, err_msg)
             else:
                 return dict(success=True, **result), 200
+
+
+@api.route('/<public_id>/credit-report/debts')
+@api.param('public_id', 'The client Identifier')
+@api.response(404, 'client or credit report account does not exist')
+class ClientCreditReportDebts(Resource):
+    @api.doc('fetch credit report data')
+    def put(self, public_id):
+        """ Fetch Credit Report Data"""
+        client, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        credit_account, error_response = _handle_get_credit_report(client)
+        if not credit_account:
+            api.abort(404, **error_response)
+
+        exists, error_response = check_existing_scrape_task(credit_account)
+        if exists:
+            api.aport(409, **error_response)
+
+        task = credit_account.launch_spider(
+            'capture',
+            'Capture credit report debts for lead',  # TODO: allow passing custom message for task execution
+        )
+        save_changes(task)
+
+        resp = {
+            'message': 'Spider queued',
+            'task_id': task.id
+        }
+        return resp, 200
+
+    @api.doc('view credit report data')
+    @api.marshal_list_with(_credit_report_debt, envelope='data')
+    def get(self, public_id):
+        """ View Credit Report Data """
+        lead, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        credit_account, error_response = _handle_get_credit_report(lead)
+        if not credit_account:
+            api.abort(404, **error_response)
+
+        data = get_report_data(credit_account)
+        return data, 200
