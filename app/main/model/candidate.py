@@ -47,7 +47,7 @@ class Candidate(db.Model):
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='candidate')
     disposition = db.relationship('CandidateDisposition', back_populates='candidates')
     campaign = db.relationship('Campaign', back_populates='candidates')
-    employment = db.relationship('CandidateEmployment')
+    employments = db.relationship('CandidateEmployment')
     contact_numbers = db.relationship('CandidateContactNumber')
     income_sources = db.relationship('CandidateIncome')
     monthly_expenses = db.relationship('CandidateMonthlyExpense')

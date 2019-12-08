@@ -16,12 +16,15 @@ class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True)
     inserted_on = db.Column(db.DateTime, nullable=False)
-    client_id = db.Column(db.String(12), nullable=False)
     type = db.Column(db.Enum(ClientType), nullable=False, default=ClientType.lead)
+
+    # foreign keys
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
 
     # relationships
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='client')
+    co_client = db.relationship('Client', uselist=False, remote_side=[client_id])
     employments = db.relationship('ClientEmployment')
     income_sources = db.relationship('ClientIncome')
     monthly_expenses = db.relationship('ClientMonthlyExpense')
