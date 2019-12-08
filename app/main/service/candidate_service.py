@@ -243,9 +243,11 @@ def update_candidate_addresses(candidate, addresses):
     save_changes()
     return {'message': 'Successfully updated candidate addresses'}, None
 
+
 def get_candidate_addresses(candidate):
     addresses = Address.query.filter_by(candidate_id=candidate.id).all()
     return addresses, None
+
 
 def save_changes(data):
     db.session.add(data)

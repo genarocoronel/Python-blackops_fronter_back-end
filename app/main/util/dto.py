@@ -227,6 +227,26 @@ class ClientDto:
         'other_income_frequency': FrequencyStatusField(),
         'current': fields.Boolean(required=True, default=False)
     })
+    client_address = api.model('client_address', {
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'fromDate': fields.Date(required=True),
+        'toDate': fields.Date(required=True),
+        'type': AddressTypeField(required=True)
+    })
+    update_client_address = api.model('update_client_address', {
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'fromDate': fields.Date(required=True),
+        'toDate': fields.Date(required=True),
+        'type': AddressTypeField(required=True)
+    })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
     client_monthly_expense = api.model('client_monthly_expense', {
         'expense_type_id': fields.Integer(required=True),
