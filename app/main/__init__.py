@@ -8,10 +8,11 @@ from redis import Redis
 from werkzeug.contrib.fixers import ProxyFix
 
 from .config import config_by_name
+from rq_scheduler import Scheduler
+from datetime import datetime
 
 db = SQLAlchemy()
 flask_bcrypt = Bcrypt()
-
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -28,6 +29,15 @@ def create_app(config_name):
     app.mailer_file_queue = rq.Queue('mailer-file-tasks', connection=app.redis, default_timeout=3600)
     app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
     app.spider_queue = rq.Queue('credit-report-scrape-tasks', connection=app.redis, default_timeout=3600)
+    # rsign worker queue 
+    app.rsign_queue = rq.Queue('rsign-tasks', connection=app.redis, default_timeout=3600)
+    scheduler = Scheduler(queue=app.rsign_queue, connection=app.redis)
+    scheduler.schedule(scheduled_time=datetime.utcnow(), 
+                       func='app.main.tasks.docusign.check_sessions', 
+                       args=[], 
+                       interval=300,
+                       repeat=None)
+   
     app.cipher = Fernet(app.config['SECRET_KEY'])
 
     app.smart_credit_url = app.config['SMART_CREDIT_URL']

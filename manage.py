@@ -11,7 +11,7 @@ from app.main.seed.admins import create_super_admin
 from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
-from app.main.model.docsign import DocusignTemplate, DocusignSignature
+from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
 from app.main.model.client import Client
 from app.main.model.contact_number import ContactNumberType, ContactNumber
 from app.main.model.address import AddressType, Address
@@ -47,6 +47,10 @@ def credit_report_worker():
 def mailer_file_worker():
     run_worker('mailer-file-tasks')
 
+## remote sign worker tasks
+@manager.command
+def rsign_worker():
+    run_worker('rsign-tasks')
 
 @manager.command
 def seed():
