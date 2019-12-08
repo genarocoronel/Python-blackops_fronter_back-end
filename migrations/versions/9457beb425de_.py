@@ -124,7 +124,7 @@ def upgrade():
     op.create_table('employments',
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('inserted_on', sa.DateTime(), nullable=False),
-                    sa.Column('first_name', sa.String(length=50), nullable=False),
+                    sa.Column('employer_name', sa.String(length=50), nullable=False),
                     sa.Column('start_date', sa.DateTime(), nullable=False),
                     sa.Column('end_date', sa.DateTime(), nullable=True),
                     sa.Column('gross_salary', sa.Float(), nullable=False),
