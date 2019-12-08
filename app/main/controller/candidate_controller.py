@@ -12,7 +12,8 @@ from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
     get_candidate, get_all_candidates, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
-    get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses
+    get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
+    get_candidate_addresses, update_candidate_addresses
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -35,6 +36,9 @@ _candidate_income = CandidateDto.candidate_income
 _update_candidate_income = CandidateDto.update_candidate_income
 _candidate_monthly_expense = CandidateDto.candidate_monthly_expense
 _update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
+_candidate_address = CandidateDto.candidate_address
+_update_candidate_addresses = CandidateDto.update_candidate_addresses
+
 
 @api.route('/')
 class GetCandidates(Resource):
@@ -565,3 +569,36 @@ class CandidateEmployments(Resource):
                 api.abort(500, err_msg)
             else:
                 return dict(success=True, **result), 200
+
+
+@api.route('/<candidate_id>/addresses')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateAddresses(Resource):
+    @api.response(200, 'Address successfully created')
+    @api.doc('create new address')
+    @api.expect([_update_candidate_addresses], validate=True)
+    def put(self, candidate_id):
+        """ Creates new Address """
+        print(candidate_id)
+        addresses = request.json
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        return update_candidate_addresses(candidate, addresses)
+
+    @api.doc('get candidate addresses')
+    @api.marshal_list_with(_candidate_address)
+    def get(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_candidate_addresses(candidate)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+
+

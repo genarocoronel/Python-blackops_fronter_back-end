@@ -12,7 +12,6 @@ class Address(db.Model):
     __tablename__ = "addresses"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    public_id = db.Column(db.String(100), unique=True, nullable=False)
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'))
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
     address1 = db.Column(db.String(100), nullable=False)

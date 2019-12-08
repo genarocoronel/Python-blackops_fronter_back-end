@@ -25,35 +25,6 @@ class AddressTypeField(fields.String):
             return 'unknown'
 
 
-class AddressDto(object):
-    api = Namespace('addresses', description='address related operations')
-    address = api.model('address', {
-        'public_id': fields.String(required=True),
-        'candidate_id': fields.String(required=True),
-        'client_id': fields.String(required=True),
-        'address1': fields.String(required=True),
-        'address2': fields.String(required=False),
-        'zip_code': fields.String(required=True),
-        'city': fields.String(required=True),
-        'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
-        'type': AddressTypeField(required=True)
-    })
-    new_address = api.model('new_address', {
-        'candidate_id': fields.String(required=True),
-        'client_id': fields.String(required=True),
-        'address1': fields.String(required=True),
-        'address2': fields.String(required=False),
-        'zip_code': fields.String(required=True),
-        'city': fields.String(required=True),
-        'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
-        'type': AddressTypeField(required=True)
-    })
-
-
 class FrequencyTypeField(fields.String):
     def format(self, value):
         if isinstance(value, Frequency):
@@ -373,6 +344,26 @@ class CandidateDto:
         'other_income': fields.Float(required=False),
         'other_income_frequency': FrequencyStatusField(required=False),
         'current': fields.Boolean(required=True, default=False)
+    })
+    candidate_address = api.model('candidate_address', {
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'fromDate': fields.Date(required=True),
+        'toDate': fields.Date(required=True),
+        'type': AddressTypeField(required=True)
+    })
+    update_candidate_addresses = api.model('update_candidate_addresses', {
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'fromDate': fields.Date(required=True),
+        'toDate': fields.Date(required=True),
+        'type': AddressTypeField(required=True)
     })
     candidate_number = api.model('candidate_number', {
         'phone_type_id': fields.Integer(required=True),
