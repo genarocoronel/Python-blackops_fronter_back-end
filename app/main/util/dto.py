@@ -2,6 +2,7 @@ import os
 
 from flask_restplus import Namespace, fields
 
+from app.main.model import Language, Frequency
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
@@ -13,6 +14,14 @@ from app.main.util import parsers
 class FileToFilenameField(fields.String):
     def format(self, value):
         return os.path.basename(value) if value else ''
+
+
+class FrequencyTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, Frequency):
+            return value.name
+        else:
+            return 'UNKNOWN'
 
 
 class CampaignDto(object):
@@ -115,6 +124,14 @@ class AppointmentDto:
     })
 
 
+class LanguageField(fields.String):
+    def format(self, value):
+        if isinstance(value, Language):
+            return value.name
+        else:
+            return 'UNKNOWN'
+
+
 class ClientTypeField(fields.String):
     def format(self, value):
         if isinstance(value, ClientType):
@@ -157,7 +174,7 @@ class ClientDto:
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
         'email': fields.String(required=True, description='client email address'),
-        'language': fields.String(required=True, description='client language preference'),
+        'language': LanguageField(required=True),
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
@@ -171,6 +188,17 @@ class ClientDto:
         'account_number': fields.String(required=True, description='client bank account number'),
         'routing_number': fields.String(required=True, description='client bank routing number'),
         'valid': fields.Boolean(required=True)
+    })
+    client_income = api.model('client_income', {
+        'income_type_id': fields.Integer(required=True),
+        'income_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    update_client_income = api.model('update_client_income', {
+        'income_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
     })
     client_employment = api.model('client_employment', {
         'start_date': fields.DateTime(required=True),
@@ -191,6 +219,15 @@ class ClientDto:
         'current': fields.Boolean(required=True, default=False)
     })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
+    client_monthly_expense = api.model('client_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'expense_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+    })
+    update_client_monthly_expense = api.model('update_client_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+    })
 
 
 class LeadDto:
@@ -206,12 +243,11 @@ class LeadDto:
         'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
         'county': fields.String(required=True, description='client county'),
         'email': fields.String(required=True, description='lead email address'),
-        'language': fields.String(required=True, description='lead language preference'),
+        'language': LanguageField(required=True),
         'phone': fields.String(required=True, description='lead phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
     })
-
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
 
@@ -259,7 +295,7 @@ class CandidateDto:
         'inserted_on': fields.DateTime(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': fields.String(),
+        'language': LanguageField(),
         'phone': fields.String(),
         'status': CandidateStatusField(),
         'disposition': fields.String(),
@@ -276,7 +312,7 @@ class CandidateDto:
         'zip': fields.String(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': fields.String(),
+        'language': LanguageField(),
         'phone': fields.String(),
         'status': CandidateStatusField()
 
@@ -284,20 +320,20 @@ class CandidateDto:
     candidate_employment = api.model('candidate_employment', {
         'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
+        'gross_salary': fields.Float(required=False),
         'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
         'current': fields.Boolean(required=True, default=False)
     })
 
     update_candidate_employment = api.model('update_candidate_employment', {
-        'start_date': fields.DateTime(required=True),
+        'start_date': fields.DateTime(),
         'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
-        'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
+        'gross_salary': fields.Float(required=False),
+        'gross_salary_frequency': FrequencyStatusField(required=False),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
         'current': fields.Boolean(required=True, default=False)
     })
     candidate_number = api.model('candidate_number', {
@@ -306,11 +342,30 @@ class CandidateDto:
         'phone_number': fields.String(required=True),
         'preferred': fields.Boolean(required=True, default=False)
     })
-
     update_candidate_number = api.model('update_candidate_number', {
         'phone_type_id': fields.Integer(required=True),
         'phone_number': fields.String(required=True),
         'preferred': fields.Boolean(required=True, default=False)
+    })
+    candidate_income = api.model('candidate_income', {
+        'income_type_id': fields.Integer(required=True),
+        'income_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    update_candidate_income = api.model('update_candidate_income', {
+        'income_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    candidate_monthly_expense = api.model('candidate_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'expense_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+    })
+    update_candidate_monthly_expense = api.model('update_candidate_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'value': fields.Integer(required=True),
     })
     tasks = api.model('import_task', {
         'name': fields.String(),

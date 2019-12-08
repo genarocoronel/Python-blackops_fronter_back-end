@@ -1,10 +1,10 @@
 import enum
 
+from app.main.model import EmploymentStatus
 from .. import db
 
 
 class ClientType(enum.Enum):
-    candidate = "candidate"
     lead = "lead"
     client = "client"
 
@@ -16,11 +16,18 @@ class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True)
     inserted_on = db.Column(db.DateTime, nullable=False)
+    type = db.Column(db.Enum(ClientType), nullable=False, default=ClientType.lead)
+
+    # foreign keys
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
 
     # relationships
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='client')
+    co_client = db.relationship('Client', uselist=False, remote_side=[client_id])
     employments = db.relationship('ClientEmployment')
+    income_sources = db.relationship('ClientIncome')
+    monthly_expenses = db.relationship('ClientMonthlyExpense')
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)
@@ -32,11 +39,36 @@ class Client(db.Model):
     state = db.Column(db.String(2), nullable=False)
     zip = db.Column(db.Integer, nullable=False)
     zip4 = db.Column(db.Integer, nullable=False)
-    estimated_debt = db.Column(db.Integer, nullable=False)
+    county = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(255), unique=True, nullable=True)
     language = db.Column(db.String(25), nullable=True)
     phone = db.Column(db.String(25), nullable=True)
-    type = db.Column(db.Enum(ClientType), nullable=False, default=ClientType.lead)
+
+    estimated_debt = db.Column(db.Integer, nullable=False)
+
+    employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
+
+
+class ClientIncome(db.Model):
+    __tablename__ = "client_income_sources"
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    income_id = db.Column(db.Integer, db.ForeignKey('income_sources.id'), primary_key=True)
+
+    # relationships
+    client = db.relationship('Client', backref='income_source_client_assoc')
+    income_source = db.relationship('Income', backref='client_income_source_assoc')
+
+
+class ClientMonthlyExpense(db.Model):
+    __tablename__ = "client_monthly_expenses"
+
+    candidate_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    expense_id = db.Column(db.Integer, db.ForeignKey('monthly_expenses.id'), primary_key=True)
+
+    # relationships
+    client = db.relationship('Client', backref='monthly_expense_client_assoc')
+    monthly_expense = db.relationship('MonthlyExpense', backref='client_monthly_expense_assoc')
 
 
 class ClientEmployment(db.Model):

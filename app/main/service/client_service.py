@@ -2,9 +2,12 @@ import uuid
 import datetime
 
 from app.main import db
+from app.main.model import Frequency
 from app.main.model.appointment import Appointment
-from app.main.model.client import Client, ClientType, ClientEmployment
+from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense
 from app.main.model.employment import Employment
+from app.main.model.income import IncomeType, Income
+from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 
 
 def save_new_client(data, client_type=ClientType.lead):
@@ -112,9 +115,102 @@ def update_client_employments(client, employments):
     # remove previous records
     for prev_employment in prev_employments:
         ClientEmployment.query.filter(ClientEmployment.client_id == client.id,
-                                            ClientEmployment.employment_id == prev_employment.employment_id).delete()
+                                      ClientEmployment.employment_id == prev_employment.employment_id).delete()
         Employment.query.filter_by(id=prev_employment.employment_id).delete()
     save_changes()
 
     return {'message': 'Successfully updated employments'}, None
 
+
+def get_client_income_sources(client):
+    income_sources_assoc = ClientIncome.query.join(Client).filter(Client.id == client.id).all()
+    income_sources = [assoc.income_source for assoc in income_sources_assoc]
+    income_types = IncomeType.query.filter(
+        IncomeType.id.in_([income.income_type_id for income in income_sources])
+    ).all()
+
+    response = []
+    for income in income_sources:
+        data = {}
+        data['income_type_id'] = income.income_type_id
+        data['income_type'] = next(
+            (income_type.name for income_type in income_types if income_type.id == income.income_type_id), 'UNKNOWN')
+        data['value'] = income.value
+        data['frequency'] = income.frequency
+        response.append(data)
+    return response, None
+
+
+def update_client_income_sources(client, income_sources):
+    prev_income_sources_assoc = ClientIncome.query.join(Client).filter(Client.id == client.id).all()
+
+    # create new records first
+    for data in income_sources:
+        income_type = IncomeType.query.filter_by(id=data.get('income_type_id')).first()
+        if income_type:
+            new_candidate_income = ClientIncome()
+            new_candidate_income.candidate = client
+            new_candidate_income.income_source = Income(
+                inserted_on=datetime.datetime.utcnow(),
+                income_type_id=data.get('income_type_id'),
+                value=data.get('value'),
+                frequency=Frequency[data.get('frequency')]
+            )
+            db.session.add(new_candidate_income)
+        else:
+            return None, 'Invalid Income Type'
+
+    # remove previous records
+    for income_assoc in prev_income_sources_assoc:
+        ClientIncome.query.filter(ClientIncome.candidate_id == client.id,
+                                  ClientIncome.income_id == income_assoc.income_id).delete()
+        Income.query.filter_by(id=income_assoc.income_id).delete()
+    save_changes()
+
+    return {'message': 'Successfully updated income sources'}, None
+
+
+def get_client_monthly_expenses(client):
+    monthly_expense_assoc = ClientMonthlyExpense.query.join(Client).filter(Client.id == client.id).all()
+    monthly_expenses = [assoc.income_source for assoc in monthly_expense_assoc]
+    expense_types = ExpenseType.query.filter(
+        ExpenseType.id.in_([expense.expense_type_id for expense in monthly_expenses])
+    ).all()
+
+    response = []
+    for expense in monthly_expenses:
+        data = {}
+        data['expense_type_id'] = expense.expense_type_id
+        data['expense_type'] = next(
+            (expense_type.name for expense_type in expense_types if expense_type.id == expense.expense_type_id), 'UNKNOWN')
+        data['value'] = expense.value
+        response.append(data)
+    return response, None
+
+
+def update_client_monthly_expenses(client, expenses):
+    prev_monthly_expense_assoc = ClientMonthlyExpense.query.join(Client).filter(Client.id == client.id).all()
+
+    # create new records first
+    for data in expenses:
+        expense_type = ExpenseType.query.filter_by(id=data.get('expense_type_id')).first()
+        if expense_type:
+            new_candidate_expense = ClientMonthlyExpense()
+            new_candidate_expense.candidate = client
+            new_candidate_expense.monthly_expense = MonthlyExpense(
+                inserted_on=datetime.datetime.utcnow(),
+                expense_type_id=data.get('expense_type_id'),
+                value=data.get('value'),
+            )
+            db.session.add(new_candidate_expense)
+        else:
+            return None, 'Invalid Income Type'
+
+    # remove previous records
+    for expense_assoc in prev_monthly_expense_assoc:
+        ClientMonthlyExpense.query.filter(ClientMonthlyExpense.candidate_id == client.id,
+                                          ClientMonthlyExpense.expense_id == expense_assoc.expense_id).delete()
+        MonthlyExpense.query.filter_by(id=expense_assoc.expense_id).delete()
+    save_changes()
+
+    return {'message': 'Successfully updated monthly expenses'}, None

@@ -13,10 +13,14 @@ class User(db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    registered_on = db.Column(db.DateTime, nullable=False)
+
+    # relationships
+
+    # fields
     first_name = db.Column(db.String(25), nullable=False)
     last_name = db.Column(db.String(25), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
-    registered_on = db.Column(db.DateTime, nullable=False)
     admin = db.Column(db.Boolean, nullable=False, default=False)
     require_2fa = db.Column(db.Boolean, default=True)
     title = db.Column(db.String(100), nullable=True)

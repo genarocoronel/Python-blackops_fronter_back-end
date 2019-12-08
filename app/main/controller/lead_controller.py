@@ -5,7 +5,9 @@ from app.main.controller import _handle_get_client, _handle_get_credit_report, _
 from app.main.model.client import ClientType
 from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_CODES_SALES_OVERRIDABLE
 from app.main.service.bank_account_service import create_bank_account
-from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_employments, update_client_employments
+from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
+    update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
+    update_client_employments
 from app.main.service.credit_report_account_service import save_changes
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task
 from ..util.dto import LeadDto, ClientDto
@@ -17,6 +19,10 @@ _bank_account = ClientDto.bank_account
 _credit_report_debt = LeadDto.credit_report_debt
 _lead_employment = ClientDto.client_employment
 _update_lead_employment = ClientDto.update_client_employment
+_lead_income = ClientDto.client_income
+_update_lead_income = ClientDto.update_client_income
+_lead_monthly_expense = ClientDto.client_monthly_expense
+_update_lead_monthly_expense = ClientDto.update_client_monthly_expense
 
 LEAD = ClientType.lead
 
@@ -52,6 +58,70 @@ class Lead(Resource):
             api.abort(404)
         else:
             return client
+
+
+@api.route('/<lead_id>/income-sources')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Lead not found')
+class LeadIncomeSources(Resource):
+    @api.doc('get lead income sources')
+    @api.marshal_list_with(_lead_income)
+    def get(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_income_sources(lead)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update lead income sources')
+    @api.expect([_update_lead_income], validate=True)
+    def put(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            numbers = request.json
+            result, err_msg = update_client_income_sources(lead, numbers)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
+
+
+@api.route('/<lead_id>/monthly-expenses')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Lead not found')
+class ClientMonthlyExpenses(Resource):
+    @api.doc('get lead monthly expenses')
+    @api.marshal_list_with(_lead_monthly_expense)
+    def get(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_monthly_expenses(lead)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update lead monthly expenses')
+    @api.expect([_update_lead_monthly_expense], validate=True)
+    def put(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            expenses = request.json
+            result, err_msg = update_client_monthly_expenses(lead, expenses)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
 
 
 @api.route('/<public_id>/employments')

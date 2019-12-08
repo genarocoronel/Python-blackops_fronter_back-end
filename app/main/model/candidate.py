@@ -34,6 +34,8 @@ class Candidate(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True, nullable=False)
     inserted_on = db.Column(db.DateTime, nullable=False)
+    prequal_number = db.Column(db.String(12), unique=True, nullable=True)
+    status = db.Column(db.Enum(CandidateStatus), nullable=True, default=CandidateStatus.IMPORTED)
 
     # foreign keys
     disposition_id = db.Column(db.Integer, db.ForeignKey('candidate_dispositions.id'))
@@ -45,24 +47,29 @@ class Candidate(db.Model):
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='candidate')
     disposition = db.relationship('CandidateDisposition', back_populates='candidates')
     campaign = db.relationship('Campaign', back_populates='candidates')
-    contact_numbers = db.relationship('CandidateContactNumber')
     employments = db.relationship('CandidateEmployment')
+    contact_numbers = db.relationship('CandidateContactNumber')
+    income_sources = db.relationship('CandidateIncome')
+    monthly_expenses = db.relationship('CandidateMonthlyExpense')
 
     # fields
+    suffix = db.Column(db.String(25), nullable=True)
     first_name = db.Column(db.String(25), nullable=False)
     middle_initial = db.Column(db.CHAR, nullable=True)
     last_name = db.Column(db.String(25), nullable=False)
-    suffix = db.Column(db.String(25), nullable=True)
     address = db.Column(db.String(100), nullable=False)
     city = db.Column(db.String(50), nullable=False)
     state = db.Column(db.String(2), nullable=False)
     _zip = db.Column('zip', db.String(5), nullable=False)
     zip4 = db.Column(db.String(4), nullable=False)
-    status = db.Column(db.Enum(CandidateStatus), nullable=True, default=CandidateStatus.IMPORTED)
+    county = db.Column(db.String(50), nullable=True)
+    email = db.Column(db.String(255), unique=True, nullable=True)
+    language = db.Column(db.String(25), nullable=True)
+    phone = db.Column(db.String(25), nullable=True)
+
     estimated_debt = db.Column(db.Integer, nullable=False)
 
-    prequal_number = db.Column(db.String(12), unique=True, nullable=True)
-
+    # mailer fields
     debt3 = db.Column(db.Integer, nullable=False)  # Debt3 = 3% of revolving debt so =DEBT*3% assuming Debt is column L
     debt15 = db.Column(db.Integer, nullable=False)  # DEBT*1.5% = (L9+(L9*0.06))/60 assuming that L is the column that has the persons revolving debt
     debt2 = db.Column(db.Integer, nullable=False)  # DEBT2 Subtract $5000 from Revolving Debt amount column
@@ -76,11 +83,6 @@ class Candidate(db.Model):
     sav215 = db.Column(db.Integer, nullable=False)  # SAV215 = (((O9*0.03)-P9)*12)-4 Assuming that O is the Debt 2 column and P is the Debt215 column
     sav15 = db.Column(db.Integer, nullable=False)  # SAV15 = (M9*12)-(N9*12) assuming that column M is Debt3 and Column N is Debt15
     sav315 = db.Column(db.Integer, nullable=False)  # Sav315 = (((Q9*0.03)-R9)*12)+4 assuming that Q is the Debt3 column and R is the Debt 315 column
-
-    county = db.Column(db.String(50), nullable=True)
-    email = db.Column(db.String(255), unique=True, nullable=True)
-    language = db.Column(db.String(25), nullable=True)
-    phone = db.Column(db.String(25), nullable=True)
 
     @property
     def zip(self):
@@ -96,14 +98,36 @@ class Candidate(db.Model):
 
 
 class CandidateContactNumber(db.Model):
-    __tablename = ""
+    __tablename__ = "candidate_contact_numbers"
 
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
     contact_number_id = db.Column(db.Integer, db.ForeignKey('contact_numbers.id'), primary_key=True)
 
     # relationships
-    candidate = db.relationship('Candidate', backref='candidate_assoc')
-    contact_number = db.relationship('ContactNumber', backref='contact_number_assoc')
+    candidate = db.relationship('Candidate', backref='contact_number_candidate_assoc')
+    contact_number = db.relationship('ContactNumber', backref='candidate_contact_number_assoc')
+
+
+class CandidateIncome(db.Model):
+    __tablename__ = "candidate_income_sources"
+
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
+    income_id = db.Column(db.Integer, db.ForeignKey('income_sources.id'), primary_key=True)
+
+    # relationships
+    candidate = db.relationship('Candidate', backref='income_source_candidate_assoc')
+    income_source = db.relationship('Income', backref='candidate_income_source_assoc')
+
+
+class CandidateMonthlyExpense(db.Model):
+    __tablename__ = "candidate_monthly_expenses"
+
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
+    expense_id = db.Column(db.Integer, db.ForeignKey('monthly_expenses.id'), primary_key=True)
+
+    # relationships
+    candidate = db.relationship('Candidate', backref='monthly_expense_candidate_assoc')
+    monthly_expense = db.relationship('MonthlyExpense', backref='candidate_monthly_expense_assoc')
 
 
 class CandidateImportStatus(enum.Enum):

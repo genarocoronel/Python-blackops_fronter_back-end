@@ -14,6 +14,8 @@ from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSignature
 from app.main.model.client import Client
 from app.main.model.contact_number import ContactNumberType, ContactNumber
+from app.main.model.income import IncomeType, Income
+from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditReportData
 
