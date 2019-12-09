@@ -551,15 +551,14 @@ class CandidateEmployments(Resource):
                 return result, 200
 
     @api.doc('update candidate employment')
-    # @api.expect([_update_candidate_employment], validate=True)
+    @api.expect([_update_candidate_employment], validate=True)
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
             api.abort(404, **error_response)
         else:
             employments = request.json
-            print(employments)
-            # _convert_payload_datetime_values(employments, 'start_date', 'end_date')
+            _convert_payload_datetime_values(employments, 'start_date', 'end_date')
             result, err_msg = update_candidate_employments(candidate, employments)
             if err_msg:
                 api.abort(500, err_msg)

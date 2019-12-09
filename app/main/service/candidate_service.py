@@ -105,13 +105,11 @@ def update_candidate_employments(candidate, employments):
     for data in employments:
         new_employment = CandidateEmployment()
         new_employment.candidate = candidate
-        str1 = data.get("start_date")+" 12:00:00.000"
-        str2 = data.get("end_date")+" 12:00:00.000"
         new_employment.employment = Employment(
             inserted_on=datetime.datetime.utcnow(),
             employer_name=data.get('employer_name'),
-            start_date=datetime.datetime.strptime(str1,'%Y-%m-%d %H:%M:%S.%f'),
-            end_date=datetime.datetime.strptime(str2,'%Y-%m-%d %H:%M:%S.%f'),
+            start_date=data.get("start_date"),
+            end_date=data.get("end_date"),
             gross_salary=data.get('gross_salary'),
             gross_salary_frequency=data.get('gross_salary_frequency'),
             other_income=data.get('other_income'),
