@@ -3,7 +3,6 @@ import re
 import scrapy
 from urllib.parse import urlparse
 
-from scrapy.shell import inspect_response
 from scrapy_splash import SplashRequest
 
 from ..items import Debt
@@ -47,7 +46,7 @@ class CreditReportSpider(scrapy.Spider):
     def parse_credit_report(self, response):
         address = ' '.join(response.xpath("//div[@id='TokenDisplay']//table[6]//tr[@class='crTradelineHeader']//td[2]//span[@class='Rsmall']/span/text()").getall()).replace('\t', '').replace('\n', '')
         state_match = re.search(r'.*,\W+(\w{2})\W+[0-9]+', address, re.M | re.I)
-        state = state_match.group(1)
+        state = state_match.group(1) if state_match else None
 
         debt_tables = response.xpath("//div[@id='TokenDisplay']//td[@class='crWhiteTradelineHeader']/ancestor::table[2]")
         if debt_tables:
@@ -78,7 +77,7 @@ class CreditReportSpider(scrapy.Spider):
                     state=state,
                 )
         else:
-            inspect_response(response, self)
+            raise Exception(f'Failed to capture debts for credit report account with ID: {self.credit_account_id}')
 
     def _traverse_columns_for_value(self, table_el, row_xpath, params):
         # TODO: possibly have 'params' be a dict  that would allow for formatting key-value pairs into a formatted string

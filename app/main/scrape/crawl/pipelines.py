@@ -43,13 +43,13 @@ class CreditReportPipeline(object):
         self._cached_debt_names = {}
 
     def process_item(self, item, spider):
-        state = item['state']
+        state = item.get('state')
         if state:
             limitation = get_limitations(state)
         else:
             limitation = None
 
-        raw_last_payment = item['last_payment']
+        raw_last_payment = item.get('last_payment')
         if raw_last_payment and limitation:
             graduation = datetime.datetime.strptime(raw_last_payment, '%m/%d/%Y') + datetime.timedelta(days=365 * limitation)
         else:
