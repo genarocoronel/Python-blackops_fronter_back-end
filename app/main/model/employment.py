@@ -19,6 +19,7 @@ class Employment(db.Model):
     # relationships
 
     # fields
+    employer_name = db.Column(db.String(50), nullable=False)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=True)
     gross_salary = db.Column(db.Float, nullable=False)

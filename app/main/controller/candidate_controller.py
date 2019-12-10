@@ -563,7 +563,6 @@ class CandidateEmployments(Resource):
         else:
             employments = request.json
             _convert_payload_datetime_values(employments, 'start_date', 'end_date')
-
             result, err_msg = update_candidate_employments(candidate, employments)
             if err_msg:
                 api.abort(500, err_msg)
