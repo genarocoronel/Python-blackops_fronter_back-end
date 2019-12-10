@@ -83,5 +83,5 @@ class CreditReportSpider(scrapy.Spider):
         # TODO: possibly have 'params' be a dict  that would allow for formatting key-value pairs into a formatted string
         for param in params:
             val = table_el.xpath(row_xpath.format(param)).get()
-            if '--' not in val:
+            if val and '--' not in val:
                 return val.strip()

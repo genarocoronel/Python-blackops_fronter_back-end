@@ -56,7 +56,7 @@ class CreditReportPipeline(object):
             graduation = None
 
         credit_account_id = item.get('credit_account_id')
-        debt_name = item.get('name')
+        debt_name = item.get('name') if item.get('name') else 'NO NAME'
 
         # TODO: I know there is some way to user `any`, `filter` and/or a `lambda` to clean this up
         exists = False
