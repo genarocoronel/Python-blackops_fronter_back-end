@@ -3,6 +3,7 @@ import unittest
 
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
+from flask import current_app
 
 from app import blueprint
 from app.main import create_app, db
@@ -55,6 +56,10 @@ def seed():
 def run():
     app.run(host='0.0.0.0')
 
+@manager.command
+def encrypt_string(password):
+   # TODO: get arguments from cmd line
+   print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
 @manager.command
 def test():
