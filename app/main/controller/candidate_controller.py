@@ -360,6 +360,8 @@ class UpdateCreditReportAccount(Resource):
             data['ip_address'] = request.remote_addr
             data['terms_confirmed'] = True
             update_customer(account.customer_token, data, account.tracking_token)
+            account.status = CreditReportSignupStatus.ACCOUNT_VALIDATING
+            update_credit_report_account(account)
 
             response_object = {
                 'success': True,
