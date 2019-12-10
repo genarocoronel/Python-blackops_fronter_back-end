@@ -36,7 +36,7 @@ def _crawl_credit_report(account_id, username, password):
 
 def capture(id):
     credit_report_account = CreditReportAccount.query.filter_by(id=id).first()
-    password = current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
+    password = current_app.cipher.decrypt(credit_report_account.password).decode()
     _crawl_credit_report(credit_report_account.id, credit_report_account.email, password)
 
 
