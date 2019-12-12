@@ -24,4 +24,4 @@ class Campaign(db.Model):
     mailer_file = db.Column(db.String(100), unique=True, nullable=True)
 
     def launch_task(self, name, *args, **kwargs):
-        current_app.mailer_file_queue.enqueue('app.main.tasks.campaign.' + name, self.id, *args, **kwargs)
+        current_app.queue.enqueue('app.main.tasks.campaign.' + name, self.id, *args, **kwargs)

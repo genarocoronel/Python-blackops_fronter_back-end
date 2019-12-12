@@ -14,6 +14,7 @@ from datetime import datetime
 db = SQLAlchemy()
 flask_bcrypt = Bcrypt()
 
+
 def create_app(config_name):
     app = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -26,12 +27,9 @@ def create_app(config_name):
     app.config['ERROR_404_HELP'] = False
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
-    app.mailer_file_queue = rq.Queue('mailer-file-tasks', connection=app.redis, default_timeout=3600)
-    app.task_queue = rq.Queue('candidate-upload-tasks', connection=app.redis, default_timeout=3600)
-    app.spider_queue = rq.Queue('credit-report-scrape-tasks', connection=app.redis, default_timeout=3600)
-    # rsign worker queue 
-    app.rsign_queue = rq.Queue('rsign-tasks', connection=app.redis, default_timeout=3600)
-    scheduler = Scheduler(queue=app.rsign_queue, connection=app.redis)
+    app.queue = rq.Queue('default', connection=app.redis, default_timeout=3600)
+    # DocuSign worker
+    scheduler = Scheduler(queue=app.queue, connection=app.redis)
     scheduler.schedule(scheduled_time=datetime.utcnow(), 
                        func='app.main.tasks.docusign.check_sessions', 
                        args=[], 
