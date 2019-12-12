@@ -35,23 +35,10 @@ manager.add_command('db', MigrateCommand)
 
 
 @manager.command
-def candidate_parser_worker():
-    run_worker('candidate-upload-tasks')
+def worker(queue):
+    # default worker queue is `default`
+    run_worker(queue)
 
-
-@manager.command
-def credit_report_worker():
-    run_worker('credit-report-scrape-tasks')
-
-
-@manager.command
-def mailer_file_worker():
-    run_worker('mailer-file-tasks')
-
-## remote sign worker tasks
-@manager.command
-def rsign_worker():
-    run_worker('rsign-tasks')
 
 @manager.command
 def seed():
