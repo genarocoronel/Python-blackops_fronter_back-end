@@ -185,7 +185,7 @@ class LeadCreditReportDebts(Resource):
 
         exists, error_response = check_existing_scrape_task(credit_account)
         if exists:
-            api.aport(409, **error_response)
+            api.abort(409, **error_response)
 
         task = credit_account.launch_spider(
             'capture',

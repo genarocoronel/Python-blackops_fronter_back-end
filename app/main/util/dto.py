@@ -347,6 +347,7 @@ class CandidateDto:
 
     })
     candidate_employment = api.model('candidate_employment', {
+        'employer_name': fields.String(required=True),
         'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
         'gross_salary': fields.Float(required=False),
@@ -357,6 +358,7 @@ class CandidateDto:
     })
 
     update_candidate_employment = api.model('update_candidate_employment', {
+        'employer_name': fields.String(required=True),
         'start_date': fields.DateTime(),
         'end_date': fields.DateTime(),
         'gross_salary': fields.Float(required=False),
@@ -476,6 +478,13 @@ class CandidateDto:
         }), required=True, skip_none=True)
     })
 
-
 class TestAPIDto:
     api = Namespace('tests', description='Test operations for Dev/QA')
+
+class RemoteSignDto:
+    api = Namespace('rsign', description='Remote signature related operations')
+
+    docusign_template = api.model('docusign_template', {
+        'id': fields.Integer(),
+        'name': fields.String()
+    })

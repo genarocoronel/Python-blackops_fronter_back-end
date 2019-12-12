@@ -355,7 +355,7 @@ class CreditReportAccountPassword(Resource):
 
             response_object = {
                 'success': True,
-                'password': current_app.cipher.decrypt(credit_report_account.password).decode()
+                'password': current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
             }
             return response_object, 200
         except Exception as e:
@@ -387,6 +387,8 @@ class UpdateCreditReportAccount(Resource):
             data['ip_address'] = request.remote_addr
             data['terms_confirmed'] = True
             update_customer(account.customer_token, data, account.tracking_token)
+            account.status = CreditReportSignupStatus.ACCOUNT_VALIDATING
+            update_credit_report_account(account)
 
             response_object = {
                 'success': True,
@@ -586,7 +588,6 @@ class CandidateEmployments(Resource):
         else:
             employments = request.json
             _convert_payload_datetime_values(employments, 'start_date', 'end_date')
-
             result, err_msg = update_candidate_employments(candidate, employments)
             if err_msg:
                 api.abort(500, err_msg)
