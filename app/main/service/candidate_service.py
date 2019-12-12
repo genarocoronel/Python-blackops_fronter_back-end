@@ -10,6 +10,7 @@ from app.main.model.candidate import CandidateImport, Candidate
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
+from app.main.model.address import Address
 
 
 def save_new_candidate(data):
@@ -128,6 +129,10 @@ def update_candidate_employments(candidate, employments):
     return {'message': 'Successfully updated employments'}, None
 
 
+def get_income_types():
+    return IncomeType.query.all()
+
+
 def get_candidate_income_sources(candidate):
     income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     income_sources = [assoc.income_source for assoc in income_sources_assoc]
@@ -176,9 +181,13 @@ def update_candidate_income_sources(candidate, income_sources):
     return {'message': 'Successfully updated income sources'}, None
 
 
+def get_expense_types():
+    return ExpenseType.query.all()
+
+
 def get_candidate_monthly_expenses(candidate):
     monthly_expense_assoc = CandidateMonthlyExpense.query.join(Candidate).filter(Candidate.id == candidate.id).all()
-    monthly_expenses = [assoc.income_source for assoc in monthly_expense_assoc]
+    monthly_expenses = [assoc.monthly_expense for assoc in monthly_expense_assoc]
     expense_types = ExpenseType.query.filter(
         ExpenseType.id.in_([expense.expense_type_id for expense in monthly_expenses])
     ).all()
@@ -221,6 +230,37 @@ def update_candidate_monthly_expenses(candidate, expenses):
 
     return {'message': 'Successfully updated monthly expenses'}, None
 
+
+def update_candidate_addresses(candidate, addresses):
+    prev_addresses = Address.query.filter_by(candidate_id=candidate.id).all()
+
+    for address in addresses:
+         new_address = Address(
+            candidate_id=candidate.id,
+            address1=address['address1'],
+            address2=address['address2'],
+            zip_code=address['zip_code'],
+            city=address['city'],
+            state=address['state'],
+            from_date=datetime.datetime.strptime(address['fromDate'], "%Y-%m-%d"),
+            to_date=datetime.datetime.strptime(address['toDate'], "%Y-%m-%d"),
+            type=address['type']
+         )
+         db.session.add(new_address)
+    for prev_address in prev_addresses:
+        Address.query.filter_by(id=prev_address.id).delete()
+    save_changes()
+    return {'message': 'Successfully updated candidate addresses'}, None
+
+
+def get_candidate_addresses(candidate):
+    addresses = Address.query.filter_by(candidate_id=candidate.id).all()
+    return addresses, None
+
+
+def save_changes(data):
+    db.session.add(data)
+    db.session.commit()
 
 def get_candidate_contact_numbers(candidate):
     contact_number_assoc = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()

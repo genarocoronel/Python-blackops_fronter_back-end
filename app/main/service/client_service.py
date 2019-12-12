@@ -8,6 +8,7 @@ from app.main.model.client import Client, ClientType, ClientEmployment, ClientIn
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
+from app.main.model.address import Address
 
 
 def save_new_client(data, client_type=ClientType.lead):
@@ -121,6 +122,32 @@ def update_client_employments(client, employments):
 
     return {'message': 'Successfully updated employments'}, None
 
+
+def update_client_addresses(client, addresses):
+    prev_addresses = Address.query.filter_by(client_id=client.id).all()
+
+    for address in addresses:
+         new_address = Address(
+            client_id=client.id,
+            address1=address['address1'],
+            address2=address['address2'],
+            zip_code=address['zip_code'],
+            city=address['city'],
+            state=address['state'],
+            from_date=datetime.datetime.strptime(address['fromDate'], "%Y-%m-%d"),
+            to_date=datetime.datetime.strptime(address['toDate'], "%Y-%m-%d"),
+            type=address['type']
+         )
+         db.session.add(new_address)
+    for prev_address in prev_addresses:
+        Address.query.filter_by(id=prev_address.id).delete()
+    save_changes()
+    return {'message': 'Successfully updated client addresses'}, None
+
+
+def get_client_addresses(client):
+    addresses = Address.query.filter_by(client_id=client.id).all()
+    return addresses, None
 
 def get_client_income_sources(client):
     income_sources_assoc = ClientIncome.query.join(Client).filter(Client.id == client.id).all()
