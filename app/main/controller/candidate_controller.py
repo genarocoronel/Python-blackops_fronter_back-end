@@ -332,7 +332,7 @@ class CreditReportAccountPassword(Resource):
 
             response_object = {
                 'success': True,
-                'password': current_app.cipher.decrypt(credit_report_account.password).decode()
+                'password': current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
             }
             return response_object, 200
         except Exception as e:
