@@ -41,7 +41,7 @@ class CreditReportAccount(db.Model):
 
     @password.setter
     def password(self, password):
-        self._password_enc = current_app.cipher.encrypt(password.encode())
+        self._password_enc = current_app.cipher.encrypt(password.encode()).decode()
 
     def launch_spider(self, name, description, *args, **kwargs):
         rq_job = current_app.spider_queue.enqueue(
