@@ -13,7 +13,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, get_all_candidates, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -600,4 +600,15 @@ class CandidateAddresses(Resource):
                 return result, 200
 
 
-
+@api.route('/<candidate_id>/convert')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateAddresses(Resource):
+    @api.response(200, 'Address successfully created')
+    @api.doc('Convert a candidate to a lead')
+    def post(self, candidate_id):
+        """ Creates new Address """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        return convert_candidate_to_lead(candidate)

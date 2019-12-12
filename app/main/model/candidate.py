@@ -51,6 +51,7 @@ class Candidate(db.Model):
     contact_numbers = db.relationship('CandidateContactNumber')
     income_sources = db.relationship('CandidateIncome')
     monthly_expenses = db.relationship('CandidateMonthlyExpense')
+    addresses = db.relationship("Address", backref="candidate")
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)

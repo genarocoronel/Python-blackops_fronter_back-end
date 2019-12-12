@@ -28,6 +28,8 @@ class Client(db.Model):
     employments = db.relationship('ClientEmployment')
     income_sources = db.relationship('ClientIncome')
     monthly_expenses = db.relationship('ClientMonthlyExpense')
+    addresses = db.relationship("Address", backref="client")
+    contact_numbers = db.relationship('ClientContactNumber')
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)
@@ -80,3 +82,14 @@ class ClientEmployment(db.Model):
     # relationships
     client = db.relationship('Client', backref='client_employment_assoc')
     employment = db.relationship('Employment', backref='employment_client_assoc')
+
+
+class ClientContactNumber(db.Model):
+    __tablename__ = "client_contact_numbers"
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    contact_number_id = db.Column(db.Integer, db.ForeignKey('contact_numbers.id'), primary_key=True)
+
+    # relationships
+    client = db.relationship('Client', backref='contact_number_client_assoc')
+    contact_number = db.relationship('ContactNumber', backref='client_contact_number_assoc')

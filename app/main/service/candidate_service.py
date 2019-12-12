@@ -11,6 +11,7 @@ from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address
+from app.main.service.client_service import create_client_from_candidate
 
 
 def save_new_candidate(data):
@@ -336,3 +337,7 @@ def save_new_candidate_import(data):
     save_changes(new_candidate_import)
     db.session.refresh(new_candidate_import)
     return new_candidate_import
+
+
+def convert_candidate_to_lead(candidate):
+    create_client_from_candidate(candidate)
