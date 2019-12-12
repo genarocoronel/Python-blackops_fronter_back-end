@@ -35,6 +35,12 @@ class CreditReportAccount(db.Model):
     email = db.Column(db.String(30), nullable=True, unique=True)
     registered_fraud_insurance = db.Column(db.Boolean, nullable=False, default=False)
 
+    # debt payment
+    # temperorary for testing
+    # move this to appropriate table
+    term = db.Column(db.Integer, nullable=True, default=24)
+    payment_start_date = db.Column(db.DateTime, nullable=True)
+
     @property
     def password(self):
         return self._password_enc

@@ -1,12 +1,29 @@
 import enum
 
-from app.main.model import EmploymentStatus
 from .. import db
 
 
 class ClientType(enum.Enum):
     lead = "lead"
     client = "client"
+
+class EmploymentStatus(enum.Enum):
+    EMPLOYED = 'employed'
+    RETIRED = 'retired'
+    STUDENT = 'student'
+    UNEMPLOYED = 'unemployed'
+
+class ClientDisposition(db.Model):
+    __tablename__ = "client_dispositions"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    # relationships
+    clients = db.relationship('Client', back_populates='disposition')
+
+    # fields
+    value = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(255), nullable=True)
 
 
 class Client(db.Model):
@@ -20,8 +37,10 @@ class Client(db.Model):
 
     # foreign keys
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    disposition_id = db.Column(db.Integer, db.ForeignKey('client_dispositions.id'))
 
     # relationships
+    disposition = db.relationship('ClientDisposition', back_populates='clients')
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='client')
     co_client = db.relationship('Client', uselist=False, remote_side=[client_id])

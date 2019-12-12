@@ -47,6 +47,7 @@ class DocusignSession(db.Model):
     # primary client id
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     cosign_required = db.Column(db.Boolean, default=False)
+    co_client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
 
     # relationships
     signatures = db.relationship('DocusignSignature', back_populates='session')
@@ -62,8 +63,6 @@ class DocusignSignature(db.Model):
     envelope_id = db.Column(db.String(200), unique=True, nullable=False)
     status = db.Column(db.Enum(SignatureStatus), nullable=False, default=SignatureStatus.SENT)
     modified = db.Column(db.DateTime, default=datetime.utcnow)
-    is_primary = db.Column(db.Boolean, default=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     session_id = db.Column(db.Integer, db.ForeignKey('docusign_session.id'), nullable=True)
 
     # relationships

@@ -69,19 +69,24 @@ class DocuSign(object):
                             template_id,
                             signer_name,
                             signer_email,
-                            primary,
                             template_params,
-                            status='sent'
+                            co_sign=False,
+                            cosigner_name=None,
+                            cosigner_email=None
                            ):
 
         try:
             recipients = []
 
             recipient_tabs = {}
+            cosigner_tabs  = {}
+
+
             tmpl_tabs = self.fetch_tabs(template_id)
             # add tabs only if template params is given
             if template_params is not None:
                 recipient_tabs['textTabs'] = [] 
+                #cosigner_tabs['textTabs'] = [] 
 
                 for key, value in template_params.items():
                     if key in tmpl_tabs['text_tabs'].keys():
@@ -89,36 +94,43 @@ class DocuSign(object):
                         tab = tmpl_tabs['text_tabs'][key] 
                         tab.value = value
                         recipient_tabs['textTabs'].append(tab)
+                        #cosigner_tabs['textTabs'].append(tab)
 
             recipient_tabs['signHereTabs'] = []
+            cosigner_tabs['signHereTabs'] = []
             for tab in tmpl_tabs['signhere_tabs']:
-                # when document is sent to primary client
-                if primary is True:
-                    # disable co-client sign tabs
-                    if 'CoClientSignature' in tab.tab_label:
-                        continue
+                # co-client tabs
+                if 'CoClientSignature' in tab.tab_label:
+                    cosigner_tabs['signHereTabs'].append(tab)
                 # when send to co-client
                 else:
-                    if 'CoClientSignature' not in tab.tab_label:
-                        continue
-                recipient_tabs['signHereTabs'].append(tab) 
+                    recipient_tabs['signHereTabs'].append(tab) 
 
             recipient_tabs['initialHereTabs'] = []
-            # add only if it is a primary client 
-            if primary is True:
-                for tab in tmpl_tabs['initial_here_tabs']:
-                    recipient_tabs['initialHereTabs'].append(tab)
+            # add only for the primary client 
+            for tab in tmpl_tabs['initial_here_tabs']:
+                recipient_tabs['initialHereTabs'].append(tab)
 
             # Signer 
             signer = TemplateRole(email=signer_email,
                                   name=signer_name,
                                   role_name='signer',
-                                  tabs=recipient_tabs)
+                                  tabs=recipient_tabs,
+                                  routing_order='1')
+            recipients.append(signer)
+
+            if co_sign is True:
+                co_client = TemplateRole(email=cosigner_email,
+                                         name=cosigner_name,
+                                         role_name='signer',
+                                         tabs=cosigner_tabs,
+                                         routing_order='2')
+                recipients.append(co_client)
+
 
             #print(signer)
-            recipients.append(signer)
             # create an envelope definition
-            envelope_definition = EnvelopeDefinition(status=status,
+            envelope_definition = EnvelopeDefinition(status='sent',
                                                      template_id=template_id) 
             envelope_definition.template_roles = recipients
 
@@ -215,8 +227,10 @@ class DocuSign(object):
                           template_id, 
                           signer_name, 
                           signer_email, 
-                          is_primary = True,
-                          template_params=None): 
+                          template_params=None,
+                          co_sign=False,
+                          cosigner_name=None,
+                          cosigner_email=None): 
 
         try: 
             if self._client is None:
@@ -229,9 +243,10 @@ class DocuSign(object):
             envelope = self._make_tmpl_envelope(template_id, 
                                                 signer_name, 
                                                 signer_email, 
-                                                is_primary,
-                                                template_params,
-                                                status=status)
+                                                template_params=template_params,
+                                                co_sign=co_sign,
+                                                cosigner_name=cosigner_name,
+                                                cosigner_email=cosigner_email)
 
             result = envelope_api.create_envelope(self._ACCOUNT_ID, 
                                                   envelope_definition=envelope);
