@@ -3,6 +3,7 @@ from app.main.service.docusign_service import DocuSign
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from app.main.model.client import Client, ClientDisposition
+from app.main.model.credit_report_account import CreditPaymentPlan
 from app.main.model.docsign import *
 from app.main.model.credit_report_account import *
 
@@ -12,7 +13,7 @@ from flask import current_app as app
 BANKFEE_FOR_1SIGNER = 59.00
 BANKFEE_FOR_2SIGNER = 89.00
 # Repayment 
-DEBT_REPAYMENT_PERCENT = 42
+DEBT_REPAYMENT_PERCENT = 33
 
 # scheduled task
 # synchronize template details from Docusign account
@@ -50,7 +51,6 @@ def check_sessions():
         # fetch all docsuign session in progress
         sessions = DocusignSession.query.filter_by(state=SessionState.PROGRESS).all()
         for session in sessions:
-            client = Client.query.filter_by(client_id=session.client_id)
             # fetch all in-progress sessions 
             #print(session.id)
             #print(session.state)
@@ -58,6 +58,7 @@ def check_sessions():
             completed = True 
             for signature in signatures:
                 status = signature.status
+                print(status)
                 # if already completed state
                 if (status == SignatureStatus.COMPLETED) or (status == SignatureStatus.DECLINED) or (status == SignatureStatus.VOIDED):
                     continue
@@ -68,8 +69,9 @@ def check_sessions():
 
                 if new_status != status:
                     # update client disposition
+                    client = Client.query.filter_by(client_id=session.client_id).first()
                     disposition = _to_disposition(env_status)
-                    client.disposition = disposition  
+                    client.disposition_id = disposition.id
                     db.session.commit()
 
                     if (new_status == SignatureStatus.CREATED) or (new_status == SignatureStatus.SENT):
@@ -120,11 +122,11 @@ def _to_disposition(status_txt):
     status_txt = status_txt.lower()
     result = "Contract Sent"
     if 'delivered' in status_txt:
-        result = "Contract Delivered"
+        result = "Contract Opened"
     elif 'signed' in status_txt:
         result = "Contract Signed"
     elif 'completed' in status_txt:
-        result = "Contract Complete"
+        result = "Contract Completed"
     elif 'declined' in status_txt:
         result = "Contract Declined"
     elif 'voided' in status_txt:
@@ -132,6 +134,7 @@ def _to_disposition(status_txt):
     elif 'deleted' in status_txt:
         result = "Contract Deleted"
     
+    print(result)
     cd = ClientDisposition.query.filter_by(value=result).first()    
     return cd
     
@@ -143,6 +146,9 @@ def send_contract_for_signature(session_id):
 
     try:
         t_params = {}
+
+        # Plan info
+        credit_plan = CreditPaymentPlan.query.filter_by(name='Universal').first()
 
         session = DocusignSession.query.filter_by(id=session_id).first()
         client_id = session.client_id
@@ -217,10 +223,21 @@ def send_contract_for_signature(session_id):
 
         # Repayment calculations
         total_debt = total
-        total_repayment = round(total_debt * (DEBT_REPAYMENT_PERCENT / 100), 2)
-        num_savings = credit_account.term
-        savings_amount = round((total_repayment / num_savings), 2)
+        debt_enrolled_percent = credit_plan.enrolled_percent
+        credit_monitoring_fee = credit_plan.monitoring_fee_1signer
+        if co_sign is True:
+            credit_monitoring_fee = credit_plan.monitoring_fee_2signer
+        monthly_bank_fee = credit_plan.monthly_bank_fee
+        pymt_term = credit_account.term
+        min_allowed_fee = credit_plan.minimum_fee
 
+        total_fee = (total_debt * (debt_enrolled_percent/100)) + (credit_monitoring_fee * pymt_term) + (monthly_bank_fee *pymt_term) 
+        total_fee = round(total_fee, 2)
+        if total_fee < min_allowed_fee:
+            total_fee = min_allowed_fee
+
+        monthly_fee = round((total_fee / pymt_term), 2)
+        savings_amount = monthly_fee
         ## dummy values using API parameter
         ## need to obtain this from database
         t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
@@ -229,20 +246,20 @@ def send_contract_for_signature(session_id):
         t_params['1stPaymentDate'] = pymt_start.strftime("%m/%d/%Y")
         t_params['1stPaymentDate10'] = pymt_start.strftime("%m/%d/%Y")
         start = pymt_start
-        for i in range(0, num_savings):
+        for i in range(0, pymt_term):
             index = i + 1
             t_params['paymentNumber{}'.format(index)] = str(index)
             t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(savings_amount)
             t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y") 
             start = start + relativedelta(months=1)
-        t_params['Term1'] = str(num_savings)
-        t_params['Term3'] = str(num_savings)
-        t_params['TotalSavingsAmount'] = "${:.2f}".format(total_repayment)
-        t_params['InvoiceAmount'] = "${:.2f}".format(total_repayment)
-        t_params['InvoiceAmount1'] = "${:.2f}".format(total_repayment)
+        t_params['Term1'] = str(pymt_term)
+        t_params['Term3'] = str(pymt_term)
+        t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
+        t_params['InvoiceAmount'] = "${:.2f}".format(total_fee)
+        t_params['InvoiceAmount1'] = "${:.2f}".format(total_fee)
 
         # Bank fee - currently hardcoded 
-        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
+        t_params['BankFee1'] = "${:.2f}".format(credit_monitoring_fee)
         if co_sign is True:
             cc = Client.query.filter_by(id=cc_id).first()
             co_client_fname = '{} {}'.format(cc.first_name, cc.last_name)
@@ -261,8 +278,6 @@ def send_contract_for_signature(session_id):
             t_params['CoClientFullName'] = co_client_fname
             t_params['CoClientFullName1'] = co_client_fname
             t_params['CoClientFullName2'] = co_client_fname
-
-            t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
 
         #Docusign interface
         ds = DocuSign()

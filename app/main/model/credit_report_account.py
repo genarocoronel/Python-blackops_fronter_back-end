@@ -93,3 +93,30 @@ class CreditReportData(db.Model):
 
     def get_task_in_progress(self, name):
         return ScrapeTask.query.filter_by(name=name, user=self, complete=False).first()
+
+
+class CreditPaymentPlan(db.Model):
+    """ DB Model for storing various constants related to Credit Monitoring"""
+    __tablename__ = "credit_payment_plan"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), unique=True, nullable=False) 
+
+    enrolled_percent = db.Column(db.Float, nullable=False)
+    monthly_bank_fee = db.Column(db.Float, nullable=False)
+    minimum_fee = db.Column(db.Float, nullable=False)
+
+    monitoring_fee_1signer = db.Column(db.Float, nullable=False) 
+    monitoring_fee_2signer = db.Column(db.Float, nullable=False) 
+    
+
+def populate_credit_payment_plan():
+    plan = CreditPaymentPlan(name='Universal', 
+                             enrolled_percent=33, 
+                             monthly_bank_fee=10, 
+                             minimum_fee=2475, 
+                             monitoring_fee_1signer=59, 
+                             monitoring_fee_2signer=89)    
+    db.session.add(plan)
+    db.session.commit()
+

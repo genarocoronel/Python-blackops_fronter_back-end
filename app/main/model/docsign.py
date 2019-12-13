@@ -67,3 +67,17 @@ class DocusignSignature(db.Model):
 
     # relationships
     session = db.relationship('DocusignSession', back_populates='signatures')
+
+
+# Model Helper function to pre-poulate the database tables related to docusign
+def populate_docusign_client_dispositions():
+    ClientDisposition.__table__.insert().execute([
+        {'value': 'Contract Sent', 'description': 'Contract is sent to client for signature'},
+        {'value': 'Contract Opened', 'description': 'Contract Opened by the client'},
+        {'value': 'Contract Signed', 'description': 'Client has finished signing the document'},
+        {'value': 'Contract Completed', 'description': 'Client has completed signing the document'},
+        {'value': 'Contract Declined', 'description': 'Contract was declined by the client'},
+        {'value': 'Contract Voided', 'description': 'Contract was voided by the client'},
+        {'value': 'Contract Deleted', 'description': 'Contract was deleted by the client'},
+    ])
+
