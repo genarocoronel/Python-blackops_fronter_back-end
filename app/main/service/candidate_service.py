@@ -83,11 +83,11 @@ def update_candidate(public_id, data):
 
 def get_candidate_employments(candidate):
     employment_assoc = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
-    employments = [num.employment for num in employment_assoc]
-
+    employments = [candidate_employment.employment for candidate_employment in employment_assoc]
     employment_data = []
     for employment in employments:
         data = {}
+        data['employer_name'] = employment.employer_name
         data['start_date'] = employment.start_date
         data['end_date'] = employment.end_date
         data['gross_salary'] = employment.gross_salary
@@ -109,8 +109,9 @@ def update_candidate_employments(candidate, employments):
         new_employment.candidate = candidate
         new_employment.employment = Employment(
             inserted_on=datetime.datetime.utcnow(),
-            start_date=data.get('start_date'),
-            end_date=data.get('end_date'),
+            employer_name=data.get('employer_name'),
+            start_date=data.get("start_date"),
+            end_date=data.get("end_date"),
             gross_salary=data.get('gross_salary'),
             gross_salary_frequency=data.get('gross_salary_frequency'),
             other_income=data.get('other_income'),

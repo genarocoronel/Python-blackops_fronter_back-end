@@ -145,6 +145,8 @@ class CandidateImport(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True, nullable=False)
+    inserted_on = db.Column(db.DateTime, nullable=False)
+    updated_on = db.Column(db.DateTime, nullable=False)
 
     # relationships
     candidates = db.relationship('Candidate', back_populates='import_record', lazy='dynamic')
@@ -153,11 +155,9 @@ class CandidateImport(db.Model):
     # fields
     file = db.Column(db.String(255), nullable=False)
     status = db.Column(db.Enum(CandidateImportStatus), nullable=False, default=CandidateImportStatus.CREATED)
-    inserted_on = db.Column(db.DateTime, nullable=False)
-    updated_on = db.Column(db.DateTime, nullable=False)
 
     def launch_task(self, name, description, *args, **kwargs):
-        rq_job = current_app.task_queue.enqueue('app.main.tasks.' + name, self.id, *args, **kwargs)
+        rq_job = current_app.queue.enqueue('app.main.tasks.' + name, self.id, *args, **kwargs)
         task = ImportTask(id=rq_job.get_id(), name=name, description=description, candidate_import=self)
         db.session.add(task)
         return task

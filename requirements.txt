@@ -24,6 +24,7 @@ six==1.11.0
 SQLAlchemy==1.2.5
 Werkzeug==0.14.1
 rq
+rq-scheduler==0.9.1
 redis
 inflect
 python-dotenv
