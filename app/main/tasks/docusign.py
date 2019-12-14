@@ -69,7 +69,7 @@ def check_sessions():
 
                 if new_status != status:
                     # update client disposition
-                    client = Client.query.filter_by(client_id=session.client_id).first()
+                    client = Client.query.filter_by(id=session.client_id).first()
                     disposition = _to_disposition(env_status)
                     client.disposition_id = disposition.id
                     db.session.commit()
@@ -164,6 +164,7 @@ def send_contract_for_signature(session_id):
             cc_id = client.client_id
 
         client_full_name = '{} {}'.format(client.first_name, client.last_name)
+        ssn4 = client.ssn[-4:] if client.ssn is not None else ""
         t_params['ClientFirstName'] = client.first_name
         t_params['ClientLastName'] = client.last_name 
         t_params['ClientAddress'] = client.address 
@@ -174,19 +175,19 @@ def send_contract_for_signature(session_id):
         t_params['AcctOwnerState'] = client.state
         t_params['ClientZip'] = client.zip 
         t_params['AcctOwnerZip'] = client.zip
-        t_params['ClientHomePhone'] = client.phone
-        t_params['ClientWorkPhone'] = client.phone
-        t_params['ClientMobilePhone'] = client.phone
-        t_params['AcctOwnerMobile'] = client.phone
+        t_params['ClientHomePhone'] = client.phone if client.phone is not None else ""
+        t_params['ClientWorkPhone'] = client.phone if client.phone is not None else ""
+        t_params['ClientMobilePhone'] = client.phone if client.phone is not None else ""
+        t_params['AcctOwnerMobile'] = client.phone if client.phone is not None else ""
         t_params['ClientEmail'] = client.email
-        t_params['ClientDOB'] = '1/1/1973'
-        t_params['AcctOwnerDOB'] = '1/1/1973'
-        t_params['ClientLast4SSN'] = '2341'
+        t_params['ClientDOB'] = client.dob.strftime("%m/%d/%Y") if client.dob is not None else ""
+        t_params['AcctOwnerDOB'] = client.dob.strftime("%m/%d/%Y") if client.dob is not None else ""
+        t_params['ClientLast4SSN'] = ssn4
         t_params['AcctOwnerName'] = client_full_name
         t_params['ClientFullName1'] = client_full_name
         t_params['ClientFullName2'] = client_full_name
 
-        t_params['AcctOwnerSSN'] =  '2341'
+        t_params['AcctOwnerSSN'] =  client.ssn if client.ssn is not None else ""
         t_params['BankName'] =  client.bank_account.name
         t_params['BankRoutingNbr'] =  client.bank_account.routing_number
         t_params['BankAccountNbr'] = client.bank_account.account_number
@@ -263,18 +264,19 @@ def send_contract_for_signature(session_id):
         if co_sign is True:
             cc = Client.query.filter_by(id=cc_id).first()
             co_client_fname = '{} {}'.format(cc.first_name, cc.last_name)
+            co_ssn4 = cc.ssn[-4:] if cc.ssn is not None else ""
             t_params['CoClientFirstName'] = cc.first_name
             t_params['CoClientLastName'] = cc.last_name
             t_params['CoClientAddress'] = cc.address
             t_params['CoClientCity'] = cc.city
             t_params['CoClientState'] = cc.state
             t_params['CoClientZip'] = cc.zip
-            t_params['CoClientHomePhone'] = cc.phone
-            t_params['CoClientWorkPhone'] = cc.phone
-            t_params['CoClientMobilePhone'] = cc.phone
-            t_params['CoClientEmail'] = cc.email
-            t_params['CoClientDOB'] = '2/1/1988'
-            t_params['CoClientLast4SSN'] = '4567'
+            t_params['CoClientHomePhone'] = cc.phone if cc.phone is not None else ""
+            t_params['CoClientWorkPhone'] = cc.phone if cc.phone is not None else ""
+            t_params['CoClientMobilePhone'] = cc.phone if cc.phone is not None else ""
+            t_params['CoClientEmail'] = cc.email if cc.email is not None else ""
+            t_params['CoClientDOB'] = cc.dob.strftime("%m/%d/%Y") if cc.dob is not None else ""
+            t_params['CoClientLast4SSN'] = co_ssn4
             t_params['CoClientFullName'] = co_client_fname
             t_params['CoClientFullName1'] = co_client_fname
             t_params['CoClientFullName2'] = co_client_fname

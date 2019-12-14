@@ -29,6 +29,11 @@ class Config:
     SMART_CREDIT_HTTP_USER = os.environ.get('SMART_CREDIT_HTTP_USER') or 'documentservicesolutions'
     SMART_CREDIT_HTTP_PASS = os.environ.get('SMART_CREDIT_HTTP_PASS') or 'grapackerown'
 
+    # Docusign server access
+    DOCUSIGN_USER_ID = os.getenv('DOCUSIGN_USER_ID', 'b5a198c8-d772-496f-bea2-f814e70f7fbd')
+    DOCUSIGN_ACCOUNT_ID = os.getenv('DOCUSIGN_ACCOUNT_ID', '910decab-18f3-4eae-8456-74552da97b03')
+    DOCUSIGN_INTEGRATION_KEY = os.getenv('DOCUSIGN_INTEGRATION_KEY', 'a40df05f-4138-42c7-bae0-140a80b73baa')
+    DOCUSIGN_RSA_PRIVATE_KEY = os.getenv('DOCUSIGN_RSA_PRIVATE_KEY', 'docsign/rsa_private.key')
 
 class DevelopmentConfig(Config):
     DEBUG = True

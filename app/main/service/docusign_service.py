@@ -2,8 +2,7 @@ from docusign_esign import ApiClient, EnvelopeDefinition, TemplateRole, Envelope
 import base64, os
 from datetime import datetime, timedelta
 import time
-
-DS_ACCOUNT_ID = '910decab-18f3-4eae-8456-74552da97b03'
+from flask import current_app as app
 
 TOKEN_REPLACEMENT_IN_SECONDS = 10 * 60
 TOKEN_EXPIRATION_IN_SECONDS = 3600
@@ -12,9 +11,6 @@ TOKEN_EXPIRATION_IN_SECONDS = 3600
 # Docsign object to interface with Docsign cloud service
 class DocuSign(object):
     # Account Id
-    _USER_ID = 'b5a198c8-d772-496f-bea2-f814e70f7fbd'
-    _ACCOUNT_ID = '910decab-18f3-4eae-8456-74552da97b03'
-    _INTEGRATION_KEY = 'a40df05f-4138-42c7-bae0-140a80b73baa'
     _BASE_PATH  = 'https://demo.docusign.net/restapi'
     _EMAIL_SUBJECT = 'Please sign this document from CRM Limited'
     
@@ -23,6 +19,9 @@ class DocuSign(object):
 
     def __init__(self):
         self._client = None
+        self._USER_ID = app.config['DOCUSIGN_USER_ID']
+        self._ACCOUNT_ID = app.config['DOCUSIGN_ACCOUNT_ID']
+        self._INTEGRATION_KEY = app.config['DOCUSIGN_INTEGRATION_KEY']
   
     # Generate access token using oAuth
     def authorize(self):
@@ -42,7 +41,8 @@ class DocuSign(object):
     def _update_token(self):
         client = self._client
         pk_bytes = None
-        with open('docsign/rsa_private.key', mode='rb') as file: 
+        rsa_key_path = app.config['DOCUSIGN_RSA_PRIVATE_KEY']
+        with open(rsa_key_path, mode='rb') as file: 
             pk_bytes = file.read()
 
         jwt_token = client.request_jwt_user_token(
@@ -323,7 +323,7 @@ class DocuSign(object):
         try:
             document_list = []
             template_api = TemplatesApi(self._client)
-            result = template_api.list_documents(DS_ACCOUNT_ID, template_id)
+            result = template_api.list_documents(self._ACCOUNT_ID, template_id)
             for doc in result.template_documents:
                 print(doc.document_id)
                 print(doc.name)
@@ -339,12 +339,12 @@ class DocuSign(object):
             tabs['initial_here_tabs'] = []
 
             template_api = TemplatesApi(self._client)
-            result = template_api.get(DS_ACCOUNT_ID, template_id)
+            result = template_api.get(self._ACCOUNT_ID, template_id)
             num_pages = int(result.page_count)
             page = 0
             while page < num_pages:
                 page = page + 1
-                result = template_api.get_page_tabs(DS_ACCOUNT_ID, 1, page, template_id)
+                result = template_api.get_page_tabs(self._ACCOUNT_ID, 1, page, template_id)
                 if result.text_tabs is not None:
                     for tab in result.text_tabs:
                         tabs['text_tabs'][tab.tab_label] = tab
