@@ -601,15 +601,34 @@ class CandidateAddresses(Resource):
                 return result, 200
 
 
-@api.route('/<candidate_id>/convert')
+@api.route('/<candidate_id>/submit_to_underwriter')
 @api.param('candidate_id', 'Candidate public identifier')
 @api.response(404, 'Candidate not found')
-class CandidateAddresses(Resource):
+class CandidateToLead(Resource):
     @api.response(200, 'Address successfully created')
     @api.doc('Convert a candidate to a lead')
     def post(self, candidate_id):
-        """ Creates new Address """
+        """ Convert Candidate to Lead """
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
             api.abort(404, **error_response)
-        return convert_candidate_to_lead(candidate)
+        convert_candidate_to_lead(candidate)
+
+        credit_report_account, error_response = _handle_get_credit_report(candidate)
+        if not credit_report_account:
+            api.abort(404, **error_response)
+
+        if credit_report_account.registered_fraud_insurance:
+            response_object = {
+                'success': False,
+                'message': 'Credit account already registered for fraud insurance'
+            }
+            return response_object, 409
+
+        password = current_app.cipher.decrypt(credit_report_account.password).decode()
+        activate_smart_credit_insurance(credit_report_account.email, password)
+
+        credit_report_account.registered_fraud_insurance = True
+        update_credit_report_account(credit_report_account)
+
+        return "Success", 200
