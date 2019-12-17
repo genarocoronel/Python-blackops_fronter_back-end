@@ -34,6 +34,7 @@ def create_app(config_name):
                        func='app.main.tasks.docusign.check_sessions', 
                        args=[], 
                        interval=300,
+                       ttl=60,
                        repeat=None)
    
     app.cipher = Fernet(app.config['SECRET_KEY'])

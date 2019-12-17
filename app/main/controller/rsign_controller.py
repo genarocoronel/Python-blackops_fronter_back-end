@@ -26,10 +26,14 @@ class DsContractNew(Resource):
             return { 'key' : key }
 
         except Exception as err:
-            return {'message': 'Internal Server error'}, 400
+            return {'message': 'Internal Server error - {}'.format(str(err))}, 400
    
 @api.route('/session/<string:key>')
 class DsContractStatus(Resource):
     @api.doc("fetch contract status")
     def get(self, key):
-        return fetch_session_status(key)
+        try:
+            return fetch_session_status(key)
+        except Exception as err:
+            return {'message': 'Internal Server error - {}'.format(str(err))}, 400
+         
