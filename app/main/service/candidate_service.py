@@ -341,4 +341,4 @@ def save_new_candidate_import(data):
 
 
 def convert_candidate_to_lead(candidate):
-    create_client_from_candidate(candidate)
+    return create_client_from_candidate(candidate)

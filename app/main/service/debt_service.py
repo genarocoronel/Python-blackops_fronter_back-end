@@ -4,6 +4,20 @@ from app.main import db
 from app.main.model.task import ScrapeTask
 from app.main.model.credit_report_account import CreditReportData
 
+def scrape_credit_report(account):
+    task = account.launch_spider(
+        'capture',
+        'Capture credit report debts for lead',  # TODO: allow passing custom message for task execution
+    )
+    save_changes(task)
+
+    resp = {
+        'message': 'Spider queued',
+        'task_id': task.id
+    }
+
+    return resp
+
 
 def check_existing_scrape_task(account):
     task = ScrapeTask.query.filter_by(

@@ -81,7 +81,6 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
 
     new_client.credit_report_account = candidate.credit_report_account
 
-
     save_changes(new_client)
     return new_client
 

@@ -8,8 +8,7 @@ from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments
-from app.main.service.credit_report_account_service import save_changes
-from app.main.service.debt_service import get_report_data, check_existing_scrape_task
+from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report
 from ..util.dto import LeadDto, ClientDto
 
 api = LeadDto.api
@@ -187,16 +186,7 @@ class LeadCreditReportDebts(Resource):
         if exists:
             api.abort(409, **error_response)
 
-        task = credit_account.launch_spider(
-            'capture',
-            'Capture credit report debts for lead',  # TODO: allow passing custom message for task execution
-        )
-        save_changes(task)
-
-        resp = {
-            'message': 'Spider queued',
-            'task_id': task.id
-        }
+        resp = scrape_credit_report(credit_account)
         return resp, 200
 
     @api.doc('view credit report data')

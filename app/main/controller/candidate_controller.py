@@ -18,6 +18,7 @@ from app.main.service.credit_report_account_service import save_new_credit_repor
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
     activate_smart_credit_insurance
+from app.main.service.debt_service import scrape_credit_report
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
@@ -612,23 +613,19 @@ class CandidateToLead(Resource):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
             api.abort(404, **error_response)
-        convert_candidate_to_lead(candidate)
+        lead = convert_candidate_to_lead(candidate)
 
-        credit_report_account, error_response = _handle_get_credit_report(candidate)
+        credit_report_account = lead.credit_report_account
         if not credit_report_account:
-            api.abort(404, **error_response)
+            api.abort(404, "No credit report account associated with candidate/lead")
 
-        if credit_report_account.registered_fraud_insurance:
-            response_object = {
-                'success': False,
-                'message': 'Credit account already registered for fraud insurance'
-            }
-            return response_object, 409
+        if not credit_report_account.registered_fraud_insurance:
+            password = current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
+            activate_smart_credit_insurance(credit_report_account.email, password)
 
-        password = current_app.cipher.decrypt(credit_report_account.password).decode()
-        activate_smart_credit_insurance(credit_report_account.email, password)
+            credit_report_account.registered_fraud_insurance = True
+            update_credit_report_account(credit_report_account)
 
-        credit_report_account.registered_fraud_insurance = True
-        update_credit_report_account(credit_report_account)
+        scrape_credit_report(credit_report_account)
 
         return "Success", 200
