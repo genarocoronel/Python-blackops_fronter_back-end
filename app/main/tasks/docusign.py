@@ -436,221 +436,221 @@ def send_modify_debts_for_signature(session_id):
         print("Error in send modify debts")
 
 
-# Debts Removal
-removal_debts1_id = '2f48fe0c-c39e-4f64-a0a2-60b0f64c4fed'
-removal_debts2_id = '845cfdc3-5a29-45e4-a343-0ff71faaa0fb'
-# Term Change
-term_change1_id = '9f12ec63-484c-4d84-ad73-5aa33455e827'
-term_change2_id = '79823547-1df0-475b-a109-235430b42821'
-#Receive Summon
-receive_summon1_id = '711bd135-952e-4c7c-9ad5-af8039c9402b'
-receive_summon2_id = '912e322f-0023-4d68-b844-0b9c317f973f'
-
-additional_debts1_id = 'f5968884-ea09-4555-97bd-a46b2965a493' 
-additional_debts2_id = '8d121a9f-d34d-489b-ae14-43156fa34e5f'
-
-def send_removal_debts_for_signature(client_id,
-                                     cc_id,
-                                     co_sign=False,
-                                     savings_amount=688.20,
-                                     num_savings=30):
-    t_params = {}
-
-    ds = DocuSign()
-    ds.authorize()
-
-    # fetch the client from db
-    client = Client.query.filter_by(id=client_id).first()
-
-    n = 0
-    total = 0
-    for c in _credit_data:
-        n = n + 1
-        total = total + c[2]
-        t_params['Creditor{}'.format(n)] = c[0] 
-        t_params['AccountNumber{}'.format(n)] = c[1] 
-        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
-    # total
-    t_params['PushTotal'] = "${:.2f}".format(total)
-        
-    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
-    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
-    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
-    start = datetime(2019, 12, 15)
-    for i in range(1,31):
-        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
-        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
-        start = start + relativedelta(months=1)
-    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
-    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
-    tid = removal_debts1_id
-    if co_sign is True:
-        cc = Client.query.filter_by(id=cc_id).first()
-        tid = removal_debts2_id
-        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
-        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
-        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
-
-    key = ds.request_signature(template_id=tid,
-                               signer_name="{} {}".format(client.first_name, client.last_name),
-                               signer_email=client.email,
-                               template_params=t_params)
-
-
-def send_term_change_for_signature(client_id,
-                                   cc_id,
-                                   co_sign=False,
-                                   savings_amount=688.20,
-                                   num_savings=30):
-
-    t_params = {}
-
-    ds = DocuSign()
-    ds.authorize()
-    if co_sign is True:
-        tid = term_change2_id
-    else:
-        tid = term_change1_id
-
-    # fetch the client from db
-    client = Client.query.filter_by(id=client_id).first()
-
-    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
-    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
-    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
-    start = datetime(2019, 12, 15)
-    for i in range(1,31):
-        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
-        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
-        start = start + relativedelta(months=1)
-        
-    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
-    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
-    if co_sign is True:
-        cc = Client.query.filter_by(id=cc_id).first()
-        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
-        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
-        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
-    
-    key = ds.request_signature(template_id=tid,
-                               signer_name="{} {}".format(client.first_name, client.last_name),
-                               signer_email=client.email,
-                               template_params=t_params)
-
-
-def send_receive_summon_for_signature(client_id,
-                                      cc_id,
-                                      co_sign=False,
-                                      savings_amount=688.20,
-                                      num_savings=30):
-
-    t_params = {}
-
-    ds = DocuSign()
-    ds.authorize()
-    if co_sign is True:
-        tid = receive_summon2_id
-    else:
-        tid = receive_summon1_id
-
-    # fetch the client from db
-    client = Client.query.filter_by(id=client_id).first()
-
-    n = 0
-    total = 0
-    for c in _credit_data:
-        n = n + 1
-        total = total + c[2]
-        t_params['Creditor{}'.format(n)] = c[0] 
-        t_params['AccountNumber{}'.format(n)] = c[1] 
-        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
-    # total
-    t_params['PushTotal'] = "${:.2f}".format(total)
-
-    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
-    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
-    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
-    start = datetime(2019, 12, 15)
-    for i in range(1,31):
-        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
-        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
-        start = start + relativedelta(months=1)
-        
-    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
-    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
-    if co_sign is True:
-        cc = Client.query.filter_by(id=cc_id).first()
-        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
-        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
-        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
-    
-    key = ds.request_signature(template_id=tid,
-                               signer_name="{} {}".format(client.first_name, client.last_name),
-                               signer_email=client.email,
-                               template_params=t_params)
-
-def send_additional_debts_for_signature(client_id,
-                                        cc_id,
-                                        co_sign=False,
-                                        savings_amount=688.20,
-                                        num_savings=30):
-
-    t_params = {}
-
-    ds = DocuSign()
-    ds.authorize()
-    if co_sign is True:
-        tid = additional_debts2_id
-    else:
-        tid = additional_debts1_id
-
-    # fetch the client from db
-    client = Client.query.filter_by(id=client_id).first()
-
-    n = 0
-    total = 0
-    for c in _credit_data:
-        n = n + 1
-        total = total + c[2]
-        t_params['Creditor{}'.format(n)] = c[0] 
-        t_params['AccountNumber{}'.format(n)] = c[1] 
-        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
-    # total
-    t_params['PushTotal'] = "${:.2f}".format(total)
-
-    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
-    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
-    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
-
-    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
-    start = datetime(2019, 12, 15)
-    for i in range(1,31):
-        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
-        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
-        start = start + relativedelta(months=1)
-        
-    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
-    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
-    if co_sign is True:
-        cc = Client.query.filter_by(id=cc_id).first()
-        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
-        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
-        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
-    
-    key = ds.request_signature(template_id=tid,
-                               signer_name="{} {}".format(client.first_name, client.last_name),
-                               signer_email=client.email,
-                               template_params=t_params)
-
+## Debts Removal
+#removal_debts1_id = '2f48fe0c-c39e-4f64-a0a2-60b0f64c4fed'
+#removal_debts2_id = '845cfdc3-5a29-45e4-a343-0ff71faaa0fb'
+## Term Change
+#term_change1_id = '9f12ec63-484c-4d84-ad73-5aa33455e827'
+#term_change2_id = '79823547-1df0-475b-a109-235430b42821'
+##Receive Summon
+#receive_summon1_id = '711bd135-952e-4c7c-9ad5-af8039c9402b'
+#receive_summon2_id = '912e322f-0023-4d68-b844-0b9c317f973f'
+#
+#additional_debts1_id = 'f5968884-ea09-4555-97bd-a46b2965a493' 
+#additional_debts2_id = '8d121a9f-d34d-489b-ae14-43156fa34e5f'
+#
+#def send_removal_debts_for_signature(client_id,
+#                                     cc_id,
+#                                     co_sign=False,
+#                                     savings_amount=688.20,
+#                                     num_savings=30):
+#    t_params = {}
+#
+#    ds = DocuSign()
+#    ds.authorize()
+#
+#    # fetch the client from db
+#    client = Client.query.filter_by(id=client_id).first()
+#
+#    n = 0
+#    total = 0
+#    for c in _credit_data:
+#        n = n + 1
+#        total = total + c[2]
+#        t_params['Creditor{}'.format(n)] = c[0] 
+#        t_params['AccountNumber{}'.format(n)] = c[1] 
+#        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
+#    # total
+#    t_params['PushTotal'] = "${:.2f}".format(total)
+#        
+#    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
+#    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
+#    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
+#    start = datetime(2019, 12, 15)
+#    for i in range(1,31):
+#        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
+#        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
+#        start = start + relativedelta(months=1)
+#    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
+#    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
+#    tid = removal_debts1_id
+#    if co_sign is True:
+#        cc = Client.query.filter_by(id=cc_id).first()
+#        tid = removal_debts2_id
+#        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
+#        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
+#        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
+#
+#    key = ds.request_signature(template_id=tid,
+#                               signer_name="{} {}".format(client.first_name, client.last_name),
+#                               signer_email=client.email,
+#                               template_params=t_params)
+#
+#
+#def send_term_change_for_signature(client_id,
+#                                   cc_id,
+#                                   co_sign=False,
+#                                   savings_amount=688.20,
+#                                   num_savings=30):
+#
+#    t_params = {}
+#
+#    ds = DocuSign()
+#    ds.authorize()
+#    if co_sign is True:
+#        tid = term_change2_id
+#    else:
+#        tid = term_change1_id
+#
+#    # fetch the client from db
+#    client = Client.query.filter_by(id=client_id).first()
+#
+#    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
+#    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
+#    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
+#    start = datetime(2019, 12, 15)
+#    for i in range(1,31):
+#        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
+#        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
+#        start = start + relativedelta(months=1)
+#        
+#    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
+#    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
+#    if co_sign is True:
+#        cc = Client.query.filter_by(id=cc_id).first()
+#        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
+#        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
+#        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
+#    
+#    key = ds.request_signature(template_id=tid,
+#                               signer_name="{} {}".format(client.first_name, client.last_name),
+#                               signer_email=client.email,
+#                               template_params=t_params)
+#
+#
+#def send_receive_summon_for_signature(client_id,
+#                                      cc_id,
+#                                      co_sign=False,
+#                                      savings_amount=688.20,
+#                                      num_savings=30):
+#
+#    t_params = {}
+#
+#    ds = DocuSign()
+#    ds.authorize()
+#    if co_sign is True:
+#        tid = receive_summon2_id
+#    else:
+#        tid = receive_summon1_id
+#
+#    # fetch the client from db
+#    client = Client.query.filter_by(id=client_id).first()
+#
+#    n = 0
+#    total = 0
+#    for c in _credit_data:
+#        n = n + 1
+#        total = total + c[2]
+#        t_params['Creditor{}'.format(n)] = c[0] 
+#        t_params['AccountNumber{}'.format(n)] = c[1] 
+#        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
+#    # total
+#    t_params['PushTotal'] = "${:.2f}".format(total)
+#
+#    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
+#    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
+#    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
+#    start = datetime(2019, 12, 15)
+#    for i in range(1,31):
+#        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
+#        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
+#        start = start + relativedelta(months=1)
+#        
+#    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
+#    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
+#    if co_sign is True:
+#        cc = Client.query.filter_by(id=cc_id).first()
+#        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
+#        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
+#        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
+#    
+#    key = ds.request_signature(template_id=tid,
+#                               signer_name="{} {}".format(client.first_name, client.last_name),
+#                               signer_email=client.email,
+#                               template_params=t_params)
+#
+#def send_additional_debts_for_signature(client_id,
+#                                        cc_id,
+#                                        co_sign=False,
+#                                        savings_amount=688.20,
+#                                        num_savings=30):
+#
+#    t_params = {}
+#
+#    ds = DocuSign()
+#    ds.authorize()
+#    if co_sign is True:
+#        tid = additional_debts2_id
+#    else:
+#        tid = additional_debts1_id
+#
+#    # fetch the client from db
+#    client = Client.query.filter_by(id=client_id).first()
+#
+#    n = 0
+#    total = 0
+#    for c in _credit_data:
+#        n = n + 1
+#        total = total + c[2]
+#        t_params['Creditor{}'.format(n)] = c[0] 
+#        t_params['AccountNumber{}'.format(n)] = c[1] 
+#        t_params['BalanceOriginal{}'.format(n)] = "${:.2f}".format(c[2])
+#    # total
+#    t_params['PushTotal'] = "${:.2f}".format(total)
+#
+#    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
+#    t_params['ClientFullName'] = "{} {}".format(client.first_name, client.last_name)
+#    t_params['ClientFullName1'] = "{} {}".format(client.first_name, client.last_name)
+#
+#    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
+#    start = datetime(2019, 12, 15)
+#    for i in range(1,31):
+#        t_params['SavingsAmount{}'.format(i)] = "${:.2f}".format(savings_amount)
+#        t_params['ProjectedDate{}'.format(i)] = start.strftime("%m/%d/%Y") 
+#        start = start + relativedelta(months=1)
+#        
+#    t_params['TotalSavingsAmount'] = "${:.2f}".format(num_savings*savings_amount)
+#    t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_1SIGNER)
+#    if co_sign is True:
+#        cc = Client.query.filter_by(id=cc_id).first()
+#        t_params['BankFee1'] = "${:.2f}".format(BANKFEE_FOR_2SIGNER)
+#        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
+#        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
+#    
+#    key = ds.request_signature(template_id=tid,
+#                               signer_name="{} {}".format(client.first_name, client.last_name),
+#                               signer_email=client.email,
+#                               template_params=t_params)
+#
 
