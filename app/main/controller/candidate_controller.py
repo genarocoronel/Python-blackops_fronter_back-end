@@ -13,11 +13,12 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, get_all_candidates, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
     activate_smart_credit_insurance
+from app.main.service.debt_service import scrape_credit_report
 from ..util.dto import CandidateDto
 
 api = CandidateDto.api
@@ -601,4 +602,30 @@ class CandidateAddresses(Resource):
                 return result, 200
 
 
+@api.route('/<candidate_id>/submit_to_underwriter')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateToLead(Resource):
+    @api.response(200, 'Address successfully created')
+    @api.doc('Convert a candidate to a lead')
+    def post(self, candidate_id):
+        """ Convert Candidate to Lead """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        lead = convert_candidate_to_lead(candidate)
 
+        credit_report_account = lead.credit_report_account
+        if not credit_report_account:
+            api.abort(404, "No credit report account associated with candidate/lead")
+
+        if not credit_report_account.registered_fraud_insurance:
+            password = current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
+            activate_smart_credit_insurance(credit_report_account.email, password)
+
+            credit_report_account.registered_fraud_insurance = True
+            update_credit_report_account(credit_report_account)
+
+        scrape_credit_report(credit_report_account)
+
+        return "Success", 200

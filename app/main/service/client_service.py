@@ -4,7 +4,7 @@ import datetime
 from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
-from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense
+from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense, ClientContactNumber
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
@@ -30,7 +30,6 @@ def save_new_client(data, client_type=ClientType.lead):
         type=client_type,
         inserted_on=datetime.datetime.utcnow()
     )
-
     save_changes(new_client)
     response_object = {
         'status': 'success',
@@ -38,6 +37,52 @@ def save_new_client(data, client_type=ClientType.lead):
     }
     return response_object, 201
 
+
+def create_client_from_candidate(candidate, client_type=ClientType.lead):
+    new_client = Client(
+        public_id=str(uuid.uuid4()),
+        email=candidate.email,
+        suffix=candidate.suffix,
+        first_name=candidate.first_name,
+        middle_initial=candidate.middle_initial,
+        last_name=candidate.last_name,
+        address=candidate.address,
+        city=candidate.city,
+        state=candidate.state,
+        zip=candidate.zip,
+        zip4=candidate.zip4,
+        estimated_debt=candidate.estimated_debt,
+        language=candidate.language,
+        phone= candidate.phone,
+        type=client_type,
+        inserted_on=datetime.datetime.utcnow(),
+    )
+    for income in candidate.income_sources:
+        new_client_income = ClientIncome(
+            client=new_client,
+            income_source=income.income_source
+        )
+        db.session.add(new_client_income)
+    for expense in candidate.monthly_expenses:
+        new_client_monthly_expense = ClientMonthlyExpense(
+            client=new_client,
+            monthly_expense=expense.monthly_expense
+        )
+        db.session.add(new_client_monthly_expense)
+    for address in candidate.addresses:
+        new_client.addresses.append(address)
+
+    for number in candidate.contact_numbers:
+        new_client_contact_number = ClientContactNumber(
+            client=new_client,
+            contact_number=number.contact_number
+        )
+        db.session.add(new_client_contact_number)
+
+    new_client.credit_report_account = candidate.credit_report_account
+
+    save_changes(new_client)
+    return new_client
 
 def get_all_clients(client_type=ClientType.client):
     return Client.query.filter_by(type=client_type).all()
