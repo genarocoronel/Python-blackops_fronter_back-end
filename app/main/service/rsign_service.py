@@ -10,41 +10,43 @@ def create_session(data):
     if 'document' not in data:
         raise ValueError("Missing arguments")
 
-    try:
-        client_id = data['client_id']    
-        doc = data['document']         
-        print(client_id)
-        # fetch the client
-        client = Client.query.filter_by(id=int(client_id)).first()
-        # obtain co-sign information
-        co_sign = False
-        if client.client_id is not None:
-            co_sign = True
+    client_id = data['client_id']    
+    doc = data['document']         
+    print(client_id)
+    # fetch the client
+    client = Client.query.filter_by(id=int(client_id)).first()
+    if client is None:
+        raise ValueError("Client not found, client id is Invalid")
 
-        if "NewContract" in doc:
-            tmpl_name = 'EliteDMS_Contract_ 1Signed'
-            if co_sign is True:
-                tmpl_name = 'EliteDMS_Contract_ 2Signed'
-            func = 'send_contract_for_signature' 
-        elif "ModifyDebts" in doc:
-            tmpl_name = 'Modify Debts'
-            if co_sign is True:
-                tmpl_name = 'Modify Debts 2Signer'
-            func = 'send_modify_debts_for_signature'            
+    # obtain co-sign information
+    co_sign = False
+    if client.client_id is not None:
+        co_sign = True
 
-        ds_template = DocusignTemplate.query.filter_by(name=tmpl_name).first()
-        session = DocusignSession(template_id=ds_template.id,
-                                  client_id=client_id,
-                                  cosign_required=co_sign)
-        db.session.add(session)
-        db.session.commit()
-        app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), session.id)
+    if "NewContract" in doc:
+        tmpl_name = 'EliteDMS_Contract_ 1Signed'
+        if co_sign is True:
+            tmpl_name = 'EliteDMS_Contract_ 2Signed'
+        func = 'send_contract_for_signature' 
+    elif "ModifyDebts" in doc:
+        tmpl_name = 'Modify Debts'
+        if co_sign is True:
+            tmpl_name = 'Modify Debts 2Signer'
+        func = 'send_modify_debts_for_signature'            
 
-        return session.id
+    ds_template = DocusignTemplate.query.filter_by(name=tmpl_name).first()
+    if ds_template is None:
+        raise ValueError("Templates are not synchronized, run sync routine !!")    
 
-    except Exception as err:
-        print(str(err))
-        raise ValueError("Internal Error") 
+    session = DocusignSession(template_id=ds_template.id,
+                              client_id=client_id,
+                              cosign_required=co_sign)
+    db.session.add(session)
+    db.session.commit()
+    app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), session.id)
+
+    return session.id
+
 
 
 def fetch_session_status(key):
