@@ -46,5 +46,4 @@ SQLAlchemy==1.2.5
 twilio==6.33.1
 urllib3==1.25.7
 Werkzeug==0.14.1
-flask-cors
 zipp==0.6.0
