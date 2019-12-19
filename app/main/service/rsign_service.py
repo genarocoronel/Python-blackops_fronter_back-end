@@ -47,8 +47,6 @@ def create_session(data):
 
     return session.id
 
-
-
 def fetch_session_status(key):
     try:
         result = {}
@@ -61,6 +59,11 @@ def fetch_session_status(key):
             result['status'] = "Completed"
         else:
             signatures = session.signatures
+            if signatures is None or len(signatures) == 0:
+                result['status'] = 'Failed' 
+                result['reason'] = 'Internal Server Error'
+                return result
+ 
             for signature in signatures:
                 status = signature.status
                 if session.state == SessionState.PROGRESS:
@@ -81,4 +84,5 @@ def fetch_session_status(key):
         return result
 
     except Exception as err:
-        raise ValueError("Internal Error")
+        raise ValueError("Internal Server Error")
+
