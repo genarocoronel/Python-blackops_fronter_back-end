@@ -156,7 +156,7 @@ class FrequencyStatusField(fields.String):
         else:
             return 'unknown'
 
-
+          
 _credit_report_debt_model = {
     'debt_name': fields.String(),
     'creditor': fields.String(),

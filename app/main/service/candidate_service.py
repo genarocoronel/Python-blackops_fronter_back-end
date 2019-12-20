@@ -134,7 +134,7 @@ def update_candidate_employments(candidate, employments):
 def get_income_types():
     return IncomeType.query.all()
 
-
+  
 def get_candidate_income_sources(candidate):
     income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     income_sources = [assoc.income_source for assoc in income_sources_assoc]
