@@ -11,6 +11,7 @@ from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address
+from app.main.service.client_service import create_client_from_candidate
 
 
 def save_new_candidate(data):
@@ -243,8 +244,8 @@ def update_candidate_addresses(candidate, addresses):
             zip_code=address['zip_code'],
             city=address['city'],
             state=address['state'],
-            from_date=datetime.datetime.strptime(address['fromDate'], "%Y-%m-%d"),
-            to_date=datetime.datetime.strptime(address['toDate'], "%Y-%m-%d"),
+            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d"),
+            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d"),
             type=address['type']
          )
          db.session.add(new_address)
@@ -256,7 +257,20 @@ def update_candidate_addresses(candidate, addresses):
 
 def get_candidate_addresses(candidate):
     addresses = Address.query.filter_by(candidate_id=candidate.id).all()
-    return addresses, None
+    address_data = []
+    for address in addresses:
+        data = {}
+        data['address1'] = address.address1
+        data['address2'] = address.address2
+        data['zip_code'] = address.zip_code
+        data['city'] = address.city
+        data['state'] = address.state
+        data['from_date'] = address.from_date
+        data['to_date'] = address.to_date
+        data['type'] = address.type
+        address_data.append(data)
+
+    return address_data, None
 
 
 def save_changes(data):
@@ -346,3 +360,7 @@ def save_new_candidate_import(data):
     save_changes(new_candidate_import)
     db.session.refresh(new_candidate_import)
     return new_candidate_import
+
+
+def convert_candidate_to_lead(candidate):
+    return create_client_from_candidate(candidate)

@@ -1,8 +1,19 @@
 FROM python:3.7-alpine
 
 RUN apk update && \
-    apk upgrade && \
-    apk add postgresql-dev python-dev py-pip build-base libffi-dev openssl-dev libgcc py-mysqldb
+    apk upgrade
+
+RUN apk add postgresql-dev \
+            python-dev \
+            py-pip \
+            build-base \
+            libffi-dev \
+            openssl-dev \
+            libgcc \
+            gcc \
+            libc-dev \
+            libxml2-dev \
+            libxslt-dev
 
 WORKDIR /app
 

@@ -373,8 +373,8 @@ class CandidateDto:
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
+        'from_date': fields.Date(required=True),
+        'to_date': fields.Date(required=True),
         'type': AddressTypeField(required=True)
     })
     update_candidate_addresses = api.model('update_candidate_addresses', {
@@ -383,8 +383,8 @@ class CandidateDto:
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
+        'from_date': fields.Date(required=True),
+        'to_date': fields.Date(required=True),
         'type': AddressTypeField(required=True)
     })
     candidate_number = api.model('candidate_number', {

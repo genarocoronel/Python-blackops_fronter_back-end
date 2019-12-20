@@ -1,12 +1,29 @@
 import enum
 
-from app.main.model import EmploymentStatus
 from .. import db
 
 
 class ClientType(enum.Enum):
     lead = "lead"
     client = "client"
+
+class EmploymentStatus(enum.Enum):
+    EMPLOYED = 'employed'
+    RETIRED = 'retired'
+    STUDENT = 'student'
+    UNEMPLOYED = 'unemployed'
+
+class ClientDisposition(db.Model):
+    __tablename__ = "client_dispositions"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    # relationships
+    clients = db.relationship('Client', back_populates='disposition')
+
+    # fields
+    value = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.String(255), nullable=True)
 
 
 class Client(db.Model):
@@ -20,14 +37,18 @@ class Client(db.Model):
 
     # foreign keys
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
+    disposition_id = db.Column(db.Integer, db.ForeignKey('client_dispositions.id'))
 
     # relationships
+    disposition = db.relationship('ClientDisposition', back_populates='clients')
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='client')
     co_client = db.relationship('Client', uselist=False, remote_side=[client_id])
     employments = db.relationship('ClientEmployment')
     income_sources = db.relationship('ClientIncome')
     monthly_expenses = db.relationship('ClientMonthlyExpense')
+    addresses = db.relationship("Address", backref="client")
+    contact_numbers = db.relationship('ClientContactNumber')
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)
@@ -40,9 +61,13 @@ class Client(db.Model):
     zip = db.Column(db.Integer, nullable=False)
     zip4 = db.Column(db.Integer, nullable=False)
     county = db.Column(db.String(50), nullable=True)
-    email = db.Column(db.String(255), unique=True, nullable=True)
+    email = db.Column(db.String(255), nullable=False)
     language = db.Column(db.String(25), nullable=True)
     phone = db.Column(db.String(25), nullable=True)
+    # date of birth
+    dob  = db.Column(db.DateTime, nullable=True)
+    # SSN ID, string format to store '000-00-0000' or '000000000'
+    ssn = db.Column(db.String(11), nullable=True) 
 
     estimated_debt = db.Column(db.Integer, nullable=False)
 
@@ -80,3 +105,16 @@ class ClientEmployment(db.Model):
     # relationships
     client = db.relationship('Client', backref='client_employment_assoc')
     employment = db.relationship('Employment', backref='employment_client_assoc')
+
+
+
+class ClientContactNumber(db.Model):
+    __tablename__ = "client_contact_numbers"
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    contact_number_id = db.Column(db.Integer, db.ForeignKey('contact_numbers.id'), primary_key=True)
+
+    # relationships
+    client = db.relationship('Client', backref='contact_number_client_assoc')
+    contact_number = db.relationship('ContactNumber', backref='client_contact_number_assoc')
+

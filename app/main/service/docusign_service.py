@@ -2,8 +2,7 @@ from docusign_esign import ApiClient, EnvelopeDefinition, TemplateRole, Envelope
 import base64, os
 from datetime import datetime, timedelta
 import time
-
-DS_ACCOUNT_ID = '910decab-18f3-4eae-8456-74552da97b03'
+from flask import current_app as app
 
 TOKEN_REPLACEMENT_IN_SECONDS = 10 * 60
 TOKEN_EXPIRATION_IN_SECONDS = 3600
@@ -12,9 +11,6 @@ TOKEN_EXPIRATION_IN_SECONDS = 3600
 # Docsign object to interface with Docsign cloud service
 class DocuSign(object):
     # Account Id
-    _USER_ID = 'b5a198c8-d772-496f-bea2-f814e70f7fbd'
-    _ACCOUNT_ID = '910decab-18f3-4eae-8456-74552da97b03'
-    _INTEGRATION_KEY = 'a40df05f-4138-42c7-bae0-140a80b73baa'
     _BASE_PATH  = 'https://demo.docusign.net/restapi'
     _EMAIL_SUBJECT = 'Please sign this document from CRM Limited'
     
@@ -23,6 +19,9 @@ class DocuSign(object):
 
     def __init__(self):
         self._client = None
+        self._USER_ID = app.config['DOCUSIGN_USER_ID']
+        self._ACCOUNT_ID = app.config['DOCUSIGN_ACCOUNT_ID']
+        self._INTEGRATION_KEY = app.config['DOCUSIGN_INTEGRATION_KEY']
   
     # Generate access token using oAuth
     def authorize(self):
@@ -42,7 +41,8 @@ class DocuSign(object):
     def _update_token(self):
         client = self._client
         pk_bytes = None
-        with open('docsign/rsa_private.key', mode='rb') as file: 
+        rsa_key_path = app.config['DOCUSIGN_RSA_PRIVATE_KEY']
+        with open(rsa_key_path, mode='rb') as file: 
             pk_bytes = file.read()
 
         jwt_token = client.request_jwt_user_token(
@@ -69,19 +69,24 @@ class DocuSign(object):
                             template_id,
                             signer_name,
                             signer_email,
-                            primary,
                             template_params,
-                            status='sent'
+                            co_sign=False,
+                            cosigner_name=None,
+                            cosigner_email=None
                            ):
 
         try:
             recipients = []
 
             recipient_tabs = {}
+            cosigner_tabs  = {}
+
+
             tmpl_tabs = self.fetch_tabs(template_id)
             # add tabs only if template params is given
             if template_params is not None:
                 recipient_tabs['textTabs'] = [] 
+                #cosigner_tabs['textTabs'] = [] 
 
                 for key, value in template_params.items():
                     if key in tmpl_tabs['text_tabs'].keys():
@@ -89,36 +94,43 @@ class DocuSign(object):
                         tab = tmpl_tabs['text_tabs'][key] 
                         tab.value = value
                         recipient_tabs['textTabs'].append(tab)
+                        #cosigner_tabs['textTabs'].append(tab)
 
             recipient_tabs['signHereTabs'] = []
+            cosigner_tabs['signHereTabs'] = []
             for tab in tmpl_tabs['signhere_tabs']:
-                # when document is sent to primary client
-                if primary is True:
-                    # disable co-client sign tabs
-                    if 'CoClientSignature' in tab.tab_label:
-                        continue
+                # co-client tabs
+                if 'CoClientSignature' in tab.tab_label:
+                    cosigner_tabs['signHereTabs'].append(tab)
                 # when send to co-client
                 else:
-                    if 'CoClientSignature' not in tab.tab_label:
-                        continue
-                recipient_tabs['signHereTabs'].append(tab) 
+                    recipient_tabs['signHereTabs'].append(tab) 
 
             recipient_tabs['initialHereTabs'] = []
-            # add only if it is a primary client 
-            if primary is True:
-                for tab in tmpl_tabs['initial_here_tabs']:
-                    recipient_tabs['initialHereTabs'].append(tab)
+            # add only for the primary client 
+            for tab in tmpl_tabs['initial_here_tabs']:
+                recipient_tabs['initialHereTabs'].append(tab)
 
             # Signer 
             signer = TemplateRole(email=signer_email,
                                   name=signer_name,
                                   role_name='signer',
-                                  tabs=recipient_tabs)
+                                  tabs=recipient_tabs,
+                                  routing_order='1')
+            recipients.append(signer)
+
+            if co_sign is True:
+                co_client = TemplateRole(email=cosigner_email,
+                                         name=cosigner_name,
+                                         role_name='signer',
+                                         tabs=cosigner_tabs,
+                                         routing_order='2')
+                recipients.append(co_client)
+
 
             #print(signer)
-            recipients.append(signer)
             # create an envelope definition
-            envelope_definition = EnvelopeDefinition(status=status,
+            envelope_definition = EnvelopeDefinition(status='sent',
                                                      template_id=template_id) 
             envelope_definition.template_roles = recipients
 
@@ -127,96 +139,98 @@ class DocuSign(object):
 
         return envelope_definition
 
-    def _make_doc_envelope(self,
-                           doc_path,
-                           doc_name,
-                           signer_name,
-                           signer_email,
-                           cc_name,
-                           cc_email):
-
-        try:
-            recipients = []
-
-            with open(os.path.join(doc_path, doc_name), "rb") as file:
-                content_bytes = file.read()
-            base64_file_content = base64.b64encode(content_bytes).decode('ascii') 
-
-            document = Document( # create the DocuSign document object 
-                document_base64 = base64_file_content, 
-                name = doc_name, # can be different from actual file name
-                file_extension = 'pdf', # many different document types are accepted
-                document_id = 1 # a label used to reference the doc
-            )
-
-            signer = Signer( # The signer
-                            email = signer_email, 
-                            name = signer_name,
-                            recipient_id = "1",  
-                            routing_order = "1")
-            recipients.append(signer)
-
-            if cc_email is not None:
-                # Recepient
-                cc = TemplateRole(email=cc_email,
-                                  name=cc_name,
-                                  role_name = 'cc')
-                recipients.append(cc)
-
-            envelope_definition = EnvelopeDefinition(
-                email_subject = self._EMAIL_SUBJECT,
-                documents = [document], # The order in the docs array determines the order in the envelope
-                recipients = Recipients(signers = recipients), # The Recipients object wants arrays for each recipient type
-                status = "sent" # requests that the envelope be created and sent.
-            )
-
-            # create an envelope definition
-            envelope_definition = EnvelopeDefinition(status='sent',
-                                                     template_id=template_id)
-            envelope_definition.template_roles = recipients
-
-        except Exception as err:
-            raise ValueError('Error in creating envelope >> {}'.format(str(err)))
-
-        return envelope_definition
-
-    # interface for requesting signature for a document
-    def send_document_for_signing(self,
-                                  doc_path,
-                                  doc_name, # document with absolute path
-                                  signer_name,
-                                  signer_email,
-                                  cc_name=None,
-                                  cc_mail=None):
-        try: 
-            if self._client is None:
-                return None
-
-            #make an envelope
-            envelope = self._make_doc_envelope(doc_path, 
-                                               doc_name, 
-                                               signer_name, 
-                                               signer_email, 
-                                               cc_name, 
-                                               cc_mail)
-
-            envelope_api = EnvelopesApi(self._client);
-            result = envelope_api.create_envelope(self._ACCOUNT_ID, 
-                                                  envelope_definition=envelope);
-            
-            return result.envelope_id;
-
-        except Exception as err: 
-            print("Error in send document {}".format(str(err)))
-            return None
+#    def _make_doc_envelope(self,
+#                           doc_path,
+#                           doc_name,
+#                           signer_name,
+#                           signer_email,
+#                           cc_name,
+#                           cc_email):
+#
+#        try:
+#            recipients = []
+#
+#            with open(os.path.join(doc_path, doc_name), "rb") as file:
+#                content_bytes = file.read()
+#            base64_file_content = base64.b64encode(content_bytes).decode('ascii') 
+#
+#            document = Document( # create the DocuSign document object 
+#                document_base64 = base64_file_content, 
+#                name = doc_name, # can be different from actual file name
+#                file_extension = 'pdf', # many different document types are accepted
+#                document_id = 1 # a label used to reference the doc
+#            )
+#
+#            signer = Signer( # The signer
+#                            email = signer_email, 
+#                            name = signer_name,
+#                            recipient_id = "1",  
+#                            routing_order = "1")
+#            recipients.append(signer)
+#
+#            if cc_email is not None:
+#                # Recepient
+#                cc = TemplateRole(email=cc_email,
+#                                  name=cc_name,
+#                                  role_name = 'cc')
+#                recipients.append(cc)
+#
+#            envelope_definition = EnvelopeDefinition(
+#                email_subject = self._EMAIL_SUBJECT,
+#                documents = [document], # The order in the docs array determines the order in the envelope
+#                recipients = Recipients(signers = recipients), # The Recipients object wants arrays for each recipient type
+#                status = "sent" # requests that the envelope be created and sent.
+#            )
+#
+#            # create an envelope definition
+#            envelope_definition = EnvelopeDefinition(status='sent',
+#                                                     template_id=template_id)
+#            envelope_definition.template_roles = recipients
+#
+#        except Exception as err:
+#            raise ValueError('Error in creating envelope >> {}'.format(str(err)))
+#
+#        return envelope_definition
+#
+#    # interface for requesting signature for a document
+#    def send_document_for_signing(self,
+#                                  doc_path,
+#                                  doc_name, # document with absolute path
+#                                  signer_name,
+#                                  signer_email,
+#                                  cc_name=None,
+#                                  cc_mail=None):
+#        try: 
+#            if self._client is None:
+#                return None
+#
+#            #make an envelope
+#            envelope = self._make_doc_envelope(doc_path, 
+#                                               doc_name, 
+#                                               signer_name, 
+#                                               signer_email, 
+#                                               cc_name, 
+#                                               cc_mail)
+#
+#            envelope_api = EnvelopesApi(self._client);
+#            result = envelope_api.create_envelope(self._ACCOUNT_ID, 
+#                                                  envelope_definition=envelope);
+#            
+#            return result.envelope_id;
+#
+#        except Exception as err: 
+#            print("Error in send document {}".format(str(err)))
+#            return None
 
     # API is used request signature for remote signing 
     def request_signature(self,
                           template_id, 
                           signer_name, 
                           signer_email, 
-                          is_primary = True,
-                          template_params=None): 
+                          template_params=None,
+                          co_sign=False,
+                          cosigner_name=None,
+                          cosigner_email=None): 
 
         try: 
             if self._client is None:
@@ -229,9 +243,10 @@ class DocuSign(object):
             envelope = self._make_tmpl_envelope(template_id, 
                                                 signer_name, 
                                                 signer_email, 
-                                                is_primary,
-                                                template_params,
-                                                status=status)
+                                                template_params=template_params,
+                                                co_sign=co_sign,
+                                                cosigner_name=cosigner_name,
+                                                cosigner_email=cosigner_email)
 
             result = envelope_api.create_envelope(self._ACCOUNT_ID, 
                                                   envelope_definition=envelope);
@@ -242,22 +257,6 @@ class DocuSign(object):
         except Exception as err: 
             print("Error in requesting signature {}".format(str(err)))
             return None
-
-    def send_draft(self, envelope_id):
-        try:
-            if self._client is None:
-                return None
-
-            envelope_api = EnvelopesApi(self._client)
-            # change the status into sent
-            recipients.append(signer)
-            result = envelope_api.update(account_id=self._ACCOUNT_ID, 
-                                         envelope_id=envelope_id,
-                                         envelope={'status':'sent'})
-
-        except Exception as err:
-            print("Error in sending draft envelope {}".format(str(err)))
-
 
     def envelope_status(self, 
                         envelope_id):
@@ -308,7 +307,7 @@ class DocuSign(object):
         try:
             document_list = []
             template_api = TemplatesApi(self._client)
-            result = template_api.list_documents(DS_ACCOUNT_ID, template_id)
+            result = template_api.list_documents(self._ACCOUNT_ID, template_id)
             for doc in result.template_documents:
                 print(doc.document_id)
                 print(doc.name)
@@ -324,12 +323,12 @@ class DocuSign(object):
             tabs['initial_here_tabs'] = []
 
             template_api = TemplatesApi(self._client)
-            result = template_api.get(DS_ACCOUNT_ID, template_id)
+            result = template_api.get(self._ACCOUNT_ID, template_id)
             num_pages = int(result.page_count)
             page = 0
             while page < num_pages:
                 page = page + 1
-                result = template_api.get_page_tabs(DS_ACCOUNT_ID, 1, page, template_id)
+                result = template_api.get_page_tabs(self._ACCOUNT_ID, 1, page, template_id)
                 if result.text_tabs is not None:
                     for tab in result.text_tabs:
                         tabs['text_tabs'][tab.tab_label] = tab
