@@ -4,16 +4,17 @@ metadata:
   namespace: default
   name: elite-api
   labels:
-    app: elite-api
+    cattle.io/creator: norman
+    workload.user.cattle.io/workloadselector: deployment-default-elite-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: elite-api
+      workload.user.cattle.io/workloadselector: deployment-default-elite-api
   template:
     metadata:
       labels:
-        app: elite-api
+        workload.user.cattle.io/workloadselector: deployment-default-elite-api
     spec:
       containers:
       - name: elite-api
