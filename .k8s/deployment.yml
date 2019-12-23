@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elite-api
+  labels:
+    app: elite-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elite-api
+  template:
+    metadata:
+      labels:
+        app: elite-api
+    spec:
+      containers:
+      - name: elite-api
+        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}

@@ -9,6 +9,10 @@ stages:
       registry: registry.thedeathstarco.com
     when:
       event: {}
+- name: Deploy Stage
+  steps:
+  - applyYamlConfig:
+      path: ./.k8s/deployment.yml
 timeout: 60
 branch:
   include:
