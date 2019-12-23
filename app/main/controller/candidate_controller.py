@@ -188,102 +188,6 @@ class CandidateContactNumbers(Resource):
                 return dict(success=True, **result), 200
 
 
-@api.route('/<candidate_id>/income-sources')
-@api.param('candidate_id', 'Candidate public identifier')
-@api.response(404, 'Candidate not found')
-class CandidateIncomeSources(Resource):
-    @api.doc('get candidate income sources')
-    @api.marshal_list_with(_candidate_income)
-    def get(self, candidate_id):
-        candidate, error_response = _handle_get_candidate(candidate_id)
-        if not candidate:
-            api.abort(404, **error_response)
-        else:
-            result, err_msg = get_candidate_income_sources(candidate)
-            if err_msg:
-                api.abort(500, err_msg)
-            else:
-                return result, 200
-
-    @api.doc('update candidate income sources')
-    @api.expect([_update_candidate_income], validate=True)
-    def put(self, candidate_id):
-        candidate, error_response = _handle_get_candidate(candidate_id)
-        if not candidate:
-            api.abort(404, **error_response)
-        else:
-            numbers = request.json
-            result, err_msg = update_candidate_income_sources(candidate, numbers)
-            if err_msg:
-                api.abort(500, err_msg)
-            else:
-                return dict(success=True, **result), 200
-
-
-@api.route('/<candidate_id>/monthly-expenses')
-@api.param('candidate_id', 'Candidate public identifier')
-@api.response(404, 'Candidate not found')
-class CandidateMonthlyExpenses(Resource):
-    @api.doc('get candidate monthly expenses')
-    @api.marshal_list_with(_candidate_monthly_expense)
-    def get(self, candidate_id):
-        candidate, error_response = _handle_get_candidate(candidate_id)
-        if not candidate:
-            api.abort(404, **error_response)
-        else:
-            result, err_msg = get_candidate_monthly_expenses(candidate)
-            if err_msg:
-                api.abort(500, err_msg)
-            else:
-                return result, 200
-
-    @api.doc('update candidate monthly expenses')
-    @api.expect([_update_candidate_monthly_expense], validate=True)
-    def put(self, candidate_id):
-        candidate, error_response = _handle_get_candidate(candidate_id)
-        if not candidate:
-            api.abort(404, **error_response)
-        else:
-            expenses = request.json
-            result, err_msg = update_candidate_monthly_expenses(candidate, expenses)
-            if err_msg:
-                api.abort(500, err_msg)
-            else:
-                return dict(success=True, **result), 200
-
-
-@api.route('/<candidate_id>/contact_numbers')
-@api.param('candidate_id', 'Candidate public identifier')
-@api.response(404, 'Candidate not found')
-class CandidateContactNumbers(Resource):
-    @api.doc('get candidate contact numbers')
-    @api.marshal_list_with(_candidate_number)
-    def get(self, candidate_id):
-        candidate, error_response = _handle_get_candidate(candidate_id)
-        if not candidate:
-            api.abort(404, **error_response)
-        else:
-            result, err_msg = get_candidate_contact_numbers(candidate)
-            if err_msg:
-                api.abort(500, err_msg)
-            else:
-                return result, 200
-
-    @api.doc('update candidate contact numbers')
-    @api.expect([_update_candidate_number], validate=True)
-    def put(self, candidate_id):
-        candidate, error_response = _handle_get_candidate(candidate_id)
-        if not candidate:
-            api.abort(404, **error_response)
-        else:
-            numbers = request.json
-            result, err_msg = update_candidate_contact_numbers(candidate, numbers)
-            if err_msg:
-                api.abort(500, err_msg)
-            else:
-                return dict(success=True, **result), 200
-
-
 @api.route('/upload')
 class CandidateUpload(Resource):
     @api.doc('create candidates from file')
@@ -677,7 +581,7 @@ class CandidateEmployments(Resource):
                 return result, 200
 
     @api.doc('update candidate employment')
-    @api.expect([_update_candidate_employment], validate=True)
+    @api.expect([_update_candidate_employment], validate=False)
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:

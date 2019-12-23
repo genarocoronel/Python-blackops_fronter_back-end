@@ -134,7 +134,7 @@ def update_candidate_employments(candidate, employments):
 def get_income_types():
     return IncomeType.query.all()
 
-  
+
 def get_candidate_income_sources(candidate):
     income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     income_sources = [assoc.income_source for assoc in income_sources_assoc]
@@ -244,8 +244,8 @@ def update_candidate_addresses(candidate, addresses):
             zip_code=address['zip_code'],
             city=address['city'],
             state=address['state'],
-            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d"),
-            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d"),
+            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d") if address['from_date'] else None,
+            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d") if address['to_date'] else None,
             type=address['type']
          )
          db.session.add(new_address)

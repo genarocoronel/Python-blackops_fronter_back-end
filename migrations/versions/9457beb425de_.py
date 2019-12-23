@@ -244,8 +244,8 @@ def upgrade():
                     sa.Column('created_date', sa.DateTime(), nullable=True),
                     sa.Column('client_id', sa.Integer(), nullable=False),
                     sa.Column('template_id', sa.Integer(), nullable=False),
-                    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
-                    sa.ForeignKeyConstraint(['template_id'], ['docusign_template.id'], ),
+                    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], name='fk_clients_client_id', ),
+                    sa.ForeignKeyConstraint(['template_id'], ['docusign_template.id'], name='fk_docusign_template_template_id', ),
                     sa.PrimaryKeyConstraint('id'),
                     sa.UniqueConstraint('envelope_id')
                     )

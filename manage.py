@@ -21,6 +21,7 @@ from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditReportAccount
+from app.main.tasks.import_file import parse_file
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -39,6 +40,10 @@ def worker(queue):
     # default worker queue is `default`
     run_worker(queue)
 
+@manager.command
+def import_file():
+    # default worker queue is `default`
+    parse_file(1)
 
 @manager.command
 def seed():
