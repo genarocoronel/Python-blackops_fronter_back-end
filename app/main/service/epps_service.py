@@ -1,4 +1,4 @@
-from zeep import Client
+from zeep import Client as SoapClient
 from requests import Session
 from requests.auth import HTTPBasicAuth
 from zeep.transports import Transport
@@ -111,6 +111,7 @@ class EftStatus(enum.Enum):
     Returned = "Returned"
     Voided = "Voided"
     Failed = "Failed"
+    Error = "Error"
 
 class Eft(object):
     
@@ -227,7 +228,7 @@ class Eft(object):
             self._id = data['CardHolderId']
             self._amount = data['EftAmount']
             self._transaction_id = data['EftTransactionID']
-            self._status = data['StatusCode']
+            self._status = EftStatus(data['StatusCode'])
             self._message = data['LastMessage']
             self._date = data['EftDate']
 
@@ -331,7 +332,7 @@ class EppsClient(object):
         try:
             session = Session()
             session.auth = HTTPBasicAuth(self._EPPS_UNAME, self._EPPS_PSWD)
-            self._client = Client(wsdl=self._WSDL_URL, transport=Transport(session=session))
+            self._client = SoapClient(wsdl=self._WSDL_URL, transport=Transport(session=session))
             # change the binding address
             self._client.service._binding_options['address'] = self._WSDL_URL
         except Exception as err:
@@ -362,6 +363,24 @@ class EppsClient(object):
             print(response)
         except Exception as err:
             logging.warning("EppsClient add card issue")
+    """
+    Update card holder 
+    """
+    def update_card_holder(self, card_holder):
+        try:
+            kwargs = {'CardHolderID': card_holder.id, 'Street':card_holder.street, 'City': card_holder.city,
+                      'State': card_holder.state, 'Zip': card_holder.zip } 
+            if card_holder.phone is not None:
+                kwargs['PhoneNumber'] = card_holder.phone
+            if card_holder.email is not None:
+                kwargs['EmailAddress'] = card_holder.email
+
+            kwargs['UserName'] = self._EPPS_UNAME
+            kwargs['PassWord'] = self._EPPS_PSWD
+            response = self._client.service.UpdateCardHolder(**kwargs) 
+            
+        except Exception as err:
+            logging.warning("EppsClient update card issue")
 
     """
     Response Statuses:
@@ -378,11 +397,12 @@ class EppsClient(object):
             kwargs['PassWord'] = self._EPPS_PSWD
             print(kwargs)
             response = self._client.service.AddEft(**kwargs)
+            print(response)
             if response['StatusCode'] is None:
                 eft.status = EftStatus.Failed
                 eft.message = response['Message']
             else:
-                eft.status = response['StatusCode']
+                eft.status = EftStatus(response['StatusCode'])
                 eft.transaction_id = response['EftTransactionID']
                 eft.message = response['Message']
 

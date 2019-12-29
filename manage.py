@@ -15,6 +15,7 @@ from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
+from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction
 from app.main.model.client import Client
 from app.main.model.contact_number import ContactNumberType, ContactNumber
 from app.main.model.address import AddressType, Address

@@ -14,7 +14,7 @@ def create_session(data):
     doc = data['document']         
     print(client_id)
     # fetch the client
-    client = Client.query.filter_by(id=int(client_id)).first()
+    client = Client.query.filter_by(public_id=client_id).first()
     if client is None:
         raise ValueError("Client not found, client id is Invalid")
 
@@ -39,7 +39,7 @@ def create_session(data):
         raise ValueError("Templates are not synchronized, run sync routine !!")    
 
     session = DocusignSession(template_id=ds_template.id,
-                              client_id=client_id,
+                              client_id=client.id,
                               cosign_required=co_sign)
     db.session.add(session)
     db.session.commit()

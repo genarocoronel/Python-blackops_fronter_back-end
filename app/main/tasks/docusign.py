@@ -253,15 +253,18 @@ def send_contract_for_signature(session_id):
 
         monthly_fee = round((total_fee / pymt_term), 2)
         savings_amount = monthly_fee
-        ## dummy values using API parameter
-        ## need to obtain this from database
         t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
         t_params['SavingsAmount42'] = "${:.2f}".format(savings_amount)
         pymt_start = credit_account.payment_start_date
         t_params['1stPaymentDate'] = pymt_start.strftime("%m/%d/%Y")
         t_params['1stPaymentDate10'] = pymt_start.strftime("%m/%d/%Y")
-        start = pymt_start
-        for i in range(0, pymt_term):
+        # First payment 
+        t_params['paymentNumber1'] = 1
+        t_params['SavingsAmount1'] = "${:.2f}".format(savings_amount)
+        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
+
+        start = credit_account.payment_recurring_begin_date
+        for i in range(1, pymt_term):
             index = i + 1
             t_params['paymentNumber{}'.format(index)] = str(index)
             t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(savings_amount)
