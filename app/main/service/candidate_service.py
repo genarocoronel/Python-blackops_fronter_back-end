@@ -1,5 +1,6 @@
 import uuid
 import datetime
+from sqlalchemy import or_
 
 from app.main import db
 from app.main.model.employment import Employment
@@ -333,7 +334,19 @@ def get_all_candidate_imports():
 
 def get_all_candidates(search_query):
     search = "%{}%".format(search_query)
-    return Candidate.query.filter(Candidate.prequal_number.like(search) if search_query else True).outerjoin(CreditReportAccount).paginate(1, 50, False).items
+    return Candidate.query\
+        .filter(or_(Candidate.prequal_number.like(search) if search_query else True,
+            Candidate.first_name.like(search) if search_query else True,
+            Candidate.status.like(search) if search_query else True,
+            Candidate.address.like(search) if search_query else True,
+            Candidate.county.like(search) if search_query else True,
+            Candidate.state.like(search) if search_query else True,
+            Candidate.city.like(search) if search_query else True,
+            Candidate.phone.like(search) if search_query else True,
+            Candidate.email.like(search) if search_query else True,
+            Candidate.public_id.like(search) if search_query else True,
+            Candidate.last_name.like(search) if search_query else True))\
+        .outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
 
 def get_candidate(public_id):
