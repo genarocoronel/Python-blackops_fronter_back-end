@@ -17,10 +17,10 @@ spec:
         workload.user.cattle.io/workloadselector: deployment-default-worker
     spec:
       containers:
-      - args:
+      - name: worker
+        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
+        args:
         - python
         - manage.py
         - worker
         - default
-      - name: worker
-        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
