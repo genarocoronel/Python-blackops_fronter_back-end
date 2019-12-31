@@ -21,5 +21,4 @@ timeout: 60
 branch:
   include:
   - develop
-  - auto_deploy
 notification: {}
