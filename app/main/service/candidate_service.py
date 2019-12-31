@@ -349,6 +349,14 @@ def get_all_candidates(search_query):
         .outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
 
+def delete_candidates(ids):
+     candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
+     for c in candidates:
+         db.session.delete(c)
+         db.session.commit()
+     return
+
+
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
     if candidate:

@@ -15,7 +15,8 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, \
     update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses, get_income_types, get_expense_types, convert_candidate_to_lead
+    get_candidate_addresses, update_candidate_addresses, get_income_types, get_expense_types, convert_candidate_to_lead, \
+    delete_candidates
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -55,6 +56,13 @@ class GetCandidates(Resource):
         candidates = get_all_candidates(search_query)
         return candidates, 200
 
+    @api.doc('delete candidates')
+    # @api.marshal_list_with(_candidate, envelope='data')
+    def put(self):
+        """Delete Candidates"""
+        request_data = request.json
+        delete_candidates(request_data.get('ids'))
+        return dict(success=True), 200
 
 @api.route('/<candidate_id>')
 @api.param('candidate_id', 'Candidate public identifier')
