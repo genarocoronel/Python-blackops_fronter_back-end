@@ -17,4 +17,9 @@ timeout: 60
 branch:
   include:
   - develop
-notification: {}
+notification:
+  recipients:
+  - recipient: "#elite-document-project"
+    notifier: "c-wdgl9:n-4pqbf"
+  # Select which statuses you want the notification to be sent  
+  condition: ["Failed", "Success"]
