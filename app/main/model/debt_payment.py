@@ -26,15 +26,6 @@ class DebtPaymentSchedule(db.Model):
     transactions = db.relationship("DebtPaymentTransaction", backref="debt_payment_schedule") 
     client = db.relationship("Client", backref="debt_payment_schedule")
 
-    def save(self):
-        # check if exists in table
-        record = DebtPaymentSchedule.query.filter_by(client_id=self.client_id, due_date=self.due_date).first()
-        if record is not None:
-            raise ValueError("Debt payment for the due date is already present")
-            return 
-        db.session.add(self)
-        db.session.commit()
-
 class DebtPaymentTransaction(db.Model):
     """ DB model for storing transaction details of debt payment record."""
     __tablename__ = "debt_payment_transaction"

@@ -8,6 +8,7 @@ from sqlalchemy import and_
 
 import logging
 
+from flask import current_app as app
 """
 Generate Debt Payment schedule for the client
 Called after Document signature/s are completed.
@@ -56,14 +57,16 @@ def create_debt_payment_schedule(client_id):
                                   due_date=pymt_start,
                                   amount=monthly_fee,
                                   bank_fee=monthly_bank_fee)
-        dps.save()
+        db.session.add(dps)
+        db.session.commit()
         start = credit_report.payment_recurring_begin_date
         for i in range(1, term):
             dps = DebtPaymentSchedule(client_id=client_id,
                                       due_date=start,
                                       amount=monthly_fee,
                                       bank_fee=monthly_bank_fee)
-            dps.save()
+            db.session.add(dps)
+            db.session.commit()
             # add the schedule record
             start = start + relativedelta(months=1)
         # commit 
