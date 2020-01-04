@@ -26,15 +26,11 @@ from app.main.model.credit_report_account import CreditReportAccount
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
-
 app.app_context().push()
 
 manager = Manager(app)
-
 migrate = Migrate(app, db)
-
 manager.add_command('db', MigrateCommand)
-
 
 @manager.command
 def worker(queue):
@@ -56,11 +52,6 @@ def run():
 def encrypt_string(password):
     print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
-# kron
-# run rq-scheduler for periodic tasks
-@manager.command
-def kron():
-    subprocess.run(["rqscheduler"])
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')
 @manager.option('-i', '--client_id', help='Client ID')

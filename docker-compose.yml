@@ -6,7 +6,7 @@ services:
     depends_on:
       - app
     image: registry.thedeathstarco.com/elitedoc/web:dev
-    container_name: crmweb
+    container_name: frontend
     restart: unless-stopped
     tty: true
     ports:
@@ -16,16 +16,17 @@ services:
     networks:
       - app-network
 
-  #Python Service
+  # Python Service
   app:
     depends_on:
       - worker
+      - scheduler
       - redis
     build:
       context: .
       dockerfile: docker/Dockerfile
     image: registry.thedeathstarco.com/elitedoc/api:dev
-    container_name: crmapi
+    container_name: api
     restart: unless-stopped
     tty: true
     ports:
@@ -40,7 +41,7 @@ services:
     networks:
       - app-network
 
-  #Candidate Parser
+  # Background Worker
   worker:
     depends_on:
       - redis
@@ -54,8 +55,28 @@ services:
     environment:
       BOILERPLATE_ENV: dev
       REDIS_URL: redis://redis
+      SCRAPYJS_URL: http://scrapyjs:8050
     working_dir: /app
-    command: ['python', 'manage.py', 'candidate_parser_worker']
+    command: ['python', 'manage.py', 'worker', 'default']
+    volumes:
+      - ./:/app
+      - ./docker/.env.local:/app/.env
+    networks:
+      - app-network
+
+  # Background Schedule Worker
+  scheduler:
+    depends_on:
+      - redis
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: registry.thedeathstarco.com/elitedoc/api:dev
+    container_name: scheduler
+    restart: unless-stopped
+    tty: true
+    working_dir: /app
+    command: ['rqscheduler', '--host', 'redis']
     volumes:
       - ./:/app
       - ./docker/.env.local:/app/.env
@@ -70,7 +91,16 @@ services:
     networks:
       - app-network
 
-#Docker Networks
+  # Browser Javascript Engine
+  scrapyjs:
+    image: scrapinghub/splash
+    container_name: scrapyjs
+    expose:
+      - 8050
+    networks:
+      - app-network
+
+# Docker Networks
 networks:
   app-network:
     driver: bridge
