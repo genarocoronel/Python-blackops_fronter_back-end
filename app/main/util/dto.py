@@ -480,3 +480,6 @@ class RemoteSignDto:
         'id': fields.Integer(),
         'name': fields.String()
     })
+
+class DebtPaymentDto:
+    api = Namespace('debtpayment', description='Debt Payment related operations')

@@ -21,3 +21,7 @@ class BankAccount(db.Model):
     routing_number = db.Column(db.String(100), nullable=False)
     valid = db.Column(db.Boolean, nullable=False)
     type = db.Column(db.Enum(BankAccountType), nullable=True, default=BankAccountType.checking)
+    # bank details, optional paramters for registering EFT for debt repayment
+    city = db.Column(db.String(30), nullable=True)
+    state = db.Column(db.String(2), nullable=True)
+

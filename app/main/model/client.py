@@ -66,8 +66,8 @@ class Client(db.Model):
     phone = db.Column(db.String(25), nullable=True)
     # date of birth
     dob  = db.Column(db.DateTime, nullable=True)
-    # SSN ID, string format to store '000-00-0000' or '000000000'
-    ssn = db.Column(db.String(11), nullable=True) 
+    # SSN ID, all digits '000000000'
+    ssn = db.Column(db.String(9), nullable=True) 
 
     estimated_debt = db.Column(db.Integer, nullable=False)
 
