@@ -10,7 +10,7 @@ from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, get_all_candidates, update_candidate, \
+    get_candidate, get_all_candidates, get_candidates_count, get_candidates_with_pagination, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
     get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead
@@ -28,6 +28,7 @@ _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _credit_account_verification_answers = CandidateDto.account_verification_answers
 _candidate = CandidateDto.candidate
+_candidate_pagination = CandidateDto.candidate_pagination
 _update_candidate = CandidateDto.update_candidate
 _candidate_employment = CandidateDto.candidate_employment
 _update_candidate_employment = CandidateDto.update_candidate_employment
@@ -43,12 +44,18 @@ _update_candidate_addresses = CandidateDto.update_candidate_addresses
 
 @api.route('/')
 class GetCandidates(Resource):
-    @api.doc('get all candidates')
-    @api.marshal_list_with(_candidate, envelope='data')
+    @api.doc('get candidates with pagination info')
+    @api.marshal_with(_candidate_pagination)
     def get(self):
-        """ Get all Candidates """
-        candidates = get_all_candidates()
-        return candidates, 200
+        """ Get candidates with pagination info """
+        total_number_of_records = get_candidates_count()
+        page_number = 1 if request.args.get('_page_number') is None else int(request.args.get('_page_number'))
+        sort = 'id' if request.args.get('_sort') is None else request.args.get('_sort')
+        order = 'asc' if request.args.get('_order') is None else request.args.get('_order')
+        # set 25 as limit if limit param not set
+        limit = 25 if request.args.get('_limit') is None else int(request.args.get('_limit'))
+        candidates = get_candidates_with_pagination(sort, order, page_number, limit)
+        return {"candidates":candidates,"page_number":page_number,"total_number_of_records": total_number_of_records,"limit": limit}, 200
 
 
 @api.route('/<candidate_id>')

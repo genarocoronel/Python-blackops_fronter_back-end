@@ -9,7 +9,6 @@ from datetime import datetime
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.sql import table, column
-from sqlalchemy import String, Integer, DateTime
 
 
 # revision identifiers, used by Alembic.
@@ -92,25 +91,6 @@ def upgrade():
     sa.Column('description', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
-    )
-    contact_number_types_table= table('contact_number_types',
-        column('id', Integer),
-        column('inserted_on', DateTime),
-        column('name', String),
-        column('description', String)
-    )
-    op.bulk_insert(contact_number_types_table,
-        [
-            {'id':1, 'name':'Cell Phone',
-                    'inserted_on': datetime.now(),
-                    'description':'Mobile phone number'},
-            {'id':2, 'name':'Work Phone',
-                    'inserted_on': datetime.now(),
-                    'description':'Work phone number'},
-            {'id':3, 'name':'Home',
-                    'inserted_on': datetime.now(),
-                    'description':'Home phone number'},
-        ]
     )
     op.create_table('credit_payment_plan',
     sa.Column('id', sa.Integer(), nullable=False),
