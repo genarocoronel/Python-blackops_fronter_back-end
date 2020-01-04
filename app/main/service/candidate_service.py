@@ -320,12 +320,19 @@ def update_candidate_contact_numbers(candidate, contact_numbers):
 
 
 def get_all_candidate_imports():
-    return CandidateImport.query.all();
+    return CandidateImport.query.all()
 
 
 def get_all_candidates():
     return Candidate.query.outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
+def get_candidates_count():
+    return Candidate.query.outerjoin(CreditReportAccount).count()
+
+def get_candidates_with_pagination(sort, order, page_number, limit):
+    field = getattr(Candidate, sort)
+    column_sorted = getattr(field, order)()
+    return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
