@@ -312,6 +312,7 @@ class CandidateDto:
     })
     candidate = api.model('candidate', {
         'public_id': fields.String(),
+        'prequal_number': fields.String(),
         'first_name': fields.String(),
         'last_name': fields.String(),
         'middle_initial': fields.String(),
