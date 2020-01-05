@@ -43,11 +43,6 @@ def worker(queue):
     run_worker(queue)
 
 @manager.command
-def import_file():
-    # default worker queue is `default`
-    parse_file(1)
-
-@manager.command
 def seed():
     create_super_admin()
 
