@@ -27,7 +27,7 @@ def save_new_candidate(data):
         city=data.get('city'),
         state=data.get('state'),
         zip=data.get('zip'),
-        zip4=data.get('zip'),
+        zip4=data.get('zip4'),
         county=data.get('county'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),
@@ -329,7 +329,7 @@ def update_candidate_contact_numbers(candidate, contact_numbers):
 
 
 def get_all_candidate_imports():
-    return CandidateImport.query.all();
+    return CandidateImport.query.all()
 
 
 def get_all_candidates(search_query):
@@ -356,6 +356,13 @@ def delete_candidates(ids):
          db.session.commit()
      return
 
+def get_candidates_count():
+    return Candidate.query.outerjoin(CreditReportAccount).count()
+
+def get_candidates_with_pagination(sort, order, page_number, limit):
+    field = getattr(Candidate, sort)
+    column_sorted = getattr(field, order)()
+    return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()

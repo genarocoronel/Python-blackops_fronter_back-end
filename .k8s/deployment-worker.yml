@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: worker
+  labels:
+    cattle.io/creator: norman
+    workload.user.cattle.io/workloadselector: deployment-default-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: deployment-default-worker
+  template:
+    metadata:
+      labels:
+        workload.user.cattle.io/workloadselector: deployment-default-worker
+    spec:
+      containers:
+      - name: worker
+        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
+        args:
+        - python
+        - manage.py
+        - worker
+        - default

@@ -5,8 +5,10 @@ Revises:
 Create Date: 2019-12-20 20:42:18.298627
 
 """
+from datetime import datetime
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.sql import table, column
 
 
 # revision identifiers, used by Alembic.

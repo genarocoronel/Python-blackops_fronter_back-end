@@ -9,12 +9,21 @@ stages:
       registry: registry.thedeathstarco.com
     when:
       event: {}
-- name: Deploy Stage
+- name: Deploy API Stage
   steps:
   - applyYamlConfig:
-      path: ./.k8s/deployment.yml
+      path: ./.k8s/deployment-api.yml
+- name: Deploy Worker Stage
+  steps:
+  - applyYamlConfig:
+      path: ./.k8s/deployment-worker.yml
 timeout: 60
 branch:
   include:
   - develop
-notification: {}
+notification:
+  recipients:
+  - recipient: "#elite-document-project"
+    notifier: "c-wdgl9:n-4pqbf"
+  # Select which statuses you want the notification to be sent  
+  condition: ["Failed", "Success"]

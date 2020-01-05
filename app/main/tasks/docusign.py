@@ -9,12 +9,6 @@ from app.main.model.credit_report_account import *
 
 from flask import current_app as app
 
-# bank fee 1Signer & 2Signer
-BANKFEE_FOR_1SIGNER = 59.00
-BANKFEE_FOR_2SIGNER = 89.00
-# Repayment 
-DEBT_REPAYMENT_PERCENT = 33
-
 # scheduled task
 # synchronize template details from Docusign account
 def sync_templates():
@@ -137,7 +131,6 @@ def _to_disposition(status_txt):
     print(result)
     cd = ClientDisposition.query.filter_by(value=result).first()    
     return cd
-    
 
 # test routines
 def send_contract_for_signature(session_id):
@@ -147,20 +140,28 @@ def send_contract_for_signature(session_id):
     try:
         t_params = {}
 
+        session = DocusignSession.query.filter_by(id=session_id).first()
+        if session is None:
+            raise ValueError("Session not present, session id is not valid")
         # Plan info
         credit_plan = CreditPaymentPlan.query.filter_by(name='Universal').first()
         if credit_plan is None:
+            session.state = SessionState.FAILED
+            db.session.commit()
             raise ValueError("CreditPaymentPlan entry is not present")
 
-        session = DocusignSession.query.filter_by(id=session_id).first()
-        if session is None:
-            raise ValueError("Session is not present, session id is not valid")
-
+        # client and template checks are done in service
         client_id = session.client_id
         ds_tmpl_id = session.template.ds_key
 
         # fetch the lead object from the db
         client = Client.query.filter_by(id=client_id).first()
+        # if client is not valid after session is created
+        if client is None or (client.bank_account is None):
+            session.state = SessionState.FAILED
+            db.session.commit()
+            raise ValueError("Client is not valid")
+
         # check if client has co-client associated with it
         co_sign = False
         if client.client_id is not None:
@@ -211,7 +212,16 @@ def send_contract_for_signature(session_id):
         ## Credit report table
         # fetch the credit report account 
         credit_account = client.credit_report_account
-        credit_data    = CreditReportData.query.filter_by(account_id=credit_account.id).all() 
+        if credit_account is None:
+            session.state = SessionState.FAILED
+            db.session.commit()
+            raise ValueError("Credit account is not available")    
+
+        credit_data = CreditReportData.query.filter_by(account_id=credit_account.id).all() 
+        if credit_data is None or (len(credit_data) == 0): 
+            session.state = SessionState.FAILED
+            db.session.commit()
+            raise ValueError("Credit data is not present")
 
         n = 0
         total = 0
@@ -243,15 +253,18 @@ def send_contract_for_signature(session_id):
 
         monthly_fee = round((total_fee / pymt_term), 2)
         savings_amount = monthly_fee
-        ## dummy values using API parameter
-        ## need to obtain this from database
         t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
         t_params['SavingsAmount42'] = "${:.2f}".format(savings_amount)
         pymt_start = credit_account.payment_start_date
         t_params['1stPaymentDate'] = pymt_start.strftime("%m/%d/%Y")
         t_params['1stPaymentDate10'] = pymt_start.strftime("%m/%d/%Y")
-        start = pymt_start
-        for i in range(0, pymt_term):
+        # First payment 
+        t_params['paymentNumber1'] = 1
+        t_params['SavingsAmount1'] = "${:.2f}".format(savings_amount)
+        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
+
+        start = credit_account.payment_recurring_begin_date
+        for i in range(1, pymt_term):
             index = i + 1
             t_params['paymentNumber{}'.format(index)] = str(index)
             t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(savings_amount)
@@ -267,6 +280,11 @@ def send_contract_for_signature(session_id):
         t_params['BankFee1'] = "${:.2f}".format(credit_monitoring_fee)
         if co_sign is True:
             cc = Client.query.filter_by(id=cc_id).first()
+            if cc is None:
+                session.state = SessionState.FAILED
+                db.session.commit()
+                raise ValueError("Co-Client is not valid")
+
             co_client_fname = '{} {}'.format(cc.first_name, cc.last_name)
             co_ssn4 = cc.ssn[-4:] if cc.ssn is not None else ""
             t_params['CoClientFirstName'] = cc.first_name
@@ -288,7 +306,6 @@ def send_contract_for_signature(session_id):
         #Docusign interface
         ds = DocuSign()
         ds.authorize()
-
         # Send to primary client
         if co_sign is False:
             key = ds.request_signature(template_id=ds_tmpl_id,

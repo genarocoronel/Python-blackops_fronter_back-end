@@ -330,6 +330,12 @@ class CandidateDto:
         'disposition': fields.String(),
         'credit_report_account': fields.Nested(credit_report_account)
     })
+    candidate_pagination=api.model('candidate_pagination', {
+        'page_number': fields.Integer(),
+        'total_number_of_records': fields.Integer(),
+        'limit': fields.Integer(),
+        'candidates': fields.List(fields.Nested(candidate))
+    })
     update_candidate = api.model('update_candidate', {
         'first_name': fields.String(),
         'last_name': fields.String(),
@@ -488,3 +494,6 @@ class RemoteSignDto:
         'id': fields.Integer(),
         'name': fields.String()
     })
+
+class DebtPaymentDto:
+    api = Namespace('debtpayment', description='Debt Payment related operations')

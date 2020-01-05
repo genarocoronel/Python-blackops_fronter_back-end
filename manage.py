@@ -1,6 +1,7 @@
 import os
 import unittest
 import uuid
+import subprocess
 
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
@@ -14,6 +15,7 @@ from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
+from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction
 from app.main.model.client import Client
 from app.main.model.contact_number import ContactNumberType, ContactNumber
 from app.main.model.address import AddressType, Address
@@ -59,6 +61,11 @@ def run():
 def encrypt_string(password):
     print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
+# kron
+# run rq-scheduler for periodic tasks
+@manager.command
+def kron():
+    subprocess.run(["rqscheduler"])
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')
 @manager.option('-i', '--client_id', help='Client ID')
