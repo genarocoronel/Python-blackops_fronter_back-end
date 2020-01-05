@@ -1,5 +1,6 @@
 import uuid
 import datetime
+from sqlalchemy import or_
 
 from app.main import db
 from app.main.model.employment import Employment
@@ -131,6 +132,10 @@ def update_candidate_employments(candidate, employments):
     return {'message': 'Successfully updated employments'}, None
 
 
+def get_income_types():
+    return IncomeType.query.all()
+
+
 def get_candidate_income_sources(candidate):
     income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     income_sources = [assoc.income_source for assoc in income_sources_assoc]
@@ -179,9 +184,13 @@ def update_candidate_income_sources(candidate, income_sources):
     return {'message': 'Successfully updated income sources'}, None
 
 
+def get_expense_types():
+    return ExpenseType.query.all()
+
+
 def get_candidate_monthly_expenses(candidate):
     monthly_expense_assoc = CandidateMonthlyExpense.query.join(Candidate).filter(Candidate.id == candidate.id).all()
-    monthly_expenses = [assoc.income_source for assoc in monthly_expense_assoc]
+    monthly_expenses = [assoc.monthly_expense for assoc in monthly_expense_assoc]
     expense_types = ExpenseType.query.filter(
         ExpenseType.id.in_([expense.expense_type_id for expense in monthly_expenses])
     ).all()
@@ -236,8 +245,8 @@ def update_candidate_addresses(candidate, addresses):
             zip_code=address['zip_code'],
             city=address['city'],
             state=address['state'],
-            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d"),
-            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d"),
+            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d") if address['from_date'] else None,
+            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d") if address['to_date'] else None,
             type=address['type']
          )
          db.session.add(new_address)
@@ -323,8 +332,29 @@ def get_all_candidate_imports():
     return CandidateImport.query.all()
 
 
-def get_all_candidates():
-    return Candidate.query.outerjoin(CreditReportAccount).paginate(1, 50, False).items
+def get_all_candidates(search_query):
+    search = "%{}%".format(search_query)
+    return Candidate.query\
+        .filter(or_(Candidate.prequal_number.like(search) if search_query else True,
+            Candidate.first_name.like(search) if search_query else True,
+            Candidate.status.like(search) if search_query else True,
+            Candidate.address.like(search) if search_query else True,
+            Candidate.county.like(search) if search_query else True,
+            Candidate.state.like(search) if search_query else True,
+            Candidate.city.like(search) if search_query else True,
+            Candidate.phone.like(search) if search_query else True,
+            Candidate.email.like(search) if search_query else True,
+            Candidate.public_id.like(search) if search_query else True,
+            Candidate.last_name.like(search) if search_query else True))\
+        .outerjoin(CreditReportAccount).paginate(1, 50, False).items
+
+
+def delete_candidates(ids):
+     candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
+     for c in candidates:
+         db.session.delete(c)
+         db.session.commit()
+     return
 
 def get_candidates_count():
     return Candidate.query.outerjoin(CreditReportAccount).count()

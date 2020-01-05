@@ -16,3 +16,7 @@ poc
 
 *.log
 *.log.*
+.cache
+venv
+.local
+vagrant

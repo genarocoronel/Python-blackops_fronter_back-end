@@ -148,6 +148,7 @@ def update_customer(customer_token, data, tracking_token):
 
 
 def get_id_verification_question(customer_token, tracking_token):
+    current_app.logger.info(f'get_id_verification_question {current_app.smart_credit_url}/api/signup/id-verification, {current_app.smart_credit_client_key}, {customer_token}, {tracking_token}')
     response = requests.get(f'{current_app.smart_credit_url}/api/signup/id-verification',
                             headers=headers,
                             params={

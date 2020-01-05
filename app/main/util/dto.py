@@ -405,6 +405,13 @@ class CandidateDto:
         'phone_number': fields.String(required=True),
         'preferred': fields.Boolean(required=True, default=False)
     })
+    income_types = api.model('income_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'display_name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
+    })
     candidate_income = api.model('candidate_income', {
         'income_type_id': fields.Integer(required=True),
         'income_type': fields.String(required=True),
@@ -415,6 +422,13 @@ class CandidateDto:
         'income_type_id': fields.Integer(required=True),
         'value': fields.Integer(required=True),
         'frequency': FrequencyTypeField(required=True),
+    })
+    expense_types = api.model('expense_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'display_name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
     })
     candidate_monthly_expense = api.model('candidate_monthly_expense', {
         'expense_type_id': fields.Integer(required=True),

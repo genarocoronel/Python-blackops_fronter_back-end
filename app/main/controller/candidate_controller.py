@@ -13,7 +13,8 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, get_all_candidates, get_candidates_count, get_candidates_with_pagination, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, get_income_types, get_expense_types,delete_candidates
+
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -24,6 +25,8 @@ from ..util.dto import CandidateDto
 api = CandidateDto.api
 _candidate_upload = CandidateDto.candidate_upload
 _import = CandidateDto.imports
+_income_types = CandidateDto.income_types
+_expense_types = CandidateDto.expense_types
 _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _credit_account_verification_answers = CandidateDto.account_verification_answers
@@ -57,6 +60,13 @@ class GetCandidates(Resource):
         candidates = get_candidates_with_pagination(sort, order, page_number, limit)
         return {"candidates":candidates,"page_number":page_number,"total_number_of_records": total_number_of_records,"limit": limit}, 200
 
+    @api.doc('delete candidates')
+    # @api.marshal_list_with(_candidate, envelope='data')
+    def put(self):
+        """Delete Candidates"""
+        request_data = request.json
+        delete_candidates(request_data.get('ids'))
+        return dict(success=True), 200
 
 @api.route('/<candidate_id>')
 @api.param('candidate_id', 'Candidate public identifier')
@@ -71,10 +81,18 @@ class UpdateCandidate(Resource):
         return candidate, 200
 
     @api.doc('update candidate')
-    @api.expect(_update_candidate, validate=True)
-    def put(self, public_id):
-        return update_candidate(public_id, request.json)
+    @api.expect(_update_candidate, validate=False)
+    def put(self, candidate_id):
+        return update_candidate(candidate_id, request.json)
 
+@api.route('/income-types')
+class GetIncomeTypes(Resource):
+    @api.doc('get income types')
+    @api.marshal_list_with(_income_types, envelope='data')
+    def get(self):
+        """ Get all Income Types """
+        types = get_income_types()
+        return types, 200
 
 @api.route('/<candidate_id>/income-sources')
 @api.param('candidate_id', 'Candidate public identifier')
@@ -106,6 +124,16 @@ class CandidateIncomeSources(Resource):
                 api.abort(500, err_msg)
             else:
                 return dict(success=True, **result), 200
+
+
+@api.route('/expense-types')
+class GetIncomeTypes(Resource):
+    @api.doc('get expense types')
+    @api.marshal_list_with(_expense_types, envelope='data')
+    def get(self):
+        """ Get all Expense types """
+        types = get_expense_types()
+        return types, 200
 
 
 @api.route('/<candidate_id>/monthly-expenses')
@@ -565,7 +593,7 @@ class CandidateEmployments(Resource):
                 return result, 200
 
     @api.doc('update candidate employment')
-    @api.expect([_update_candidate_employment], validate=True)
+    @api.expect([_update_candidate_employment], validate=False)
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:

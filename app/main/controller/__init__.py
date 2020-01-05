@@ -10,7 +10,10 @@ def _convert_payload_datetime_values(payload, *keys):
         for item in payload:
             for key in keys:
                 if key in item.keys():
-                    item[key] = datetime.datetime.strptime(item.get(key), datetime_format)
+                    try:
+                        item[key] = datetime.datetime.strptime(item.get(key), datetime_format)
+                    except ValueError:
+                        item[key] = None
     elif isinstance(payload, dict):
         for key in keys:
             if key in payload.keys():
