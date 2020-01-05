@@ -3,7 +3,7 @@ from flask_restplus import Resource, Api
 
 from ..util.dto import RemoteSignDto
 from ..model.docsign import DocusignSession, DocusignTemplate
-from ..service.rsign_service import create_session, fetch_session_status
+from ..service.rsign_service import create_session, fetch_session_status, fetch_client_status
 
 api = RemoteSignDto.api 
 _ds_template = RemoteSignDto.docusign_template
@@ -26,6 +26,7 @@ class DsContractNew(Resource):
             return { 'key' : key }
 
         except Exception as err:
+            print(str(err))
             return {'message': 'Internal Server error - {}'.format(str(err))}, 400
    
 @api.route('/session/<string:key>')
@@ -36,4 +37,13 @@ class DsContractStatus(Resource):
             return fetch_session_status(key)
         except Exception as err:
             return {'message': 'Internal Server error - {}'.format(str(err))}, 400
-         
+
+@api.route('/client/<string:client_id>/status')
+class DsClientStatus(Resource):
+    @api.doc("fetch client docusign status")
+    def get(self, client_id):
+        try:
+            return fetch_client_status(client_id)
+
+        except Exception as err:
+            return {'message': 'Internal Server error - {}'.format(str(err))}, 400

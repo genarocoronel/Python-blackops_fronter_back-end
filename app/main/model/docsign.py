@@ -18,6 +18,10 @@ class SessionState(enum.Enum):
     PROGRESS = 'InProgress'
     COMPLETED = 'Completed'
     FAILED = 'Failed'
+
+class SessionType(enum.Enum):
+    NewContract = "NewContract"
+    ModifyDebts = "ModifyDebts"
     
 class DocusignTemplate(db.Model):
     """
@@ -49,9 +53,10 @@ class DocusignSession(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     cosign_required = db.Column(db.Boolean, default=False)
     co_client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
+    session_type = db.Column(db.Enum(SessionType), nullable=True, default=SessionType.NewContract)
 
     # relationships
-    signatures = db.relationship('DocusignSignature', back_populates='session')
+    signature = db.relationship('DocusignSignature', uselist=False, back_populates='session')
     template   = db.relationship('DocusignTemplate', back_populates='sessions')
 
 class DocusignSignature(db.Model):
@@ -67,7 +72,7 @@ class DocusignSignature(db.Model):
     session_id = db.Column(db.Integer, db.ForeignKey('docusign_session.id'), nullable=True)
 
     # relationships
-    session = db.relationship('DocusignSession', back_populates='signatures')
+    session = db.relationship('DocusignSession', back_populates='signature')
 
 
 # Model Helper function to pre-poulate the database tables related to docusign
