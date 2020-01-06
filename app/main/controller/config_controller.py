@@ -15,7 +15,7 @@ class ContactNumberTypesList(Resource):
     @api.doc('get contact number types')
     @api.marshal_list_with(_contact_number_types, envelope='data')
     def get(self):
-        """ Get all Income Types """
+        """ Get all Contact Number Types """
         types = get_contact_number_types()
         return types, 200
 
