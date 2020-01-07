@@ -23,6 +23,10 @@ from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditReportAccount
+from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
+from app.main.seed.contact_number_types import seed_contact_number_types
+from app.main.seed.expense_types import seed_expense_type_values
+from app.main.seed.income_types import seed_income_types
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -44,6 +48,10 @@ def worker(queue):
 @manager.command
 def seed():
     create_super_admin()
+    seed_candidate_disposition_values()
+    seed_contact_number_types()
+    seed_expense_type_values()
+    seed_income_types()
 
 
 @manager.command
@@ -60,6 +68,7 @@ def encrypt_string(password):
 @manager.command
 def kron():
     subprocess.run(["rqscheduler"])
+
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')
 @manager.option('-i', '--client_id', help='Client ID')
