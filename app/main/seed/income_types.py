@@ -3,6 +3,9 @@ from typing import List
 
 from pytz import utc
 
+from app.main import db
+from app.main.model.income import IncomeType
+
 income_types = [
     {'name': 'household_income', 'display_name': 'Household Income'},
     {'name': 'alimony', 'display_name': 'Alimony'},
@@ -12,12 +15,10 @@ income_types = [
 
 
 def seed_income_types():
-    db_values = []
     for income_type in income_types:
-        db_values.append(
-            {
-                'name': income_type['name'],
-                'display_name': income_type['display_name'],
-                'inserted_on': datetime.datetime.now(tz=utc)
-            })
-    return db_values
+        existing_income_type = IncomeType.query.filter_by(name=income_type['name']).first()
+        if not existing_income_type:
+            new_income_type = IncomeType(name=income_type['name'], display_name=income_type['display_name'],
+                                         inserted_on=datetime.datetime.now(tz=utc))
+            db.session.add(new_income_type)
+    db.session.commit()
