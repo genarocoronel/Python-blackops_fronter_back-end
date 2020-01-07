@@ -56,15 +56,16 @@ class GetCandidates(Resource):
         # set 25 as limit if limit param not set
         limit = 25 if request.args.get('_limit') is None else int(request.args.get('_limit'))
         candidates = get_candidates_with_pagination(sort, order, page_number, limit)
-        return {"candidates":candidates,"page_number":page_number,"total_number_of_records": total_number_of_records,"limit": limit}, 200
+        return {"candidates": candidates, "page_number": page_number, "total_number_of_records": total_number_of_records,
+                "limit": limit}, 200
 
     @api.doc('delete candidates')
-    # @api.marshal_list_with(_candidate, envelope='data')
-    def put(self):
+    def delete(self):
         """Delete Candidates"""
         request_data = request.json
         delete_candidates(request_data.get('ids'))
         return dict(success=True), 200
+
 
 @api.route('/<candidate_id>')
 @api.param('candidate_id', 'Candidate public identifier')
@@ -82,6 +83,17 @@ class UpdateCandidate(Resource):
     @api.expect(_update_candidate, validate=False)
     def put(self, candidate_id):
         return update_candidate(candidate_id, request.json)
+
+
+@api.route('/income-types')
+class GetIncomeTypes(Resource):
+    @api.doc('get income types')
+    @api.marshal_list_with(_income_types, envelope='data')
+    def get(self):
+        """ Get all Income Types """
+        types = get_income_types()
+        return types, 200
+
 
 @api.route('/<candidate_id>/income-sources')
 @api.param('candidate_id', 'Candidate public identifier')
