@@ -1,6 +1,6 @@
 import uuid
 import datetime
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 
 from app.main import db
 from app.main.model.employment import Employment
@@ -11,11 +11,25 @@ from app.main.model.candidate import CandidateImport, Candidate
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
-from app.main.model.address import Address
+from app.main.model.address import Address, AddressType
 from app.main.service.client_service import create_client_from_candidate
 
 
 def save_new_candidate(data):
+    if data.get('phone') != None:
+        exist_candidate = Candidate.query.filter(Candidate.phone==data.get('phone')).first()
+    else:
+        exist_candidate = Candidate.query.filter(and_(Candidate.first_name==data.get('first_name'),
+         Candidate.last_name==data.get('last_name'),
+         Candidate.email==data.get('email'),
+        )).first()
+    if exist_candidate != None:
+        response_object = {
+            'success': False,
+            'status': 'failed',
+            'message': 'This candidate already exists'
+        }
+        return response_object, 201
     new_candidate = Candidate(
         public_id=str(uuid.uuid4()),
         email=data.get('email'),
@@ -50,8 +64,21 @@ def save_new_candidate(data):
         inserted_on=datetime.datetime.utcnow(),
         import_record=data.get('import_record')
     )
+    
+    db.session.add(new_candidate)
+    db.session.commit()
 
-    save_changes(new_candidate)
+    new_address = Address(
+        candidate_id = new_candidate.id,
+        address1 = data.get('address'),
+        zip_code = data.get('zip'),
+        city = data.get('city'),
+        state=data.get('state'),
+        type=AddressType.CURRENT
+    )
+    db.session.add(new_address)
+    save_changes()
+
     response_object = {
         'success': True,
         'status': 'success',

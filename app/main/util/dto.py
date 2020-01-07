@@ -390,8 +390,8 @@ class CandidateDto:
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'from_date': fields.Date(required=True),
-        'to_date': fields.Date(required=True),
+        'from_date': fields.Date(required=False),
+        'to_date': fields.Date(required=False),
         'type': AddressTypeField(required=True)
     })
     candidate_number = api.model('candidate_number', {
