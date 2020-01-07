@@ -10,6 +10,7 @@ _income_types = ConfigDto.income_types
 _expense_types = ConfigDto.expense_types
 _contact_number_types = ConfigDto.contact_number_types
 
+
 @api.route('/contact-number-types')
 class ContactNumberTypesList(Resource):
     @api.doc('get contact number types')
@@ -19,6 +20,7 @@ class ContactNumberTypesList(Resource):
         types = get_contact_number_types()
         return types, 200
 
+
 @api.route('/income-types')
 class IncomeTypesList(Resource):
     @api.doc('get income types')
@@ -27,6 +29,7 @@ class IncomeTypesList(Resource):
         """ Get all Income Types """
         types = get_income_types()
         return types, 200
+
 
 @api.route('/expense-types')
 class ExpenseTypesList(Resource):
