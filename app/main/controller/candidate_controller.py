@@ -25,8 +25,6 @@ from ..util.dto import CandidateDto
 api = CandidateDto.api
 _candidate_upload = CandidateDto.candidate_upload
 _import = CandidateDto.imports
-_income_types = CandidateDto.income_types
-_expense_types = CandidateDto.expense_types
 _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _credit_account_verification_answers = CandidateDto.account_verification_answers
@@ -127,17 +125,6 @@ class CandidateIncomeSources(Resource):
                 api.abort(500, err_msg)
             else:
                 return dict(success=True, **result), 200
-
-
-@api.route('/expense-types')
-class GetIncomeTypes(Resource):
-    @api.doc('get expense types')
-    @api.marshal_list_with(_expense_types, envelope='data')
-    def get(self):
-        """ Get all Expense types """
-        types = get_expense_types()
-        return types, 200
-
 
 @api.route('/<candidate_id>/monthly-expenses')
 @api.param('candidate_id', 'Candidate public identifier')
