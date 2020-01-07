@@ -63,6 +63,7 @@ def run():
 def encrypt_string(password):
     print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
+
 # kron
 # run rq-scheduler for periodic tasks
 @manager.command
