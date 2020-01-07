@@ -1,7 +1,6 @@
 from ..model.docsign import DocusignSession, DocusignTemplate, SessionState, SignatureStatus
 from ..model.client import Client
 from app.main import db
-import logging
 from sqlalchemy import desc
 
 from flask import current_app as app
@@ -97,11 +96,9 @@ def fetch_client_status(client_id):
     try:
         result = {}
         client = Client.query.filter_by(public_id=client_id).first()
-        print(client)
 
         # fetch the latest session
         session = DocusignSession.query.filter_by(client_id=client.id).order_by(desc(DocusignSession.created_date)).first()
-        print(session)
         if session is None:
             raise ValueError("rsign session not found") 
 
@@ -135,5 +132,5 @@ def fetch_client_status(client_id):
         return result
 
     except Exception as err:
-        logging.warning("fetch client status: {}".format(str(err)))
+        app.logger.warning('fetch client status, {}'.format(str(err)))
         raise ValueError("Internal Server Error") 
