@@ -10,7 +10,7 @@ from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, get_all_candidates, get_candidates_count, get_candidates_with_pagination, update_candidate, \
+    get_candidate, get_candidates_count, get_candidates_with_pagination, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
     get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates
@@ -85,16 +85,6 @@ class UpdateCandidate(Resource):
         return update_candidate(candidate_id, request.json)
 
 
-@api.route('/income-types')
-class GetIncomeTypes(Resource):
-    @api.doc('get income types')
-    @api.marshal_list_with(_income_types, envelope='data')
-    def get(self):
-        """ Get all Income Types """
-        types = get_income_types()
-        return types, 200
-
-
 @api.route('/<candidate_id>/income-sources')
 @api.param('candidate_id', 'Candidate public identifier')
 @api.response(404, 'Candidate not found')
@@ -125,6 +115,7 @@ class CandidateIncomeSources(Resource):
                 api.abort(500, err_msg)
             else:
                 return dict(success=True, **result), 200
+
 
 @api.route('/<candidate_id>/monthly-expenses')
 @api.param('candidate_id', 'Candidate public identifier')
