@@ -19,3 +19,7 @@ spec:
       containers:
       - name: elite-api
         image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
