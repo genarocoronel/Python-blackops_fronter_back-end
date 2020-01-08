@@ -22,4 +22,4 @@ spec:
         lifecycle:
           postStart:
             exec:
-              command: ["/bin/sh", "-c", "echo Hello from the postStart handler > /usr/share/message"]
+              command: ["python", "/app/manage.py", "db", "upgrade"]
