@@ -8,12 +8,10 @@ from redis import Redis
 from werkzeug.contrib.fixers import ProxyFix
 
 from .config import config_by_name
-from rq_scheduler import Scheduler
 from datetime import datetime
 
 db = SQLAlchemy()
 flask_bcrypt = Bcrypt()
-
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -28,14 +26,6 @@ def create_app(config_name):
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.queue = rq.Queue('default', connection=app.redis, default_timeout=3600)
-    # DocuSign worker
-    scheduler = Scheduler(queue=app.queue, connection=app.redis)
-    scheduler.schedule(scheduled_time=datetime.utcnow(), 
-                       func='app.main.tasks.docusign.check_sessions', 
-                       args=[], 
-                       interval=300,
-                       ttl=60,
-                       repeat=None)
    
     app.cipher = Fernet(app.config['SECRET_KEY'])
 

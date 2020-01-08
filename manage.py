@@ -57,10 +57,9 @@ def encrypt_string(password):
     print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
 # kron
-# run rq-scheduler for periodic tasks
 @manager.command
 def kron():
-    subprocess.run(["rqscheduler"])
+    subprocess.run(["python", "-m", "app.main.scheduler"])
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')
 @manager.option('-i', '--client_id', help='Client ID')
