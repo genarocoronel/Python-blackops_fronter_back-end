@@ -13,8 +13,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, get_candidates_count, get_candidates_with_pagination, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates
-
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_search
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -48,16 +47,26 @@ class GetCandidates(Resource):
     @api.doc('get candidates with pagination info')
     @api.marshal_with(_candidate_pagination)
     def get(self):
-        """ Get candidates with pagination info """
-        total_number_of_records = get_candidates_count()
-        page_number = 1 if request.args.get('_page_number') is None else int(request.args.get('_page_number'))
-        sort = 'id' if request.args.get('_sort') is None else request.args.get('_sort')
-        order = 'asc' if request.args.get('_order') is None else request.args.get('_order')
-        # set 25 as limit if limit param not set
-        limit = 25 if request.args.get('_limit') is None else int(request.args.get('_limit'))
-        candidates = get_candidates_with_pagination(sort, order, page_number, limit)
-        return {"candidates": candidates, "page_number": page_number, "total_number_of_records": total_number_of_records,
-                "limit": limit}, 200
+        """ Get all Candidates """
+        q = request.args.get('q', None)
+        limit = request.args.get('limit', None)
+        order = request.args.get('_order', None)
+        sort  = request.args.get('_sort', None)
+        pagenum  = request.args.get('_page_number', None)
+        kwargs = {}
+        if q is not None:
+            kwargs['q'] = q
+        if limit is not None:
+            kwargs['limit'] = int(limit)
+        if sort is not None:
+            kwargs['sort_col'] = sort
+        if order is not None:
+            kwargs['order'] = order
+        if pagenum is not None:
+            kwargs['pageno'] = int(pagenum)
+
+        candidates = candidate_search(**kwargs)
+        return candidates, 200
 
     @api.doc('delete candidates')
     def delete(self):

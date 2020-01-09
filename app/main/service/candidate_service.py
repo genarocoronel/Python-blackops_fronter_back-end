@@ -1,7 +1,7 @@
 import uuid
 import datetime
-from sqlalchemy import or_, and_
 
+from sqlalchemy import desc, asc, or_, and_
 from app.main import db
 from app.main.model.employment import Employment
 from app.main.model import Frequency
@@ -386,6 +386,14 @@ def get_candidates_with_pagination(sort, order, page_number, limit):
     column_sorted = getattr(field, order)()
     return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
 
+def candidate_search(q=None, limit=25, order="asc", sort_col='id', pageno=1): 
+    sort = desc(sort_col) if order == 'desc' else asc(sort_col)
+    search = "%{}%".format(q)
+    if q is None:
+        return Candidate.query.outerjoin(CreditReportAccount).order_by(sort).paginate(pageno, limit, False).items
+    else:
+        return Candidate.query.outerjoin(CreditReportAccount).filter(or_(Candidate.first_name.ilike(search), 
+                   Candidate.last_name.ilike(search), Candidate.prequal_number.ilike(search))).order_by(sort).paginate(pageno, limit, False).items
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
