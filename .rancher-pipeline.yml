@@ -21,7 +21,6 @@ timeout: 60
 branch:
   include:
   - develop
-  - auto_deploy
 notification:
   recipients:
   - recipient: "#elite-document-project"
