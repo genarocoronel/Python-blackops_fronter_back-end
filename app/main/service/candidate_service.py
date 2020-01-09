@@ -347,10 +347,8 @@ def update_candidate_contact_numbers(candidate, contact_numbers):
 
     return {'message': 'Successfully updated contact numbers'}, None
 
-
 def get_all_candidate_imports():
     return CandidateImport.query.all()
-
 
 def get_all_candidates(search_query):
     search = "%{}%".format(search_query)
@@ -368,7 +366,6 @@ def get_all_candidates(search_query):
             Candidate.last_name.like(search) if search_query else True))\
         .outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
-
 def delete_candidates(ids):
      candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
      for c in candidates:
@@ -376,9 +373,23 @@ def delete_candidates(ids):
          db.session.commit()
      return
 
+def get_candidates_count(q=None):
 
-def get_candidates_count():
-    return Candidate.query.outerjoin(CreditReportAccount).count()
+    if q is None or q == '':
+        return Candidate.query.outerjoin(CreditReportAccount).count()
+    else:
+        search = "%{}%".format(q)
+        return Candidate.query.outerjoin(CreditReportAccount)\
+                   .filter(or_(Candidate.first_name.ilike(search),
+                               Candidate.last_name.ilike(search),
+                               Candidate.prequal_number.ilike(search),
+                               Candidate.address.ilike(search),
+                               Candidate.county.ilike(search),
+                               Candidate.state.ilike(search),
+                               Candidate.city.ilike(search),
+                               Candidate.phone.ilike(search),
+                               Candidate.email.ilike(search),
+                               Candidate.public_id.ilike(search))).count()
 
 
 def get_candidates_with_pagination(sort, order, page_number, limit):
@@ -389,11 +400,24 @@ def get_candidates_with_pagination(sort, order, page_number, limit):
 def candidate_search(q=None, limit=25, order="asc", sort_col='id', pageno=1): 
     sort = desc(sort_col) if order == 'desc' else asc(sort_col)
     search = "%{}%".format(q)
-    if q is None:
-        return Candidate.query.outerjoin(CreditReportAccount).order_by(sort).paginate(pageno, limit, False).items
+
+    total = get_candidates_count(q) 
+    if q is None or q == '':
+        candidates =  Candidate.query.outerjoin(CreditReportAccount).order_by(sort).paginate(pageno, limit, False).items
     else:
-        return Candidate.query.outerjoin(CreditReportAccount).filter(or_(Candidate.first_name.ilike(search), 
-                   Candidate.last_name.ilike(search), Candidate.prequal_number.ilike(search))).order_by(sort).paginate(pageno, limit, False).items
+        candidates =  Candidate.query.outerjoin(CreditReportAccount)\
+                   .filter(or_(Candidate.first_name.ilike(search), 
+                               Candidate.last_name.ilike(search), 
+                               Candidate.prequal_number.ilike(search),
+                               Candidate.address.ilike(search),
+                               Candidate.county.ilike(search),
+                               Candidate.state.ilike(search),
+                               Candidate.city.ilike(search),
+                               Candidate.phone.ilike(search),
+                               Candidate.email.ilike(search),
+                               Candidate.public_id.ilike(search))).order_by(sort).paginate(pageno, limit, False).items
+
+    return {"candidates": candidates, "page_number": pageno, "total_number_of_records": total, "limit": limit}
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()

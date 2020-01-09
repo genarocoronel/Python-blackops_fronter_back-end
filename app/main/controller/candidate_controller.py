@@ -65,8 +65,8 @@ class GetCandidates(Resource):
         if pagenum is not None:
             kwargs['pageno'] = int(pagenum)
 
-        candidates = candidate_search(**kwargs)
-        return candidates, 200
+        result = candidate_search(**kwargs)
+        return result, 200
 
     @api.doc('delete candidates')
     def delete(self):
