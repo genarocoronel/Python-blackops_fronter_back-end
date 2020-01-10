@@ -227,7 +227,7 @@ class CandidateImportRecords(Resource):
     def get(self, public_id):
         """ Get Candidate Import Information """
         candidate_import = CandidateImport.query.filter_by(public_id=public_id).first()
-        candidate_import.tasks.all()
+        # candidate_import.tasks.all()
         if candidate_import:
             return candidate_import, 200
         else:
