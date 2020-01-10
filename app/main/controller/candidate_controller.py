@@ -48,14 +48,14 @@ class GetCandidates(Resource):
     @api.marshal_with(_candidate_pagination)
     def get(self):
         """ Get all Candidates """
-        q = request.args.get('q', None)
-        limit = request.args.get('limit', None)
+        limit = request.args.get('_limit', None)
         order = request.args.get('_order', None)
         sort  = request.args.get('_sort', None)
-        pagenum  = request.args.get('_page_number', None)
+        pagenum = request.args.get('_page', None)
+        q = request.args.get('q', None)
+        search = request.args.get('search', None)
         kwargs = {}
-        if q is not None:
-            kwargs['q'] = q
+
         if limit is not None:
             kwargs['limit'] = int(limit)
         if sort is not None:
@@ -65,6 +65,12 @@ class GetCandidates(Resource):
         if pagenum is not None:
             kwargs['pageno'] = int(pagenum)
 
+        # search
+        if q is not None and q != "":
+            kwargs['q'] = q
+        elif search is not None and search != "":
+            kwargs['q'] = search
+            
         result = candidate_search(**kwargs)
         return result, 200
 

@@ -399,12 +399,12 @@ def get_candidates_with_pagination(sort, order, page_number, limit):
 
 def candidate_search(q=None, limit=25, order="asc", sort_col='id', pageno=1): 
     sort = desc(sort_col) if order == 'desc' else asc(sort_col)
-    search = "%{}%".format(q)
 
     total = get_candidates_count(q) 
     if q is None or q == '':
         candidates =  Candidate.query.outerjoin(CreditReportAccount).order_by(sort).paginate(pageno, limit, False).items
     else:
+        search = "%{}%".format(q)
         candidates =  Candidate.query.outerjoin(CreditReportAccount)\
                    .filter(or_(Candidate.first_name.ilike(search), 
                                Candidate.last_name.ilike(search), 
