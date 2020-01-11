@@ -87,7 +87,7 @@ class Candidate(db.Model):
 
     @property
     def zip(self):
-        return f'{self._zip}-{self.zip4}'
+        return self._zip if not self.zip4 else f'{self._zip}-{self.zip4}'
 
     @property
     def zip5(self):
