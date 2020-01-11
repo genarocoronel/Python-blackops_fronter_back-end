@@ -133,20 +133,12 @@ class AppointmentDto:
     })
 
 
-class LanguageField(fields.String):
-    def format(self, value):
-        if isinstance(value, Language):
-            return value.name
-        else:
-            return 'UNKNOWN'
-
-
 class ClientTypeField(fields.String):
     def format(self, value):
         if isinstance(value, ClientType):
             return value.name
         else:
-            return 'unknown'
+            return 'UNKNOWN'
 
 
 class FrequencyStatusField(fields.String):
@@ -154,7 +146,7 @@ class FrequencyStatusField(fields.String):
         if isinstance(value, FrequencyStatus):
             return value.name
         else:
-            return 'unknown'
+            return 'UNKNOWN'
 
 
 _credit_report_debt_model = {
@@ -183,7 +175,7 @@ class ClientDto:
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
         'email': fields.String(required=True, description='client email address'),
-        'language': LanguageField(required=True),
+        'language': fields.String(required=True, enum=Language._member_names_),
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
@@ -272,7 +264,7 @@ class LeadDto:
         'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
         'county': fields.String(required=True, description='client county'),
         'email': fields.String(required=True, description='lead email address'),
-        'language': LanguageField(required=True),
+        'language': fields.String(required=True, enum=Language._member_names_),
         'phone': fields.String(required=True, description='lead phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
@@ -325,7 +317,7 @@ class CandidateDto:
         'inserted_on': fields.DateTime(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': LanguageField(),
+        'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
         'disposition': fields.String(),
@@ -348,7 +340,7 @@ class CandidateDto:
         'zip': fields.String(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': LanguageField(),
+        'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField()
 
