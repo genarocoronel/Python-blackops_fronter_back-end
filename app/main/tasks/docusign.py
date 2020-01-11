@@ -48,43 +48,43 @@ def check_sessions():
             # fetch all in-progress sessions 
             #print(session.id)
             #print(session.state)
-            signatures = session.signatures
+            signature = session.signature
             completed = True 
-            for signature in signatures:
-                status = signature.status
-                print(status)
-                # if already completed state
-                if (status == SignatureStatus.COMPLETED) or (status == SignatureStatus.DECLINED) or (status == SignatureStatus.VOIDED):
-                    continue
-                # fetch the envelope status 
-                env_status = _docusign.envelope_status(signature.envelope_id)
-                new_status = _to_status(env_status)
-                print(new_status)
 
-                if new_status != status:
-                    # update client disposition
-                    client = Client.query.filter_by(id=session.client_id).first()
-                    disposition = _to_disposition(env_status)
-                    client.disposition_id = disposition.id
-                    db.session.commit()
+            status = signature.status
+            print(status)
+            # if already completed state
+            if (status == SignatureStatus.COMPLETED) or (status == SignatureStatus.DECLINED) or (status == SignatureStatus.VOIDED):
+                continue
+            # fetch the envelope status 
+            env_status = _docusign.envelope_status(signature.envelope_id)
+            new_status = _to_status(env_status)
+            print(new_status)
 
-                    if (new_status == SignatureStatus.CREATED) or (new_status == SignatureStatus.SENT):
-                        completed = False
-                    ## intermediary status DELIVERED/SIGNED
-                    elif (new_status == SignatureStatus.DELIVERED) or (new_status == SignatureStatus.SIGNED):
-                        completed = False
-                    # failed status
-                    elif (new_status == SignatureStatus.DECLINED) or (new_status == SignatureStatus.VOIDED):
-                        session.state = SessionState.FAILED
-                        signature.status = new_status
-                        db.session.commit()
-                        break 
-                else:
-                    completed = False
-                    continue
-                   
-                signature.status = new_status
+            if new_status != status:
+                # update client disposition
+                client = Client.query.filter_by(id=session.client_id).first()
+                disposition = _to_disposition(env_status)
+                client.disposition_id = disposition.id
                 db.session.commit()
+
+                if (new_status == SignatureStatus.CREATED) or (new_status == SignatureStatus.SENT):
+                    completed = False
+                ## intermediary status DELIVERED/SIGNED
+                elif (new_status == SignatureStatus.DELIVERED) or (new_status == SignatureStatus.SIGNED):
+                    completed = False
+                # failed status
+                elif (new_status == SignatureStatus.DECLINED) or (new_status == SignatureStatus.VOIDED):
+                    session.state = SessionState.FAILED
+                    signature.status = new_status
+                    db.session.commit()
+                    break 
+            else:
+                completed = False
+                continue
+               
+            signature.status = new_status
+            db.session.commit()
             
             if (completed is True) and (session.state == SessionState.PROGRESS):
                 session.state = SessionState.COMPLETED
@@ -323,7 +323,7 @@ def send_contract_for_signature(session_id):
                                        cosigner_email=cc.email)
        
 
-        # create signatures
+        # create signature
         signature = DocusignSignature(envelope_id=key,
                                       status=SignatureStatus.SENT,
                                       modified=datetime.utcnow(),
@@ -438,7 +438,7 @@ def send_modify_debts_for_signature(session_id):
                                        cosigner_email=cc.email)
 
 
-        # create signatures
+        # create signature
         signature = DocusignSignature(envelope_id=key,
                                       status=SignatureStatus.SENT,
                                       modified=datetime.utcnow(),

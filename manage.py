@@ -60,6 +60,12 @@ def encrypt_string(password):
     print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
 
+# kron
+@manager.command
+def kron():
+    subprocess.run(["python", "-m", "app.main.scheduler"])
+    
+
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')
 @manager.option('-i', '--client_id', help='Client ID')
 @manager.option('-e', '--email', help='Account email')
