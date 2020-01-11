@@ -10,10 +10,11 @@ from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, get_all_candidates, get_candidates_count, get_candidates_with_pagination, update_candidate, \
+    get_candidate, get_candidates_count, get_candidates_with_pagination, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates
+
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -55,7 +56,15 @@ class GetCandidates(Resource):
         # set 25 as limit if limit param not set
         limit = 25 if request.args.get('_limit') is None else int(request.args.get('_limit'))
         candidates = get_candidates_with_pagination(sort, order, page_number, limit)
-        return {"candidates":candidates,"page_number":page_number,"total_number_of_records": total_number_of_records,"limit": limit}, 200
+        return {"candidates": candidates, "page_number": page_number, "total_number_of_records": total_number_of_records,
+                "limit": limit}, 200
+
+    @api.doc('delete candidates')
+    def delete(self):
+        """Delete Candidates"""
+        request_data = request.json
+        delete_candidates(request_data.get('ids'))
+        return dict(success=True), 200
 
 
 @api.route('/<candidate_id>')
@@ -71,9 +80,9 @@ class UpdateCandidate(Resource):
         return candidate, 200
 
     @api.doc('update candidate')
-    @api.expect(_update_candidate, validate=True)
-    def put(self, public_id):
-        return update_candidate(public_id, request.json)
+    @api.expect(_update_candidate, validate=False)
+    def put(self, candidate_id):
+        return update_candidate(candidate_id, request.json)
 
 
 @api.route('/<candidate_id>/income-sources')
@@ -218,7 +227,7 @@ class CandidateImportRecords(Resource):
     def get(self, public_id):
         """ Get Candidate Import Information """
         candidate_import = CandidateImport.query.filter_by(public_id=public_id).first()
-        candidate_import.tasks.all()
+        # candidate_import.tasks.all()
         if candidate_import:
             return candidate_import, 200
         else:
@@ -565,7 +574,7 @@ class CandidateEmployments(Resource):
                 return result, 200
 
     @api.doc('update candidate employment')
-    @api.expect([_update_candidate_employment], validate=True)
+    @api.expect([_update_candidate_employment], validate=False)
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
