@@ -258,14 +258,14 @@ def update_candidate_addresses(candidate, addresses):
     for address in addresses:
          new_address = Address(
             candidate_id=candidate.id,
-            address1=address['address1'],
-            address2=address['address2'],
-            zip_code=address['zip_code'],
-            city=address['city'],
-            state=address['state'],
-            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d") if address['from_date'] else None,
-            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d") if address['to_date'] else None,
-            type=address['type']
+            address1=address.get('address1'),
+            address2=address.get('address2'),
+            zip_code=address.get('zip_code'),
+            city=address.get('city'),
+            state=address.get('state'),
+            from_date=datetime.datetime.strptime(address.get('from_date'), "%Y-%m-%d") if address.get('from_date') else None,
+            to_date=datetime.datetime.strptime(address.get('to_date'), "%Y-%m-%d") if address.get('to_date') else None,
+            type=address.get('type')
          )
          db.session.add(new_address)
     for prev_address in prev_addresses:
