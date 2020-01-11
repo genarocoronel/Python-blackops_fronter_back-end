@@ -23,28 +23,31 @@ from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditReportAccount
+from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
+from app.main.seed.contact_number_types import seed_contact_number_types
+from app.main.seed.expense_types import seed_expense_type_values
+from app.main.seed.income_types import seed_income_types
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
-
 app.app_context().push()
 
 manager = Manager(app)
-
 migrate = Migrate(app, db)
-
 manager.add_command('db', MigrateCommand)
-
 
 @manager.command
 def worker(queue):
     # default worker queue is `default`
     run_worker(queue)
 
-
 @manager.command
 def seed():
     create_super_admin()
+    seed_candidate_disposition_values()
+    seed_contact_number_types()
+    seed_expense_type_values()
+    seed_income_types()
 
 
 @manager.command
@@ -56,10 +59,12 @@ def run():
 def encrypt_string(password):
     print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
+
 # kron
 @manager.command
 def kron():
     subprocess.run(["python", "-m", "app.main.scheduler"])
+    
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')
 @manager.option('-i', '--client_id', help='Client ID')

@@ -108,3 +108,20 @@ class AssignImportToCampaign(Resource):
             return {'success': True, 'message': 'Successfully assigned import to campaign'}, 200
         except Exception as e:
             api.abort(500, message=str(e), success=False)
+
+@api.route('/status/<campaign_id>')
+@api.param('campaign_id', 'Campaign public id')
+class GetCampaignAssociationStatus(Resource):
+    def get(self, campaign_id):
+        """ Get Campaign Association Status """
+        try:
+            campaign = Campaign.query.filter_by(public_id=campaign_id).first()
+
+            candidates_association = Candidate.query.filter_by(campaign_id=campaign.id).first()
+            if candidates_association is None:
+                return {'success': False, 'message': 'No assigned'}, 200
+            else:
+                return {'success': True, 'message': 'Assigned'}, 200
+        except Exception as e:
+            api.abort(500, message=str(e), success=False)
+

@@ -7,7 +7,9 @@ from app.main.model.credit_report_account import CreditReportAccount, CreditRepo
 
 
 def _generate_email(candidate: Candidate):
-    return f'{candidate.prequal_number}@{current_app.smart_credit_email_domain}'
+    count = CreditReportAccount.query.count()
+    name = candidate.first_name.lower() + str(count + 100000)
+    return f'{name}@{current_app.smart_credit_email_domain}'
 
 
 def save_new_credit_report_account(data, candidate: Candidate, status: CreditReportSignupStatus = None):

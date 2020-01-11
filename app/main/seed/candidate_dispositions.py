@@ -3,6 +3,9 @@ import uuid
 
 from pytz import utc
 
+from app.main import db
+from app.main.model.candidate import CandidateDisposition
+
 candidate_dispositions = [
     'Hung up in less than 1 minute',
     'Missed Call',
@@ -32,8 +35,10 @@ candidate_dispositions = [
 
 
 def seed_candidate_disposition_values():
-    db_values = []
     for disposition in candidate_dispositions:
-        db_values.append(
-            {'public_id': str(uuid.uuid4()), 'value': disposition, 'inserted_on': datetime.datetime.now(tz=utc)})
-    return db_values
+        existing_disposition_value = CandidateDisposition.query.filter_by(value=disposition).first()
+        if not existing_disposition_value:
+            new_disposition = CandidateDisposition(public_id=str(uuid.uuid4()), value=disposition,
+                                                   inserted_on=datetime.datetime.now(tz=utc))
+            db.session.add(new_disposition)
+    db.session.commit()

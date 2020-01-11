@@ -312,6 +312,7 @@ class CandidateDto:
     })
     candidate = api.model('candidate', {
         'public_id': fields.String(),
+        'prequal_number': fields.String(),
         'first_name': fields.String(),
         'last_name': fields.String(),
         'middle_initial': fields.String(),
@@ -329,6 +330,12 @@ class CandidateDto:
         'status': CandidateStatusField(),
         'disposition': fields.String(),
         'credit_report_account': fields.Nested(credit_report_account)
+    })
+    candidate_pagination=api.model('candidate_pagination', {
+        'page_number': fields.Integer(),
+        'total_number_of_records': fields.Integer(),
+        'limit': fields.Integer(),
+        'candidates': fields.List(fields.Nested(candidate))
     })
     update_candidate = api.model('update_candidate', {
         'first_name': fields.String(),
@@ -383,8 +390,8 @@ class CandidateDto:
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'from_date': fields.Date(required=True),
-        'to_date': fields.Date(required=True),
+        'from_date': fields.Date(required=False),
+        'to_date': fields.Date(required=False),
         'type': AddressTypeField(required=True)
     })
     candidate_number = api.model('candidate_number', {
@@ -462,6 +469,29 @@ class CandidateDto:
             'answer2': fields.String(required=True),
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
+    })
+
+class ConfigDto:
+    api = Namespace('config', description='config related operations')
+    contact_number_types = api.model('contact_number_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
+    })
+    income_types = api.model('income_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'display_name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
+    })
+    expense_types = api.model('expense_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'display_name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
     })
 
 class TestAPIDto:
