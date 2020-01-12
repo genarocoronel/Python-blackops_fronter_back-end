@@ -325,7 +325,7 @@ class CandidateDto:
         'inserted_on': fields.DateTime(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': LanguageField(),
+        'language': fields.String(),
         'phone': fields.String(),
         'status': CandidateStatusField(),
         'disposition': fields.String(),
