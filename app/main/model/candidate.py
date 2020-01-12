@@ -2,6 +2,7 @@ import enum
 
 from flask import current_app
 
+from app.main.model.client import EmploymentStatus
 from app.main.model.task import ImportTask
 from .. import db
 
@@ -67,6 +68,8 @@ class Candidate(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=True)
     language = db.Column(db.String(25), nullable=True)
     phone = db.Column(db.String(25), nullable=True)
+    employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
+    dob = db.Column(db.DateTime, nullable=True)
 
     estimated_debt = db.Column(db.Integer, nullable=False)
 
