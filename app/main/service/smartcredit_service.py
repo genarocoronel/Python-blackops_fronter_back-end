@@ -14,6 +14,7 @@ class LockedException(Exception):
 
 def _handle_errors(response):
     if response.status_code >= 500:
+        current_app.logger.error(f'Smart Credit Failed with {response.status_code} Error: \n{response.content}')
         return None, 'Smart Credit is currently unavailable. Please contact support'
 
     json_response = response.json()

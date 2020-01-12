@@ -158,6 +158,7 @@ def update_candidate_employments(candidate, employments):
 
     return {'message': 'Successfully updated employments'}, None
 
+
 def get_candidate_income_sources(candidate):
     income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     income_sources = [assoc.income_source for assoc in income_sources_assoc]
@@ -296,6 +297,7 @@ def save_changes(data):
     db.session.add(data)
     db.session.commit()
 
+
 def get_candidate_contact_numbers(candidate):
     contact_number_assoc = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     contact_numbers = [num.contact_number for num in contact_number_assoc]
@@ -374,13 +376,16 @@ def delete_candidates(ids):
          db.session.commit()
      return
 
+
 def get_candidates_count():
     return Candidate.query.outerjoin(CreditReportAccount).count()
+
 
 def get_candidates_with_pagination(sort, order, page_number, limit):
     field = getattr(Candidate, sort)
     column_sorted = getattr(field, order)()
     return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
+
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
