@@ -84,6 +84,7 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
     save_changes(new_client)
     return new_client
 
+
 def get_all_clients(client_type=ClientType.client):
     return Client.query.filter_by(type=client_type).all()
 
@@ -92,8 +93,25 @@ def get_client(public_id, client_type=ClientType.client):
     return Client.query.filter_by(public_id=public_id, type=client_type).first()
 
 
-def update_client(client, data):
-    pass
+def update_client(client, data, client_type=ClientType.client):
+    if client:
+        for attr in data:
+            if hasattr(client, attr):
+                setattr(client, attr, data.get(attr))
+
+        save_changes(client)
+
+        response_object = {
+            'success': True,
+            'message': f'{client_type.name.capitalize()} updated successfully',
+        }
+        return response_object, 200
+    else:
+        response_object = {
+            'success': False,
+            'message': f'{client_type.name.capitalize()} not found',
+        }
+        return response_object, 404
 
 
 def get_client_bank_account(client):

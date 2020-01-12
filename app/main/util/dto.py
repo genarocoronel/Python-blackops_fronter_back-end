@@ -180,6 +180,14 @@ class ClientDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
     })
+    update_client = api.model('update_client', {
+        'first_name': fields.String(description='client first name'),
+        'last_name': fields.String(description='client last name'),
+        'email': fields.String(description='client email address'),
+        'language': fields.String(enum=Language._member_names_),
+        'phone': fields.String(description='client phone number'),
+        'type': ClientTypeField(description='client type')
+    })
     new_bank_account = api.model('new_bank_account', {
         'account_number': fields.String(required=True, description='client bank account number'),
         'routing_number': fields.String(required=True, description='client bank routing number')
@@ -268,6 +276,15 @@ class LeadDto:
         'phone': fields.String(required=True, description='lead phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
+    })
+    update_lead = api.model('update_lead', {
+        'first_name': fields.String(description='lead first name'),
+        'last_name': fields.String(description='lead last name'),
+        'estimated_debt': fields.Integer(description='client estimated_debt'),
+        'email': fields.String(description='lead email address'),
+        'language': fields.String(enum=Language._member_names_),
+        'phone': fields.String(description='lead phone number'),
+        'type': ClientTypeField(description='client type')
     })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
