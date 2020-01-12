@@ -264,13 +264,7 @@ class LeadDto:
     lead = api.model('lead', {
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
-        'address': fields.String(required=True, description='client address'),
-        'city': fields.String(required=True, description='client city'),
-        'state': fields.String(required=True, description='client state'),
-        'zip': fields.String(required=True, description='client zip'),
-        'zip4': fields.String(required=True, description='client zip4'),
         'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
-        'county': fields.String(required=True, description='client county'),
         'email': fields.String(required=True, description='lead email address'),
         'language': fields.String(required=True, enum=Language._member_names_),
         'phone': fields.String(required=True, description='lead phone number'),
