@@ -629,11 +629,12 @@ class CandidateToLead(Resource):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
             api.abort(404, **error_response)
-        lead = convert_candidate_to_lead(candidate)
 
-        credit_report_account = lead.credit_report_account
+        credit_report_account = candidate.credit_report_account
         if not credit_report_account:
-            api.abort(404, "No credit report account associated with candidate/lead")
+            api.abort(404, "No credit report account associated with candidate")
+
+        convert_candidate_to_lead(candidate)
 
         if not credit_report_account.registered_fraud_insurance:
             password = current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
@@ -642,6 +643,10 @@ class CandidateToLead(Resource):
             credit_report_account.registered_fraud_insurance = True
             update_credit_report_account(credit_report_account)
 
-        scrape_credit_report(credit_report_account)
+        task = credit_report_account.launch_spider(
+            'capture',
+            'Capture credit report debts for new lead',
+        )
+        save_changes(task)
 
-        return "Success", 200
+        return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200
