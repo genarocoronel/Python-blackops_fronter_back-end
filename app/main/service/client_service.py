@@ -244,7 +244,7 @@ def update_client_income_sources(client, income_sources):
 
 def get_client_monthly_expenses(client):
     monthly_expense_assoc = ClientMonthlyExpense.query.join(Client).filter(Client.id == client.id).all()
-    monthly_expenses = [assoc.income_source for assoc in monthly_expense_assoc]
+    monthly_expenses = [assoc.monthly_expense for assoc in monthly_expense_assoc]
     expense_types = ExpenseType.query.filter(
         ExpenseType.id.in_([expense.expense_type_id for expense in monthly_expenses])
     ).all()
