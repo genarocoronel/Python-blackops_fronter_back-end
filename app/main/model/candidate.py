@@ -12,6 +12,19 @@ class CandidateStatus(enum.Enum):
     CAMPAIGNED = 'campaigned'  # Submitted to Redstone for contact
     WORKING = 'working'  # Being worked by opener rep
     SUBMITTED = 'submitted'
+  
+    @staticmethod
+    def frm_text(txt):
+        if txt.lower() in 'imported':
+            return CandidateStatus.IMPORTED
+        elif txt.lower() in 'campaigned':
+            return CandidateStatus.CAMPAIGNED
+        elif txt.lower() in 'working':
+            return CandidateStatus.WORKING
+        elif txt.lower() in 'submitted':
+            return CandidateStatus.SUBMITTED
+        else:
+            return None
 
 
 class CandidateDisposition(db.Model):

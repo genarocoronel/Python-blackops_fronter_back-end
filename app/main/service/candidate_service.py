@@ -1,19 +1,22 @@
 import uuid
 import datetime
+from datetime import timedelta
 
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
 from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, CandidateMonthlyExpense
+from app.main.model.candidate import CandidateDisposition
 from app.main.model.contact_number import ContactNumber, ContactNumberType
-from app.main.model.candidate import CandidateImport, Candidate
+from app.main.model.candidate import CandidateImport, Candidate, CandidateStatus
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
 from app.main.service.client_service import create_client_from_candidate
 
+from flask import current_app as app
 
 def save_new_candidate(data):
     if data.get('phone') != None:
@@ -397,27 +400,87 @@ def get_candidates_with_pagination(sort, order, page_number, limit):
     column_sorted = getattr(field, order)()
     return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
 
-def candidate_search(q=None, limit=25, order="asc", sort_col='id', pageno=1): 
-    sort = desc(sort_col) if order == 'desc' else asc(sort_col)
+def candidate_filter(limit=25, sort_col='id', order="asc", 
+                     pageno=1, search_fields=None, search_val="",
+                     dt_fields=None, from_date=None, to_date=None): 
+    try:
+        # sort
+        sort = desc(sort_col) if order == 'desc' else asc(sort_col)
+        total = 0
+        
+        
+        query = Candidate.query.outerjoin(CandidateDisposition).outerjoin(CreditReportAccount)
+        # search fields
+        if search_fields is not None and search_val != "": 
+            _g_search = "%{}%".format(search_val)
+            _or_filts = []
+            _and_filts = []
 
-    total = get_candidates_count(q) 
-    if q is None or q == '':
-        candidates =  Candidate.query.outerjoin(CreditReportAccount).order_by(sort).paginate(pageno, limit, False).items
-    else:
-        search = "%{}%".format(q)
-        candidates =  Candidate.query.outerjoin(CreditReportAccount)\
-                   .filter(or_(Candidate.first_name.ilike(search), 
-                               Candidate.last_name.ilike(search), 
-                               Candidate.prequal_number.ilike(search),
-                               Candidate.address.ilike(search),
-                               Candidate.county.ilike(search),
-                               Candidate.state.ilike(search),
-                               Candidate.city.ilike(search),
-                               Candidate.phone.ilike(search),
-                               Candidate.email.ilike(search),
-                               Candidate.public_id.ilike(search))).order_by(sort).paginate(pageno, limit, False).items
+            for field in search_fields:
+                filt = None
+                tokens = field.split(':')
+                and_exp = False
+                if len(tokens) > 1:
+                    and_exp = True
+                    field  = tokens[0].strip() 
+                    search = "%{}%".format(tokens[1].strip())
+                    e_val  = tokens[1].strip()
+                else:
+                    search = _g_search
+                    e_val  = search_val
 
-    return {"candidates": candidates, "page_number": pageno, "total_number_of_records": total, "limit": limit}
+                # enumeration
+                if 'status' in field:
+                    rep = CandidateStatus.frm_text(e_val)
+                    if rep is not None:
+                        filt = (Candidate.status == rep) 
+                # string fields
+                else:
+                    if 'disposition' in field:
+                        column = getattr(CandidateDisposition, 'value', None)  
+                    else:
+                        column = getattr(Candidate, field, None) 
+                    filt = column.ilike(search)
+
+                # append to the filters
+                if filt is not None:
+                    if and_exp is True:
+                        _and_filts.append(filt) 
+                    else:
+                        _or_filts.append(filt)
+            
+            # check if filters are present
+            if len(_or_filts) == 0 and len(_and_filts) == 0:
+                return {"candidates": [], "page_number": pageno, "total_number_of_records": total, "limit": limit}
+            else:
+                if len(_or_filts) > 0:
+                    query = query.filter(or_(*_or_filts))
+                if len(_and_filts) > 0:
+                    query = query.filter(and_(*_and_filts))
+                
+        # datetime fields
+        if dt_fields is not None:
+            for field in dt_fields:
+                column = getattr(Candidate, field, None)
+                if from_date is not None and to_date is not None:
+                    query = query.filter(and_(column >= from_date, column <= to_date))
+                elif from_date is not None:
+                    query = query.filter(column >= from_date)
+                elif to_date is not None:
+                    query = query.filter(column <= to_date)
+                else:
+                    raise ValueError("Not a valid datetime filter query")
+
+
+        total = query.count()
+        query = query.order_by(sort).paginate(pageno, limit, False)
+
+        candidates = query.items
+        return {"candidates": candidates, "page_number": pageno, "total_number_of_records": total, "limit": limit}
+
+    except Exception as err:
+        app.logger.warning('candidate filter issue, {}'.format(str(err)))
+        raise ValueError("Invalid filter query")  
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()

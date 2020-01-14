@@ -3,7 +3,7 @@ import os
 from flask_restplus import Namespace, fields
 
 from app.main.model import Language, Frequency
-from app.main.model.candidate import CandidateImportStatus, CandidateStatus
+from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDisposition
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
 from app.main.model.address import AddressType
@@ -313,6 +313,10 @@ class CandidateDto:
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
     })
+    candidate_disposition = api.model('candidate_disposition', {
+        'value': fields.String(),
+        'description':fields.String()
+    })
     candidate = api.model('candidate', {
         'public_id': fields.String(),
         'prequal_number': fields.String(),
@@ -331,7 +335,7 @@ class CandidateDto:
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
-        'disposition': fields.String(),
+        'disposition': fields.Nested(candidate_disposition),
         'credit_report_account': fields.Nested(credit_report_account)
     })
     candidate_pagination=api.model('candidate_pagination', {
