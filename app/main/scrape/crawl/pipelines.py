@@ -61,7 +61,7 @@ class CreditReportPipeline(object):
         # TODO: I know there is some way to user `any`, `filter` and/or a `lambda` to clean this up
         exists = False
         for key, value in self._cached_debt_names.items():
-            if re.match(debt_name, key):
+            if re.match(f'^{debt_name}$', key):
                 exists = True
                 new_count = self._cached_debt_names[debt_name] + 1
                 self._cached_debt_names[debt_name] = new_count

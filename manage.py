@@ -63,7 +63,7 @@ def encrypt_string(password):
 # kron
 @manager.command
 def kron():
-    subprocess.run(["python", "-m", "app.main.scheduler"])
+    subprocess.run(["python", "-m", "app.main.scheduler", "--url", app.config['REDIS_URL']])
     
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')

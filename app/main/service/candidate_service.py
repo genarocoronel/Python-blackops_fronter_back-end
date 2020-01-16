@@ -158,6 +158,7 @@ def update_candidate_employments(candidate, employments):
 
     return {'message': 'Successfully updated employments'}, None
 
+
 def get_candidate_income_sources(candidate):
     income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     income_sources = [assoc.income_source for assoc in income_sources_assoc]
@@ -258,14 +259,14 @@ def update_candidate_addresses(candidate, addresses):
     for address in addresses:
          new_address = Address(
             candidate_id=candidate.id,
-            address1=address['address1'],
-            address2=address['address2'],
-            zip_code=address['zip_code'],
-            city=address['city'],
-            state=address['state'],
-            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d") if address['from_date'] else None,
-            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d") if address['to_date'] else None,
-            type=address['type']
+            address1=address.get('address1'),
+            address2=address.get('address2'),
+            zip_code=address.get('zip_code'),
+            city=address.get('city'),
+            state=address.get('state'),
+            from_date=datetime.datetime.strptime(address.get('from_date'), "%Y-%m-%d") if address.get('from_date') else None,
+            to_date=datetime.datetime.strptime(address.get('to_date'), "%Y-%m-%d") if address.get('to_date') else None,
+            type=address.get('type')
          )
          db.session.add(new_address)
     for prev_address in prev_addresses:
@@ -295,6 +296,7 @@ def get_candidate_addresses(candidate):
 def save_changes(data):
     db.session.add(data)
     db.session.commit()
+
 
 def get_candidate_contact_numbers(candidate):
     contact_number_assoc = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
@@ -374,13 +376,16 @@ def delete_candidates(ids):
          db.session.commit()
      return
 
+
 def get_candidates_count():
     return Candidate.query.outerjoin(CreditReportAccount).count()
+
 
 def get_candidates_with_pagination(sort, order, page_number, limit):
     field = getattr(Candidate, sort)
     column_sorted = getattr(field, order)()
     return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
+
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()

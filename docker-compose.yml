@@ -25,7 +25,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: registry.thedeathstarco.com/elitedoc/api:dev
+    image: registry.thedeathstarco.com/api:dev
     container_name: api
     restart: unless-stopped
     tty: true
@@ -48,7 +48,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: registry.thedeathstarco.com/elitedoc/api:dev
+    image: registry.thedeathstarco.com/api:dev
     container_name: worker
     restart: unless-stopped
     tty: true
@@ -71,12 +71,14 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: registry.thedeathstarco.com/elitedoc/api:dev
+    image: registry.thedeathstarco.com/api:dev
     container_name: scheduler
     restart: unless-stopped
     tty: true
+    environment:
+      REDIS_URL: redis://redis
     working_dir: /app
-    command: ['rqscheduler', '--host', 'redis']
+    command: ['python', 'manage.py', 'kron']
     volumes:
       - ./:/app
       - ./docker/.env.local:/app/.env
