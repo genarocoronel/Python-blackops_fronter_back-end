@@ -82,7 +82,12 @@ class UpdateCandidate(Resource):
     @api.doc('update candidate')
     @api.expect(_update_candidate, validate=False)
     def put(self, candidate_id):
-        return update_candidate(candidate_id, request.json)
+        data = request.json
+        zip = data['zip'].split('-')[0]
+        zip4 = data['zip'].split('-')[1]
+        data['zip'] = zip
+        data['zip4'] = zip4
+        return update_candidate(candidate_id, data)
 
 
 @api.route('/<candidate_id>/income-sources')
