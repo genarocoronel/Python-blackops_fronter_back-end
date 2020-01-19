@@ -494,7 +494,6 @@ class ConfigDto:
         'inserted_on': fields.DateTime(required=True),
     })
     disposition = api.model('candidate_dispositions', {
-        'id': fields.Integer(required=True),
         'public_id': fields.String(required=True),
         'inserted_on': fields.DateTime(required=True),
         'value': fields.String(required=False),
