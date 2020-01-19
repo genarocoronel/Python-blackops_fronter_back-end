@@ -32,6 +32,10 @@ class FrequencyTypeField(fields.String):
         else:
             return 'UNKNOWN'
 
+class DateTimeFormatField(fields.String):
+    def format(self, value):
+        return value.strftime("%m-%d-%Y")
+
 
 class CampaignDto(object):
     api = Namespace('campaigns', description='campaign related operations')
@@ -306,7 +310,6 @@ class CreditReportAccountStatusField(fields.String):
         else:
             return 'unknown'
 
-
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
     credit_report_account = api.model('credit_report_account', {
@@ -335,7 +338,8 @@ class CandidateDto:
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
-        'disposition': fields.Nested(candidate_disposition),
+        'campaign_name': fields.String(attribute='campaign.name'),
+        'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account)
     })
     candidate_pagination=api.model('candidate_pagination', {
