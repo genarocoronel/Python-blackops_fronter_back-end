@@ -12,6 +12,7 @@ from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
 _client = ClientDto.client
+_update_client = ClientDto.update_client
 _client_employment = ClientDto.client_employment
 _update_client_employment = ClientDto.update_client_employment
 _appointment = AppointmentDto.appointment
@@ -59,15 +60,14 @@ class Client(Resource):
             return client
 
     @api.doc('update client')
-    @api.marshal_with(_client)
+    @api.expect(_update_client, validate=True)
     def put(self, public_id):
         """ Update client with provided identifier"""
         client = get_client(public_id, client_type=CLIENT)
         if not client:
             api.abort(404)
         else:
-            updated_client = update_client(client, request.json)
-            return updated_client, 200
+            return update_client(client, request.json, client_type=CLIENT)
 
 
 @api.route('/<client_id>/income-sources')

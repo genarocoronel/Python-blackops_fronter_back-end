@@ -7,12 +7,13 @@ from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_COD
 from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
-    update_client_employments
+    update_client_employments, update_client
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report
 from ..util.dto import LeadDto, ClientDto
 
 api = LeadDto.api
 _lead = LeadDto.lead
+_update_lead = LeadDto.update_lead
 _new_bank_account = ClientDto.new_bank_account
 _bank_account = ClientDto.bank_account
 _credit_report_debt = LeadDto.credit_report_debt
@@ -57,6 +58,16 @@ class Lead(Resource):
             api.abort(404)
         else:
             return client
+
+    @api.doc('update lead')
+    @api.expect(_update_lead, validate=True)
+    def put(self, public_id):
+        """ Update lead with provided identifier"""
+        lead = get_client(public_id, client_type=LEAD)
+        if not lead:
+            api.abort(404)
+        else:
+            return update_client(lead, request.json, client_type=LEAD)
 
 
 @api.route('/<lead_id>/income-sources')

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from flask import request, current_app
 from flask_restplus import Resource
@@ -13,8 +14,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, get_candidates_count, get_candidates_with_pagination, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates
-
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_filter
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -43,21 +43,35 @@ _candidate_address = CandidateDto.candidate_address
 _update_candidate_addresses = CandidateDto.update_candidate_addresses
 
 
+#### request params
+# @_limit result set max limit
+# @_order direction 'asc' or 'desc'
+# @_sort sort field
+# @_page_number pagination page number
 @api.route('/')
 class GetCandidates(Resource):
     @api.doc('get candidates with pagination info')
     @api.marshal_with(_candidate_pagination)
     def get(self):
-        """ Get candidates with pagination info """
-        total_number_of_records = get_candidates_count()
-        page_number = 1 if request.args.get('_page_number') is None else int(request.args.get('_page_number'))
-        sort = 'id' if request.args.get('_sort') is None else request.args.get('_sort')
-        order = 'asc' if request.args.get('_order') is None else request.args.get('_order')
-        # set 25 as limit if limit param not set
-        limit = 25 if request.args.get('_limit') is None else int(request.args.get('_limit'))
-        candidates = get_candidates_with_pagination(sort, order, page_number, limit)
-        return {"candidates": candidates, "page_number": page_number, "total_number_of_records": total_number_of_records,
-                "limit": limit}, 200
+        """ Get all Candidates """
+        limit = request.args.get('_limit', None)
+        order = request.args.get('_order', None)
+        sort  = request.args.get('_sort', None)
+        pagenum = request.args.get('_page_number', None)
+
+        kwargs = {}
+
+        if limit is not None:
+            kwargs['limit'] = int(limit)
+        if sort is not None:
+            kwargs['sort_col'] = sort
+        if order is not None:
+            kwargs['order'] = order
+        if pagenum is not None:
+            kwargs['pageno'] = int(pagenum)
+
+        result = candidate_filter(**kwargs)
+        return result, 200
 
     @api.doc('delete candidates')
     def delete(self):
@@ -65,6 +79,68 @@ class GetCandidates(Resource):
         request_data = request.json
         delete_candidates(request_data.get('ids'))
         return dict(success=True), 200
+
+#### request params
+# @_limit result set max limit
+# @_order direction 'asc' or 'desc'
+# @_sort sort field
+# @_page_number pagination page number
+# @_q string search field/fields
+# @_dt datetime search field/fields
+# @_search string Search value
+# @_from if date filter is enabled - From date
+# @_to if date filter is enabled - To date
+@api.route('/filter')
+class CandidateFilter(Resource):
+    @api.doc('Candidates filter with pagination info')
+    @api.marshal_with(_candidate_pagination)
+    def get(self):
+        """ Get all Candidates """
+        limit = request.args.get('_limit', None)
+        order = request.args.get('_order', None)
+        sort  = request.args.get('_sort', None)
+        pagenum = request.args.get('_page_number', None)
+        # string fields 
+        str_fields = []
+        search = None
+        fields = request.args.get('_q', None)
+        if fields is not None:
+            str_fields = [x.strip() for x in fields.split(',')]
+        if len(str_fields) > 0:
+            search = request.args.get('_search', None)
+        dt_fields = []
+        from_date = None
+        to_date = None
+        fields = request.args.get('_dt', None)
+        if fields is not None:
+            dt_fields = [x.strip() for x in fields.split(',')]
+        if len(dt_fields) > 0:
+            from_date = request.args.get('_from', None)
+            to_date = request.args.get('_to', None)
+
+        kwargs = {}
+
+        if limit is not None:
+            kwargs['limit'] = int(limit)
+        if sort is not None:
+            kwargs['sort_col'] = sort
+        if order is not None:
+            kwargs['order'] = order
+        if pagenum is not None:
+            kwargs['pageno'] = int(pagenum)
+        if len(str_fields) > 0:
+            kwargs['search_fields'] = str_fields
+            if search is not None:
+                kwargs['search_val'] = search
+        if len(dt_fields) > 0:
+            kwargs['dt_fields'] = dt_fields 
+            if from_date is not None and from_date.strip() != "":
+                kwargs['from_date'] = datetime.strptime(from_date, "%m/%d/%Y")
+            if to_date is not None and to_date.strip() != "":
+                kwargs['to_date'] = datetime.strptime(to_date, "%m/%d/%Y").replace(hour=23,minute=59)
+
+        result = candidate_filter(**kwargs)
+        return result, 200
 
 
 @api.route('/<candidate_id>')
@@ -82,7 +158,12 @@ class UpdateCandidate(Resource):
     @api.doc('update candidate')
     @api.expect(_update_candidate, validate=False)
     def put(self, candidate_id):
-        return update_candidate(candidate_id, request.json)
+        data = request.json
+        zip = data['zip'].split('-')[0]
+        zip4 = data['zip'].split('-')[1]
+        data['zip'] = zip
+        data['zip4'] = zip4
+        return update_candidate(candidate_id, data)
 
 
 @api.route('/<candidate_id>/income-sources')
@@ -629,11 +710,12 @@ class CandidateToLead(Resource):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
             api.abort(404, **error_response)
-        lead = convert_candidate_to_lead(candidate)
 
-        credit_report_account = lead.credit_report_account
+        credit_report_account = candidate.credit_report_account
         if not credit_report_account:
-            api.abort(404, "No credit report account associated with candidate/lead")
+            api.abort(404, "No credit report account associated with candidate")
+
+        convert_candidate_to_lead(candidate)
 
         if not credit_report_account.registered_fraud_insurance:
             password = current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
@@ -642,6 +724,10 @@ class CandidateToLead(Resource):
             credit_report_account.registered_fraud_insurance = True
             update_credit_report_account(credit_report_account)
 
-        scrape_credit_report(credit_report_account)
+        task = credit_report_account.launch_spider(
+            'capture',
+            'Capture credit report debts for new lead',
+        )
+        save_changes(task)
 
-        return "Success", 200
+        return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200

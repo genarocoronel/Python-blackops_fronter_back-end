@@ -3,7 +3,7 @@ import os
 from flask_restplus import Namespace, fields
 
 from app.main.model import Language, Frequency
-from app.main.model.candidate import CandidateImportStatus, CandidateStatus
+from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDisposition
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
 from app.main.model.address import AddressType
@@ -133,20 +133,12 @@ class AppointmentDto:
     })
 
 
-class LanguageField(fields.String):
-    def format(self, value):
-        if isinstance(value, Language):
-            return value.name
-        else:
-            return 'UNKNOWN'
-
-
 class ClientTypeField(fields.String):
     def format(self, value):
         if isinstance(value, ClientType):
             return value.name
         else:
-            return 'unknown'
+            return 'UNKNOWN'
 
 
 class FrequencyStatusField(fields.String):
@@ -154,7 +146,7 @@ class FrequencyStatusField(fields.String):
         if isinstance(value, FrequencyStatus):
             return value.name
         else:
-            return 'unknown'
+            return 'UNKNOWN'
 
 
 _credit_report_debt_model = {
@@ -183,10 +175,18 @@ class ClientDto:
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
         'email': fields.String(required=True, description='client email address'),
-        'language': LanguageField(required=True),
+        'language': fields.String(required=True, enum=Language._member_names_),
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
+    })
+    update_client = api.model('update_client', {
+        'first_name': fields.String(description='client first name'),
+        'last_name': fields.String(description='client last name'),
+        'email': fields.String(description='client email address'),
+        'language': fields.String(enum=Language._member_names_),
+        'phone': fields.String(description='client phone number'),
+        'type': ClientTypeField(description='client type')
     })
     new_bank_account = api.model('new_bank_account', {
         'account_number': fields.String(required=True, description='client bank account number'),
@@ -264,18 +264,21 @@ class LeadDto:
     lead = api.model('lead', {
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
-        'address': fields.String(required=True, description='client address'),
-        'city': fields.String(required=True, description='client city'),
-        'state': fields.String(required=True, description='client state'),
-        'zip': fields.String(required=True, description='client zip'),
-        'zip4': fields.String(required=True, description='client zip4'),
         'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
-        'county': fields.String(required=True, description='client county'),
         'email': fields.String(required=True, description='lead email address'),
-        'language': LanguageField(required=True),
+        'language': fields.String(required=True, enum=Language._member_names_),
         'phone': fields.String(required=True, description='lead phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
+    })
+    update_lead = api.model('update_lead', {
+        'first_name': fields.String(description='lead first name'),
+        'last_name': fields.String(description='lead last name'),
+        'estimated_debt': fields.Integer(description='client estimated_debt'),
+        'email': fields.String(description='lead email address'),
+        'language': fields.String(enum=Language._member_names_),
+        'phone': fields.String(description='lead phone number'),
+        'type': ClientTypeField(description='client type')
     })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
@@ -310,6 +313,10 @@ class CandidateDto:
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
     })
+    candidate_disposition = api.model('candidate_disposition', {
+        'value': fields.String(),
+        'description':fields.String()
+    })
     candidate = api.model('candidate', {
         'public_id': fields.String(),
         'prequal_number': fields.String(),
@@ -325,10 +332,10 @@ class CandidateDto:
         'inserted_on': fields.DateTime(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': fields.String(),
+        'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
-        'disposition': fields.String(),
+        'disposition': fields.Nested(candidate_disposition),
         'credit_report_account': fields.Nested(credit_report_account)
     })
     candidate_pagination=api.model('candidate_pagination', {
@@ -348,7 +355,7 @@ class CandidateDto:
         'zip': fields.String(),
         'county': fields.String(),
         'email': fields.String(),
-        'language': LanguageField(),
+        'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField()
 

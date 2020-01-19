@@ -2,6 +2,7 @@ import enum
 
 from flask import current_app
 
+from app.main.model.client import EmploymentStatus
 from app.main.model.task import ImportTask
 from .. import db
 
@@ -11,6 +12,19 @@ class CandidateStatus(enum.Enum):
     CAMPAIGNED = 'campaigned'  # Submitted to Redstone for contact
     WORKING = 'working'  # Being worked by opener rep
     SUBMITTED = 'submitted'
+  
+    @staticmethod
+    def frm_text(txt):
+        if txt.lower() in 'imported':
+            return CandidateStatus.IMPORTED
+        elif txt.lower() in 'campaigned':
+            return CandidateStatus.CAMPAIGNED
+        elif txt.lower() in 'working':
+            return CandidateStatus.WORKING
+        elif txt.lower() in 'submitted':
+            return CandidateStatus.SUBMITTED
+        else:
+            return None
 
 
 class CandidateDisposition(db.Model):
@@ -67,6 +81,8 @@ class Candidate(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=True)
     language = db.Column(db.String(25), nullable=True)
     phone = db.Column(db.String(25), nullable=True)
+    employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
+    dob = db.Column(db.DateTime, nullable=True)
 
     estimated_debt = db.Column(db.Integer, nullable=False)
 
@@ -87,7 +103,7 @@ class Candidate(db.Model):
 
     @property
     def zip(self):
-        return f'{self._zip}-{self.zip4}'
+        return self._zip if not self.zip4 else f'{self._zip}-{self.zip4}'
 
     @property
     def zip5(self):

@@ -13,6 +13,7 @@ from datetime import datetime
 db = SQLAlchemy()
 flask_bcrypt = Bcrypt()
 
+
 def create_app(config_name):
     app = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app)

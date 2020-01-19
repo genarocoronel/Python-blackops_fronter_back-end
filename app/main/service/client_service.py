@@ -49,7 +49,7 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         address=candidate.address,
         city=candidate.city,
         state=candidate.state,
-        zip=candidate.zip,
+        zip=candidate.zip5,
         zip4=candidate.zip4,
         estimated_debt=candidate.estimated_debt,
         language=candidate.language,
@@ -84,6 +84,7 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
     save_changes(new_client)
     return new_client
 
+
 def get_all_clients(client_type=ClientType.client):
     return Client.query.filter_by(type=client_type).all()
 
@@ -92,8 +93,25 @@ def get_client(public_id, client_type=ClientType.client):
     return Client.query.filter_by(public_id=public_id, type=client_type).first()
 
 
-def update_client(client, data):
-    pass
+def update_client(client, data, client_type=ClientType.client):
+    if client:
+        for attr in data:
+            if hasattr(client, attr):
+                setattr(client, attr, data.get(attr))
+
+        save_changes(client)
+
+        response_object = {
+            'success': True,
+            'message': f'{client_type.name.capitalize()} updated successfully',
+        }
+        return response_object, 200
+    else:
+        response_object = {
+            'success': False,
+            'message': f'{client_type.name.capitalize()} not found',
+        }
+        return response_object, 404
 
 
 def get_client_bank_account(client):
@@ -244,7 +262,7 @@ def update_client_income_sources(client, income_sources):
 
 def get_client_monthly_expenses(client):
     monthly_expense_assoc = ClientMonthlyExpense.query.join(Client).filter(Client.id == client.id).all()
-    monthly_expenses = [assoc.income_source for assoc in monthly_expense_assoc]
+    monthly_expenses = [assoc.monthly_expense for assoc in monthly_expense_assoc]
     expense_types = ExpenseType.query.filter(
         ExpenseType.id.in_([expense.expense_type_id for expense in monthly_expenses])
     ).all()

@@ -1,19 +1,22 @@
 import uuid
 import datetime
-from sqlalchemy import or_, and_
+from datetime import timedelta
 
+from sqlalchemy import desc, asc, or_, and_
 from app.main import db
 from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, CandidateMonthlyExpense
+from app.main.model.candidate import CandidateDisposition
 from app.main.model.contact_number import ContactNumber, ContactNumberType
-from app.main.model.candidate import CandidateImport, Candidate
+from app.main.model.candidate import CandidateImport, Candidate, CandidateStatus
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
 from app.main.service.client_service import create_client_from_candidate
 
+from flask import current_app as app
 
 def save_new_candidate(data):
     if data.get('phone') != None:
@@ -158,6 +161,7 @@ def update_candidate_employments(candidate, employments):
 
     return {'message': 'Successfully updated employments'}, None
 
+
 def get_candidate_income_sources(candidate):
     income_sources_assoc = CandidateIncome.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     income_sources = [assoc.income_source for assoc in income_sources_assoc]
@@ -258,14 +262,14 @@ def update_candidate_addresses(candidate, addresses):
     for address in addresses:
          new_address = Address(
             candidate_id=candidate.id,
-            address1=address['address1'],
-            address2=address['address2'],
-            zip_code=address['zip_code'],
-            city=address['city'],
-            state=address['state'],
-            from_date=datetime.datetime.strptime(address['from_date'], "%Y-%m-%d") if address['from_date'] else None,
-            to_date=datetime.datetime.strptime(address['to_date'], "%Y-%m-%d") if address['to_date'] else None,
-            type=address['type']
+            address1=address.get('address1'),
+            address2=address.get('address2'),
+            zip_code=address.get('zip_code'),
+            city=address.get('city'),
+            state=address.get('state'),
+            from_date=datetime.datetime.strptime(address.get('from_date'), "%Y-%m-%d") if address.get('from_date') else None,
+            to_date=datetime.datetime.strptime(address.get('to_date'), "%Y-%m-%d") if address.get('to_date') else None,
+            type=address.get('type')
          )
          db.session.add(new_address)
     for prev_address in prev_addresses:
@@ -295,6 +299,7 @@ def get_candidate_addresses(candidate):
 def save_changes(data):
     db.session.add(data)
     db.session.commit()
+
 
 def get_candidate_contact_numbers(candidate):
     contact_number_assoc = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
@@ -345,10 +350,8 @@ def update_candidate_contact_numbers(candidate, contact_numbers):
 
     return {'message': 'Successfully updated contact numbers'}, None
 
-
 def get_all_candidate_imports():
     return CandidateImport.query.all()
-
 
 def get_all_candidates(search_query):
     search = "%{}%".format(search_query)
@@ -366,7 +369,6 @@ def get_all_candidates(search_query):
             Candidate.last_name.like(search) if search_query else True))\
         .outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
-
 def delete_candidates(ids):
      candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
      for c in candidates:
@@ -374,13 +376,111 @@ def delete_candidates(ids):
          db.session.commit()
      return
 
-def get_candidates_count():
-    return Candidate.query.outerjoin(CreditReportAccount).count()
+def get_candidates_count(q=None):
+
+    if q is None or q == '':
+        return Candidate.query.outerjoin(CreditReportAccount).count()
+    else:
+        search = "%{}%".format(q)
+        return Candidate.query.outerjoin(CreditReportAccount)\
+                   .filter(or_(Candidate.first_name.ilike(search),
+                               Candidate.last_name.ilike(search),
+                               Candidate.prequal_number.ilike(search),
+                               Candidate.address.ilike(search),
+                               Candidate.county.ilike(search),
+                               Candidate.state.ilike(search),
+                               Candidate.city.ilike(search),
+                               Candidate.phone.ilike(search),
+                               Candidate.email.ilike(search),
+                               Candidate.public_id.ilike(search))).count()
+
 
 def get_candidates_with_pagination(sort, order, page_number, limit):
     field = getattr(Candidate, sort)
     column_sorted = getattr(field, order)()
     return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
+
+def candidate_filter(limit=25, sort_col='id', order="asc", 
+                     pageno=1, search_fields=None, search_val="",
+                     dt_fields=None, from_date=None, to_date=None): 
+    try:
+        # sort
+        sort = desc(sort_col) if order == 'desc' else asc(sort_col)
+        total = 0
+        
+        
+        query = Candidate.query.outerjoin(CandidateDisposition).outerjoin(CreditReportAccount)
+        # search fields
+        if search_fields is not None and search_val != "": 
+            _g_search = "%{}%".format(search_val)
+            _or_filts = []
+            _and_filts = []
+
+            for field in search_fields:
+                filt = None
+                tokens = field.split(':')
+                and_exp = False
+                if len(tokens) > 1:
+                    and_exp = True
+                    field  = tokens[0].strip() 
+                    search = "%{}%".format(tokens[1].strip())
+                    e_val  = tokens[1].strip()
+                else:
+                    search = _g_search
+                    e_val  = search_val
+
+                # enumeration
+                if 'status' in field:
+                    rep = CandidateStatus.frm_text(e_val)
+                    if rep is not None:
+                        filt = (Candidate.status == rep) 
+                # string fields
+                else:
+                    if 'disposition' in field:
+                        column = getattr(CandidateDisposition, 'value', None)  
+                    else:
+                        column = getattr(Candidate, field, None) 
+                    filt = column.ilike(search)
+
+                # append to the filters
+                if filt is not None:
+                    if and_exp is True:
+                        _and_filts.append(filt) 
+                    else:
+                        _or_filts.append(filt)
+            
+            # check if filters are present
+            if len(_or_filts) == 0 and len(_and_filts) == 0:
+                return {"candidates": [], "page_number": pageno, "total_number_of_records": total, "limit": limit}
+            else:
+                if len(_or_filts) > 0:
+                    query = query.filter(or_(*_or_filts))
+                if len(_and_filts) > 0:
+                    query = query.filter(and_(*_and_filts))
+                
+        # datetime fields
+        if dt_fields is not None:
+            for field in dt_fields:
+                column = getattr(Candidate, field, None)
+                if from_date is not None and to_date is not None:
+                    query = query.filter(and_(column >= from_date, column <= to_date))
+                elif from_date is not None:
+                    query = query.filter(column >= from_date)
+                elif to_date is not None:
+                    query = query.filter(column <= to_date)
+                else:
+                    raise ValueError("Not a valid datetime filter query")
+
+
+        total = query.count()
+        query = query.order_by(sort).paginate(pageno, limit, False)
+
+        candidates = query.items
+        return {"candidates": candidates, "page_number": pageno, "total_number_of_records": total, "limit": limit}
+
+    except Exception as err:
+        app.logger.warning('candidate filter issue, {}'.format(str(err)))
+        raise ValueError("Invalid filter query")  
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
