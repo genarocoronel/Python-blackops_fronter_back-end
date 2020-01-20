@@ -500,6 +500,12 @@ class ConfigDto:
         'description': fields.String(required=False),
         'inserted_on': fields.DateTime(required=True),
     })
+    disposition = api.model('candidate_dispositions', {
+        'public_id': fields.String(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'value': fields.String(required=False),
+        'description': fields.String(required=False),
+    })
 
 class TestAPIDto:
     api = Namespace('tests', description='Test operations for Dev/QA')
