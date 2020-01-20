@@ -135,9 +135,9 @@ class CandidateFilter(Resource):
         if len(dt_fields) > 0:
             kwargs['dt_fields'] = dt_fields 
             if from_date is not None and from_date.strip() != "":
-                kwargs['from_date'] = datetime.strptime(from_date, "%m/%d/%Y")
+                kwargs['from_date'] = datetime.strptime(from_date, "%Y-%m-%d")
             if to_date is not None and to_date.strip() != "":
-                kwargs['to_date'] = datetime.strptime(to_date, "%m/%d/%Y").replace(hour=23,minute=59)
+                kwargs['to_date'] = datetime.strptime(to_date, "%Y-%m-%d").replace(hour=23,minute=59)
 
         result = candidate_filter(**kwargs)
         return result, 200

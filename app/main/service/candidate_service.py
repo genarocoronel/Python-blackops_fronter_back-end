@@ -8,6 +8,7 @@ from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, CandidateMonthlyExpense
 from app.main.model.candidate import CandidateDisposition
+from app.main.model.campaign  import Campaign
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.candidate import CandidateImport, Candidate, CandidateStatus
 from app.main.model.credit_report_account import CreditReportAccount
@@ -408,10 +409,9 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         total = 0
         
-        
-        query = Candidate.query.outerjoin(CandidateDisposition).outerjoin(CreditReportAccount)
+        query = Candidate.query.outerjoin(CandidateDisposition).outerjoin(Campaign).outerjoin(CreditReportAccount)
         # search fields
-        if search_fields is not None and search_val != "": 
+        if search_fields is not None: 
             _g_search = "%{}%".format(search_val)
             _or_filts = []
             _and_filts = []
@@ -438,6 +438,8 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                 else:
                     if 'disposition' in field:
                         column = getattr(CandidateDisposition, 'value', None)  
+                    elif 'campaign_name' in field:
+                        column = getattr(Campaign, 'name', None)  
                     else:
                         column = getattr(Candidate, field, None) 
                     filt = column.ilike(search)
