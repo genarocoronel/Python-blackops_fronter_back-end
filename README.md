@@ -32,6 +32,30 @@ This is the back-end of the Fronter software
    password: password
    ```
 
+## Setting Up Environment Variables in Docker
+
+The app depends on certain environment variables to be available to it. You can define these variables by filling in the following file and saving it as `./docker/api.env`:
+
+```
+SCRAPY_SETTINGS_MODULE=
+SCRAPYJS_URL=
+SECRET_KEY=
+SMART_CREDIT_CLIENT_KEY=
+SMART_CREDIT_PUBLISHER_ID=
+SMART_CREDIT_SPONSOR_CODE=
+DATAX_URL=
+DATAX_LICENSE_KEY=
+DATAX_PASSWORD=
+DATAX_CALL_TYPE=
+AWS_ACCOUNT_ID=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+```
+
+## Swagger Docs Endpoint
+
+`http://localhost:5000/api/v1/`
+
 ## Reset PostgreSQL Database
 
 1. Login to Rancher and access PostgreSQL Shell

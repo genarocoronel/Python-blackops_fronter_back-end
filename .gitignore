@@ -20,3 +20,7 @@ poc
 venv
 .local
 vagrant
+
+# Secrets file
+
+docker/api.env
