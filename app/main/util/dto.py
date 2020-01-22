@@ -3,7 +3,7 @@ import os
 from flask_restplus import Namespace, fields
 
 from app.main.model import Language, Frequency
-from app.main.model.candidate import CandidateImportStatus, CandidateStatus
+from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDisposition
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType
 from app.main.model.address import AddressType
@@ -31,6 +31,10 @@ class FrequencyTypeField(fields.String):
             return value.name
         else:
             return 'UNKNOWN'
+
+class DateTimeFormatField(fields.String):
+    def format(self, value):
+        return value.strftime("%m-%d-%Y")
 
 
 class CampaignDto(object):
@@ -306,12 +310,15 @@ class CreditReportAccountStatusField(fields.String):
         else:
             return 'unknown'
 
-
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
     credit_report_account = api.model('credit_report_account', {
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
+    })
+    candidate_disposition = api.model('candidate_disposition', {
+        'value': fields.String(),
+        'description':fields.String()
     })
     candidate = api.model('candidate', {
         'public_id': fields.String(),
@@ -331,7 +338,8 @@ class CandidateDto:
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
-        'disposition': fields.String(),
+        'campaign_name': fields.String(attribute='campaign.name'),
+        'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account)
     })
     candidate_pagination=api.model('candidate_pagination', {
@@ -495,6 +503,12 @@ class ConfigDto:
         'display_name': fields.String(required=True),
         'description': fields.String(required=False),
         'inserted_on': fields.DateTime(required=True),
+    })
+    disposition = api.model('candidate_dispositions', {
+        'public_id': fields.String(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'value': fields.String(required=False),
+        'description': fields.String(required=False),
     })
 
 class TestAPIDto:
