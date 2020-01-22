@@ -403,7 +403,8 @@ def get_candidates_with_pagination(sort, order, page_number, limit):
 
 def candidate_filter(limit=25, sort_col='id', order="asc", 
                      pageno=1, search_fields=None, search_val="",
-                     dt_fields=None, from_date=None, to_date=None): 
+                     dt_fields=None, from_date=None, to_date=None,
+                     numeric_fields=None): 
     try:
         # sort
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
@@ -412,7 +413,6 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
         query = Candidate.query.outerjoin(CandidateDisposition).outerjoin(Campaign).outerjoin(CreditReportAccount)
         # search fields
         if search_fields is not None: 
-            _g_search = "%{}%".format(search_val)
             _or_filts = []
             _and_filts = []
 
@@ -426,8 +426,11 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                     search = "%{}%".format(tokens[1].strip())
                     e_val  = tokens[1].strip()
                 else:
-                    search = _g_search
-                    e_val  = search_val
+                    if search_val is not None or search_val.strip() != '':
+                        search = "%{}%".format(search_val)
+                        e_val = search_val
+                    else:
+                        continue
 
                 # enumeration
                 if 'status' in field:
@@ -473,6 +476,33 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                 else:
                     raise ValueError("Not a valid datetime filter query")
 
+        # Numeric fields
+        if numeric_fields is not None:
+            for field in numeric_fields:
+                tokens = field.split(':')
+                if len(tokens) < 3:
+                    continue
+                # format  field:op:val
+                field = tokens[0].strip()
+                op    = tokens[1].strip()
+                val   = float(tokens[2].strip())
+                column = getattr(Client, field, None)
+
+                if column is None:
+                    raise ValueError("Not a valid numeric column")
+
+                if op == 'lt':
+                    query = query.filter(column < val)
+                elif op == 'lte':
+                    query = query.filter(column <= val)
+                elif op == 'gt':
+                    query = query.filter(column > val)
+                elif op == 'gte':
+                    query = query.filter(column >= val)
+                elif op == 'eq':
+                    query = query.filter(column == val)
+                else:
+                    raise ValueError("Not a valid numeric operation")
 
         total = query.count()
         query = query.order_by(sort).paginate(pageno, limit, False)

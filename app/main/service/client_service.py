@@ -5,10 +5,13 @@ from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense, ClientContactNumber
+from app.main.model.client import ClientDisposition, EmploymentStatus
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 from app.main.model.address import Address
+from sqlalchemy import desc, asc, or_, and_
+from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
@@ -87,6 +90,120 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
 
 def get_all_clients(client_type=ClientType.client):
     return Client.query.filter_by(type=client_type).all()
+
+def client_filter(limit=25, sort_col='id', order="desc",
+                  pageno=1, search_fields=None, search_val="", 
+                  dt_fields=None, from_date=None, to_date=None,
+                  numeric_fields=None, client_type=ClientType.client):
+    try:
+        # sorting
+        total = 0
+        type_str = 'clients' if client_type == ClientType.client else 'leads'
+
+        sort = desc(sort_col) if order == 'desc' else asc(sort_col)
+        # base query
+        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition)
+        # search fields
+        if search_fields is not None:
+            _or_filts = []
+            _and_filts = []
+            # iterate through search fields 
+            for field in search_fields:
+                filt = None
+                tokens = field.split(':')
+                and_exp = False
+                if len(tokens) > 1:
+                    and_exp = True
+                    field  = tokens[0].strip()
+                    search = "%{}%".format(tokens[1].strip())
+                    e_val  = tokens[1].strip()
+                else:
+                    if search_val is not None or search_val.strip() != '':
+                        search = "%{}%".format(search_val)
+                        e_val = search_val
+                    else:
+                        continue
+
+                # enum fields in string
+                if 'employment_status' in field: 
+                    rep = EmploymentStatus.frm_text(e_val)
+                    if rep is not None:
+                        filt = (Client.employment_status == rep)
+                # relationship fields
+                else:
+                    if 'disposition' in field:
+                        column = getattr(ClientDisposition, 'value', None)
+                    else:
+                        column = getattr(Client, field, None)
+                    filt = column.ilike(search)
+
+                # append to the filters
+                if filt is not None:
+                    if and_exp is True:
+                        _and_filts.append(filt)
+                    else:
+                        _or_filts.append(filt)
+            # check if filters are present
+            if len(_or_filts) == 0 and len(_and_filts) == 0:
+                return {type_str: [], "page_number": pageno, "total_records": total, "limit": limit}
+            else:
+                if len(_or_filts) > 0:
+                    query = query.filter(or_(*_or_filts))
+                if len(_and_filts) > 0:
+                    query = query.filter(and_(*_and_filts))
+
+        # datetime fields
+        if dt_fields is not None:
+            for field in dt_fields:
+                column = getattr(Client, field, None)
+                if from_date is not None and to_date is not None:
+                    query = query.filter(and_(column >= from_date, column <= to_date))
+                elif from_date is not None:
+                    query = query.filter(column >= from_date)
+                elif to_date is not None:
+                    query = query.filter(column <= to_date)
+                else:
+                    raise ValueError("Not a valid datetime filter query")
+   
+        # Numeric fields
+        if numeric_fields is not None:
+            for field in numeric_fields:
+                tokens = field.split(':')
+                if len(tokens) < 3:
+                    continue
+                # format  field:op:val
+                field = tokens[0].strip()
+                op    = tokens[1].strip()
+                val   = float(tokens[2].strip())
+                column = getattr(Client, field, None)
+
+                if column is None:
+                    raise ValueError("Not a valid numeric column")
+
+                if op == 'lt':
+                    query = query.filter(column < val)
+                elif op == 'lte':
+                    query = query.filter(column <= val)
+                elif op == 'gt':
+                    query = query.filter(column > val)
+                elif op == 'gte':
+                    query = query.filter(column >= val)
+                elif op == 'eq':
+                    query = query.filter(column == val)
+                else:
+                    raise ValueError("Not a valid numeric operation")
+ 
+
+        total = query.count()
+        query = query.order_by(sort).paginate(pageno, limit, False)
+        records = query.items
+
+        return {type_str: records, "page_number": pageno, "total_records": total, "limit": limit}
+                
+                 
+    except Exception as err:
+        app.logger.warning('Client filter issue, {}'.format(str(err)))
+        raise ValueError("Invalid Client filter query")
 
 
 def get_client(public_id, client_type=ClientType.client):
