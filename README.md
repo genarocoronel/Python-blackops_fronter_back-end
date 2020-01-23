@@ -40,3 +40,18 @@ This is the back-end of the Fronter software
 4. Execute `\c elitedocdb` which will connect you to the database (change database name if necessary)
 5. Execute `DROP SCHEMA public CASCADE;` to drop all the tables and types
 6. Execute `CREATE SCHEMA public;` to recreate the schema
+
+## Generating and Applying Migrations in Docker
+
+1. Start an interactive shell session in the `api` container:
+   ```
+   $ docker exec -it api sh
+   ```
+2. Generate migrations:
+   ```
+   /app # python manage.py db migrate
+   ```
+3. Apply migrations
+   ```
+   /app # python manage.py db upgrade
+   ```

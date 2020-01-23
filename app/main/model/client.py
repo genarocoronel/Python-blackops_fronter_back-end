@@ -61,7 +61,7 @@ class Client(db.Model):
     zip = db.Column(db.Integer, nullable=False)
     zip4 = db.Column(db.Integer, nullable=False)
     county = db.Column(db.String(50), nullable=True)
-    email = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=True)
     language = db.Column(db.String(25), nullable=True)
     phone = db.Column(db.String(25), nullable=True)
     # date of birth
