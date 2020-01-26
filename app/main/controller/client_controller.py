@@ -7,7 +7,7 @@ from app.main.service.debt_service import check_existing_scrape_task, get_report
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments, \
     update_client, get_client_employments, update_client_employments, get_client_income_sources, update_client_income_sources, \
     get_client_monthly_expenses, update_client_monthly_expenses, save_changes, update_client_addresses, \
-    get_client_addresses
+    get_client_addresses, fetch_client_disposition
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
@@ -258,3 +258,17 @@ class ClientCreditReportDebts(Resource):
 
         data = get_report_data(credit_account)
         return data, 200
+
+# API to fetch the client disposition
+@api.route('/<client_id>/disposition')
+@api.param('client_id', 'Client public identifier')
+class ClientDispositionSerializer(Resource):
+    @api.doc('fetch the client disposition value')
+    def get(self, client_id):
+        try:
+            print(client_id)
+            return fetch_client_disposition(client_id)
+        except Exception as err:
+            return {'message': '{}'.format(str(err))}, 400
+
+

@@ -421,3 +421,21 @@ def update_client_monthly_expenses(client, expenses):
     save_changes()
 
     return {'message': 'Successfully updated monthly expenses'}, None
+
+def fetch_client_disposition(client_id):
+    try:
+        client = Client.query.filter_by(public_id=client_id).first()
+        if client is None:
+            raise ValueError("Client not found")
+
+        disposition = client.disposition
+        if disposition is None:
+            raise ValueError("Disposition not present")
+
+        result = {'value': disposition.value, 'description': disposition.description}
+        return result
+
+    except Exception as err:
+        app.logger.warning("fetch client disposition {}".format(str(err)))
+        raise ValueError("Internal Error {}".format(str(err)))
+
