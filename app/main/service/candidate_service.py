@@ -45,7 +45,6 @@ def save_new_candidate(data):
         city=data.get('city'),
         state=data.get('state'),
         zip=data.get('zip'),
-        zip4=data.get('zip4'),
         county=data.get('county'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),

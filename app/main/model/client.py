@@ -58,8 +58,8 @@ class Client(db.Model):
     address = db.Column(db.String(100), nullable=False)
     city = db.Column(db.String(50), nullable=False)
     state = db.Column(db.String(2), nullable=False)
-    zip = db.Column(db.Integer, nullable=False)
-    zip4 = db.Column(db.Integer, nullable=False)
+    _zip = db.Column('zip', db.Integer, nullable=False)
+    _zip4 = db.Column('zip4', db.Integer, nullable=False)
     county = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(255), nullable=False)
     language = db.Column(db.String(25), nullable=True)
@@ -67,11 +67,28 @@ class Client(db.Model):
     # date of birth
     dob  = db.Column(db.DateTime, nullable=True)
     # SSN ID, all digits '000000000'
-    ssn = db.Column(db.String(9), nullable=True) 
-
+    ssn = db.Column(db.String(9), nullable=True)
     estimated_debt = db.Column(db.Integer, nullable=False)
-
     employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
+
+    @property
+    def zip(self):
+        return self._zip if not self.zip4 else f'{self._zip}-{self.zip4}'
+
+    @property
+    def zip5(self):
+        return self._zip
+
+    @property
+    def zip4(self):
+        return self._zip4
+
+    @zip.setter
+    def zip(self, zip):
+        zip_parts = zip.split('-')
+        self._zip = zip_parts[0].zfill(5)
+        if len(zip_parts) > 1:
+            self._zip4 = zip_parts[1].zfill(4)
 
 
 class ClientIncome(db.Model):
