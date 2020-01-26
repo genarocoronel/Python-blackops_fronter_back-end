@@ -158,10 +158,7 @@ class UpdateCandidate(Resource):
     @api.expect(_update_candidate, validate=False)
     def put(self, candidate_id):
         data = request.json
-        zip = data['zip'].split('-')[0]
-        zip4 = data['zip'].split('-')[1]
-        data['zip'] = zip
-        data['zip4'] = zip4
+        _convert_payload_datetime_values(data, 'dob')
         return update_candidate(candidate_id, data)
 
 
@@ -556,7 +553,7 @@ class CreditReporAccounttVerification(Resource):
             }
             return response_object, 500
 
-
+# TODO: consider removing the `credit_account_public_id` from URI since it is only 1-to-1 relationship in data model
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/complete')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
