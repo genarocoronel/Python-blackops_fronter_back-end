@@ -3,9 +3,9 @@ import os
 from flask_restplus import Namespace, fields
 
 from app.main.model import Language, Frequency
-from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDisposition
+from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDispositionType
 from app.main.model.employment import FrequencyStatus
-from app.main.model.client import ClientType, EmploymentStatus
+from app.main.model.client import ClientType, EmploymentStatus, ClientDispositionType
 from app.main.model.address import AddressType
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
@@ -153,6 +153,19 @@ class FrequencyStatusField(fields.String):
         else:
             return 'UNKNOWN'
 
+class ClientDispositionTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, ClientDispositionType):
+            return value.name
+        else:
+            return 'UNKNOWN'
+
+class CandidateDispositionTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, CandidateDispositionType):
+            return value.name
+        else:
+            return 'UNKNOWN'
 
 _credit_report_debt_model = {
     'debt_name': fields.String(),
@@ -229,6 +242,11 @@ class ClientDto:
         'other_income': fields.Float(required=True),
         'other_income_frequency': FrequencyStatusField(),
         'current': fields.Boolean(required=True, default=False)
+    })
+    client_dispositions = api.model('client_dispositions', {
+        'select_type': ClientDispositionTypeField(),
+        'name': fields.String(required=True),
+        'value': fields.String(required=True)
     })
     update_client_employment = api.model('update_client_employment', {
         'start_date': fields.DateTime(required=True),
@@ -337,7 +355,7 @@ class CandidateDto:
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
     })
-    candidate_disposition = api.model('candidate_disposition', {
+    candidate_disposition = api.model('candidate_dispositions', {
         'value': fields.String(),
         'description':fields.String()
     })
@@ -363,6 +381,11 @@ class CandidateDto:
         'campaign_name': fields.String(attribute='campaign.name'),
         'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account)
+    })
+    candidate_dispositions = api.model('candidate_disposition', {
+        'select_type': CandidateDispositionTypeField(),
+        'name': fields.String(required=True),
+        'value': fields.String(required=True)
     })
     candidate_pagination=api.model('candidate_pagination', {
         'page_number': fields.Integer(),
