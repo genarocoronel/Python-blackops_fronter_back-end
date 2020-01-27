@@ -198,7 +198,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
         query = query.order_by(sort).paginate(pageno, limit, False)
         records = query.items
 
-        return {type_str: records, "page_number": pageno, "total_records": total, "limit": limit}
+        return {'data': records, "page_number": pageno, "total_records": total, "limit": limit}
                 
                  
     except Exception as err:

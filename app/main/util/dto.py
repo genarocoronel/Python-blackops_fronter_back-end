@@ -282,6 +282,8 @@ class LeadDto:
         'public_id': fields.String(description='lead identifier'),
         'address': fields.String(description='lead address'),
         'ssn': fields.String(description='lead ssn'),
+        'city': fields.String(description='lead city'),
+        'state': fields.String(description='lead state'),
         'inserted_on': fields.DateTime(),
         'employment_status':EmploymentStatusField(),
         'disposition': fields.String(attribute='disposition.value'),
@@ -290,7 +292,7 @@ class LeadDto:
         'page_number': fields.Integer(),
         'total_records': fields.Integer(),
         'limit': fields.Integer(),
-        'leads': fields.List(fields.Nested(lead))
+        'data': fields.List(fields.Nested(lead))
     })
     update_lead = api.model('update_lead', {
         'first_name': fields.String(description='lead first name'),
