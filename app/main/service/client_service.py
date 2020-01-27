@@ -155,9 +155,6 @@ def get_client_employments(client):
 
     return employment_data, None
 
-def get_all_clients_dispositions():
-    return ClientDisposition.query.filter_by().all()
-
 def update_client_employments(client, employments):
     prev_employments = ClientEmployment.query.join(Client).filter(Client.id == client.id).all()
 
