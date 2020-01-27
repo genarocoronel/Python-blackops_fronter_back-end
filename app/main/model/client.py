@@ -13,15 +13,23 @@ class EmploymentStatus(enum.Enum):
     STUDENT = 'student'
     UNEMPLOYED = 'unemployed'
 
+class DispositionType(enum.Enum):
+    MANUAL = 'manual'
+    AUTO = 'auto'
+
 class ClientDisposition(db.Model):
     __tablename__ = "client_dispositions"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    public_id = db.Column(db.String(100), unique=True)
+    inserted_on = db.Column(db.DateTime, nullable=False)
+    select_type = db.Column(db.Enum(DispositionType), nullable=False, default=DispositionType.MANUAL)
 
     # relationships
     clients = db.relationship('Client', back_populates='disposition')
 
     # fields
+    name = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.String(255), nullable=True)
 
