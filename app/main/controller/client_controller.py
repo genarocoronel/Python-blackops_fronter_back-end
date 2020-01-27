@@ -5,7 +5,7 @@ from app.main.controller import _convert_payload_datetime_values, _handle_get_cl
 from app.main.model.client import ClientType
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_appointments, \
-    update_client, get_client_employments, update_client_employments, get_client_income_sources, update_client_income_sources, \
+    update_client, get_client_employments, get_all_clients_dispositions, update_client_employments, get_client_income_sources, update_client_income_sources, \
     get_client_monthly_expenses, update_client_monthly_expenses, save_changes, update_client_addresses, \
     get_client_addresses
 from ..util.dto import ClientDto, AppointmentDto
@@ -14,6 +14,7 @@ api = ClientDto.api
 _client = ClientDto.client
 _update_client = ClientDto.update_client
 _client_employment = ClientDto.client_employment
+_client_dispositions = ClientDto.client_dispositions
 _update_client_employment = ClientDto.update_client_employment
 _appointment = AppointmentDto.appointment
 _client_income = ClientDto.client_income
@@ -44,6 +45,14 @@ class ClientList(Resource):
         data = request.json
         return save_new_client(data=data, client_type=CLIENT)
 
+@api.route('/dispositions')
+class ClientDispositionsList(Resource):
+    @api.doc('list_of_client_dispositions')
+    @api.marshal_list_with(_client_dispositions, envelope='data')
+    def get(self):
+        """ List all client dispositions"""
+        client_disposiitions = get_all_clients_dispositions()
+        return client_disposiitions
 
 @api.route('/<public_id>')
 @api.param('public_id', 'The Client Identifier')

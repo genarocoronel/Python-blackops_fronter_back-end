@@ -4,7 +4,7 @@ import datetime
 from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
-from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense, ClientContactNumber
+from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense, ClientContactNumber, ClientDisposition
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
@@ -155,6 +155,8 @@ def get_client_employments(client):
 
     return employment_data, None
 
+def get_all_clients_dispositions():
+    return ClientDisposition.query.filter_by().all()
 
 def update_client_employments(client, employments):
     prev_employments = ClientEmployment.query.join(Client).filter(Client.id == client.id).all()
