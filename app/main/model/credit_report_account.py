@@ -113,14 +113,3 @@ class CreditPaymentPlan(db.Model):
     monitoring_fee_1signer = db.Column(db.Float, nullable=False) 
     monitoring_fee_2signer = db.Column(db.Float, nullable=False) 
     
-
-def populate_credit_payment_plan():
-    plan = CreditPaymentPlan(name='Universal', 
-                             enrolled_percent=33, 
-                             monthly_bank_fee=10, 
-                             minimum_fee=2475, 
-                             monitoring_fee_1signer=59, 
-                             monitoring_fee_2signer=89)    
-    db.session.add(plan)
-    db.session.commit()
-
