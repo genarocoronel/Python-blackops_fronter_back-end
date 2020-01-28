@@ -7,12 +7,14 @@ from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_COD
 from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
-    update_client_employments, update_client
+    update_client_employments, update_client, client_filter
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report
 from ..util.dto import LeadDto, ClientDto
+from ..util.parsers import filter_request_parse
 
 api = LeadDto.api
 _lead = LeadDto.lead
+_lead_pagination = LeadDto.lead_pagination
 _update_lead = LeadDto.update_lead
 _new_bank_account = ClientDto.new_bank_account
 _bank_account = ClientDto.bank_account
@@ -43,6 +45,17 @@ class LeadList(Resource):
         """ Creates new Client """
         data = request.json
         return save_new_client(data=data, client_type=LEAD)
+
+
+@api.route('/filter')
+class LeadFilter(Resource):
+    @api.doc('Leads filter with pagination info')
+    @api.marshal_with(_lead_pagination)
+    def get(self):
+        #filter args
+        fargs = filter_request_parse(request)
+        result =  client_filter(client_type=LEAD, **fargs)
+        return result, 200
 
 
 @api.route('/<public_id>')
