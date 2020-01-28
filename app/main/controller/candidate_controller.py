@@ -21,6 +21,7 @@ from app.main.service.smartcredit_service import start_signup, LockedException, 
     activate_smart_credit_insurance
 from app.main.service.debt_service import scrape_credit_report
 from ..util.dto import CandidateDto
+from ..util.parsers import filter_request_parse
 
 api = CandidateDto.api
 _candidate_upload = CandidateDto.candidate_upload
@@ -95,51 +96,10 @@ class CandidateFilter(Resource):
     @api.doc('Candidates filter with pagination info')
     @api.marshal_with(_candidate_pagination)
     def get(self):
-        """ Get all Candidates """
-        limit = request.args.get('_limit', None)
-        order = request.args.get('_order', None)
-        sort  = request.args.get('_sort', None)
-        pagenum = request.args.get('_page_number', None)
-        # string fields 
-        str_fields = []
-        search = None
-        fields = request.args.get('_q', None)
-        if fields is not None:
-            str_fields = [x.strip() for x in fields.split(',')]
-        if len(str_fields) > 0:
-            search = request.args.get('_search', None)
-        dt_fields = []
-        from_date = None
-        to_date = None
-        fields = request.args.get('_dt', None)
-        if fields is not None:
-            dt_fields = [x.strip() for x in fields.split(',')]
-        if len(dt_fields) > 0:
-            from_date = request.args.get('_from', None)
-            to_date = request.args.get('_to', None)
-
-        kwargs = {}
-
-        if limit is not None:
-            kwargs['limit'] = int(limit)
-        if sort is not None:
-            kwargs['sort_col'] = sort
-        if order is not None:
-            kwargs['order'] = order
-        if pagenum is not None:
-            kwargs['pageno'] = int(pagenum)
-        if len(str_fields) > 0:
-            kwargs['search_fields'] = str_fields
-            if search is not None:
-                kwargs['search_val'] = search
-        if len(dt_fields) > 0:
-            kwargs['dt_fields'] = dt_fields 
-            if from_date is not None and from_date.strip() != "":
-                kwargs['from_date'] = datetime.strptime(from_date, "%Y-%m-%d")
-            if to_date is not None and to_date.strip() != "":
-                kwargs['to_date'] = datetime.strptime(to_date, "%Y-%m-%d").replace(hour=23,minute=59)
-
-        result = candidate_filter(**kwargs)
+        """ Get filtered Candidates """
+        #filter args
+        fargs = filter_request_parse(request)
+        result = candidate_filter(**fargs)
         return result, 200
 
 
