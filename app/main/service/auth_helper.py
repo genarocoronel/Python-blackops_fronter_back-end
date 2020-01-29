@@ -42,6 +42,9 @@ class Auth:
                         'user': {
                             'first_name': user.first_name,
                             'last_name': user.last_name,
+                            'public_id': user.public_id,
+                            'phone_number': user.personal_phone,
+                            'email': user.email,
                             'title': user.title,
                             'last_4_of_phone': user.personal_phone[-4:],
                             'require_2fa': user.require_2fa,
