@@ -5,7 +5,7 @@ from flask_restplus import Namespace, fields
 from app.main.model import Language, Frequency
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDispositionType
 from app.main.model.employment import FrequencyStatus
-from app.main.model.client import ClientType, ClientDispositionType
+from app.main.model.client import ClientType, ClientDispositionType, EmploymentStatus
 from app.main.model.address import AddressType
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
@@ -185,6 +185,13 @@ _credit_report_debt_model = {
     'last_update': fields.DateTime(required=True)
 }
 
+class EmploymentStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, EmploymentStatus):
+            return value.name
+        else:
+            return 'unknown'
+
 
 class ClientDto:
     api = Namespace('clients', description='client related operations')
@@ -290,8 +297,20 @@ class LeadDto:
         'email': fields.String(required=True, description='lead email address'),
         'language': fields.String(required=True, enum=Language._member_names_),
         'phone': fields.String(required=True, description='lead phone number'),
-        'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='lead identifier'),
+        'address': fields.String(description='lead address'),
+        'ssn': fields.String(description='lead ssn'),
+        'city': fields.String(description='lead city'),
+        'state': fields.String(description='lead state'),
+        'inserted_on': fields.DateTime(),
+        'employment_status':EmploymentStatusField(),
+        'disposition': fields.String(attribute='disposition.value'),
+    })
+    lead_pagination=api.model('lead_pagination', {
+        'page_number': fields.Integer(),
+        'total_records': fields.Integer(),
+        'limit': fields.Integer(),
+        'data': fields.List(fields.Nested(lead))
     })
     update_lead = api.model('update_lead', {
         'first_name': fields.String(description='lead first name'),
