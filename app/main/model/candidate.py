@@ -76,7 +76,7 @@ class Candidate(db.Model):
     city = db.Column(db.String(50), nullable=False)
     state = db.Column(db.String(2), nullable=False)
     _zip = db.Column('zip', db.String(5), nullable=False)
-    zip4 = db.Column(db.String(4), nullable=False)
+    _zip4 = db.Column('zip4', db.String(4), nullable=False)
     county = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(255), unique=True, nullable=True)
     language = db.Column(db.String(25), nullable=True)
@@ -109,9 +109,16 @@ class Candidate(db.Model):
     def zip5(self):
         return self._zip
 
+    @property
+    def zip4(self):
+        return self._zip4
+
     @zip.setter
     def zip(self, zip):
-        self._zip = zip.zfill(5)
+        zip_parts = zip.split('-')
+        self._zip = zip_parts[0].zfill(5)
+        if len(zip_parts) > 1:
+            self._zip4 = zip_parts[1].zfill(4)
 
 
 class CandidateContactNumber(db.Model):

@@ -32,6 +32,7 @@ class FrequencyTypeField(fields.String):
         else:
             return 'UNKNOWN'
 
+
 class DateTimeFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y")
@@ -329,6 +330,7 @@ class CreditReportAccountStatusField(fields.String):
         else:
             return 'unknown'
 
+
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
     credit_report_account = api.model('credit_report_account', {
@@ -354,6 +356,7 @@ class CandidateDto:
         'inserted_on': fields.DateTime(),
         'county': fields.String(),
         'email': fields.String(),
+        'dob': fields.Date(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
@@ -378,6 +381,7 @@ class CandidateDto:
         'zip': fields.String(),
         'county': fields.String(),
         'email': fields.String(),
+        'dob': fields.DateTime(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField()
@@ -501,6 +505,7 @@ class CandidateDto:
         }), required=True, skip_none=True)
     })
 
+
 class ConfigDto:
     api = Namespace('config', description='config related operations')
     contact_number_types = api.model('contact_number_types', {
@@ -530,8 +535,10 @@ class ConfigDto:
         'description': fields.String(required=False),
     })
 
+
 class TestAPIDto:
     api = Namespace('tests', description='Test operations for Dev/QA')
+
 
 class RemoteSignDto:
     api = Namespace('rsign', description='Remote signature related operations')
@@ -540,6 +547,7 @@ class RemoteSignDto:
         'id': fields.Integer(),
         'name': fields.String()
     })
+
 
 class DebtPaymentDto:
     api = Namespace('debtpayment', description='Debt Payment related operations')
