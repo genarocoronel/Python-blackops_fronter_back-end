@@ -1,6 +1,5 @@
 import uuid
 import datetime
-from datetime import timedelta
 
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
@@ -18,6 +17,7 @@ from app.main.model.address import Address, AddressType
 from app.main.service.client_service import create_client_from_candidate
 
 from flask import current_app as app
+
 
 def save_new_candidate(data):
     if data.get('phone') is not None:
@@ -403,6 +403,7 @@ def get_candidates_with_pagination(sort, order, page_number, limit):
     field = getattr(Candidate, sort)
     column_sorted = getattr(field, order)()
     return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
+
 
 def candidate_filter(limit=25, sort_col='id', order="asc", 
                      pageno=1, search_fields=None, search_val="",

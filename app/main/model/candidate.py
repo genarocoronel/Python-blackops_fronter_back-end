@@ -27,17 +27,24 @@ class CandidateStatus(enum.Enum):
             return None
 
 
+class CandidateDispositionType(enum.Enum):
+    MANUAL = 'manual'
+    AUTO = 'auto'
+
+
 class CandidateDisposition(db.Model):
     __tablename__ = "candidate_dispositions"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True, nullable=False)
     inserted_on = db.Column(db.DateTime, nullable=False)
+    select_type = db.Column(db.Enum(CandidateDispositionType), nullable=False, default=CandidateDispositionType.MANUAL)
 
     # relationships
     candidates = db.relationship('Candidate', back_populates='disposition')
 
     # fields
+    name = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.String(255), nullable=True)
 
