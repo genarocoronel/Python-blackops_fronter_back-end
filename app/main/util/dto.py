@@ -153,6 +153,7 @@ class FrequencyStatusField(fields.String):
         else:
             return 'UNKNOWN'
 
+
 class ClientDispositionTypeField(fields.String):
     def format(self, value):
         if isinstance(value, ClientDispositionType):
@@ -160,12 +161,14 @@ class ClientDispositionTypeField(fields.String):
         else:
             return 'UNKNOWN'
 
+
 class CandidateDispositionTypeField(fields.String):
     def format(self, value):
         if isinstance(value, CandidateDispositionType):
             return value.name
         else:
             return 'UNKNOWN'
+
 
 _credit_report_debt_model = {
     'debt_name': fields.String(),
@@ -185,6 +188,7 @@ _credit_report_debt_model = {
     'graduation': fields.DateTime(),
     'last_update': fields.DateTime(required=True)
 }
+
 
 class EmploymentStatusField(fields.String):
     def format(self, value):
@@ -357,7 +361,7 @@ class CandidateDto:
     })
     candidate_disposition = api.model('candidate_dispositions', {
         'value': fields.String(),
-        'description':fields.String()
+        'description': fields.String()
     })
     candidate = api.model('candidate', {
         'public_id': fields.String(),

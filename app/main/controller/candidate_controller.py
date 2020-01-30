@@ -14,7 +14,6 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
     get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_filter
-from app.main.service.config_service import get_all_candidates_dispositions
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
@@ -29,7 +28,6 @@ _new_credit_report_account = CandidateDto.new_credit_report_account
 _update_credit_report_account = CandidateDto.update_credit_report_account
 _credit_account_verification_answers = CandidateDto.account_verification_answers
 _candidate = CandidateDto.candidate
-_candidate_dispositions = CandidateDto.candidate_dispositions
 _candidate_pagination = CandidateDto.candidate_pagination
 _update_candidate = CandidateDto.update_candidate
 _candidate_employment = CandidateDto.candidate_employment
@@ -80,16 +78,6 @@ class GetCandidates(Resource):
         request_data = request.json
         delete_candidates(request_data.get('ids'))
         return dict(success=True), 200
-
-@api.route('/dispositions')
-class CandidateDispositionsList(Resource):
-    @api.doc('list_of_candidate_dispositions')
-    @api.marshal_list_with(_candidate_dispositions, envelope='data')
-    def get(self):
-        """ List all candidate dispositions"""
-        candidate_disposiitions = get_all_candidates_dispositions()
-        return candidate_disposiitions
-
 
 #### request params
 # @_limit result set max limit

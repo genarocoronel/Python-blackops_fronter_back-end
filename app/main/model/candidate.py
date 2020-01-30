@@ -26,9 +26,11 @@ class CandidateStatus(enum.Enum):
         else:
             return None
 
+
 class CandidateDispositionType(enum.Enum):
     MANUAL = 'manual'
     AUTO = 'auto'
+
 
 class CandidateDisposition(db.Model):
     __tablename__ = "candidate_dispositions"
