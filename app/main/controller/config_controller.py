@@ -1,6 +1,7 @@
 from flask_restplus import Resource
 
-from app.main.service.config_service import get_contact_number_types, get_income_types, get_expense_types, get_dispositions, get_all_candidates_dispositions, get_all_clients_dispositions
+from app.main.service.config_service import get_contact_number_types, get_income_types, get_expense_types, \
+    get_all_candidates_dispositions, get_all_clients_dispositions
 
 from ..util.dto import ConfigDto, CandidateDto, ClientDto
 
