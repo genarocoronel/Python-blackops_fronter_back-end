@@ -1,6 +1,5 @@
 import uuid
 import datetime
-from datetime import timedelta
 
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
@@ -19,21 +18,23 @@ from app.main.service.client_service import create_client_from_candidate
 
 from flask import current_app as app
 
+
 def save_new_candidate(data):
-    if data.get('phone') != None:
-        exist_candidate = Candidate.query.filter(Candidate.phone==data.get('phone')).first()
+    if data.get('phone') is not None:
+        exist_candidate = Candidate.query.filter(Candidate.phone == data.get('phone')).first()
     else:
-        exist_candidate = Candidate.query.filter(and_(Candidate.first_name==data.get('first_name'),
-         Candidate.last_name==data.get('last_name'),
-         Candidate.email==data.get('email'),
-        )).first()
-    if exist_candidate != None:
+        exist_candidate = Candidate.query.filter(and_(Candidate.first_name == data.get('first_name'),
+                                                      Candidate.last_name == data.get('last_name'),
+                                                      Candidate.email == data.get('email'),
+                                                      )).first()
+
+    if exist_candidate is not None:
         response_object = {
             'success': False,
-            'status': 'failed',
             'message': 'This candidate already exists'
         }
-        return response_object, 201
+        return response_object, 409
+
     new_candidate = Candidate(
         public_id=str(uuid.uuid4()),
         email=data.get('email'),
@@ -45,7 +46,6 @@ def save_new_candidate(data):
         city=data.get('city'),
         state=data.get('state'),
         zip=data.get('zip'),
-        zip4=data.get('zip4'),
         county=data.get('county'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),
@@ -73,10 +73,10 @@ def save_new_candidate(data):
     db.session.commit()
 
     new_address = Address(
-        candidate_id = new_candidate.id,
-        address1 = data.get('address'),
-        zip_code = data.get('zip'),
-        city = data.get('city'),
+        candidate_id=new_candidate.id,
+        address1=data.get('address'),
+        zip_code=data.get('zip'),
+        city=data.get('city'),
         state=data.get('state'),
         type=AddressType.CURRENT
     )
@@ -260,7 +260,7 @@ def update_candidate_addresses(candidate, addresses):
     prev_addresses = Address.query.filter_by(candidate_id=candidate.id).all()
 
     for address in addresses:
-         new_address = Address(
+        new_address = Address(
             candidate_id=candidate.id,
             address1=address.get('address1'),
             address2=address.get('address2'),
@@ -270,8 +270,8 @@ def update_candidate_addresses(candidate, addresses):
             from_date=datetime.datetime.strptime(address.get('from_date'), "%Y-%m-%d") if address.get('from_date') else None,
             to_date=datetime.datetime.strptime(address.get('to_date'), "%Y-%m-%d") if address.get('to_date') else None,
             type=address.get('type')
-         )
-         db.session.add(new_address)
+        )
+        db.session.add(new_address)
     for prev_address in prev_addresses:
         Address.query.filter_by(id=prev_address.id).delete()
     save_changes()
@@ -350,55 +350,59 @@ def update_candidate_contact_numbers(candidate, contact_numbers):
 
     return {'message': 'Successfully updated contact numbers'}, None
 
+
 def get_all_candidate_imports():
     return CandidateImport.query.all()
 
+
 def get_all_candidates(search_query):
     search = "%{}%".format(search_query)
-    return Candidate.query\
+    return Candidate.query \
         .filter(or_(Candidate.prequal_number.like(search) if search_query else True,
-            Candidate.first_name.like(search) if search_query else True,
-            Candidate.status.like(search) if search_query else True,
-            Candidate.address.like(search) if search_query else True,
-            Candidate.county.like(search) if search_query else True,
-            Candidate.state.like(search) if search_query else True,
-            Candidate.city.like(search) if search_query else True,
-            Candidate.phone.like(search) if search_query else True,
-            Candidate.email.like(search) if search_query else True,
-            Candidate.public_id.like(search) if search_query else True,
-            Candidate.last_name.like(search) if search_query else True))\
+                    Candidate.first_name.like(search) if search_query else True,
+                    Candidate.status.like(search) if search_query else True,
+                    Candidate.address.like(search) if search_query else True,
+                    Candidate.county.like(search) if search_query else True,
+                    Candidate.state.like(search) if search_query else True,
+                    Candidate.city.like(search) if search_query else True,
+                    Candidate.phone.like(search) if search_query else True,
+                    Candidate.email.like(search) if search_query else True,
+                    Candidate.public_id.like(search) if search_query else True,
+                    Candidate.last_name.like(search) if search_query else True)) \
         .outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
+
 def delete_candidates(ids):
-     candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
-     for c in candidates:
-         db.session.delete(c)
-         db.session.commit()
-     return
+    candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
+    for c in candidates:
+        db.session.delete(c)
+        db.session.commit()
+    return
+
 
 def get_candidates_count(q=None):
-
     if q is None or q == '':
         return Candidate.query.outerjoin(CreditReportAccount).count()
     else:
         search = "%{}%".format(q)
-        return Candidate.query.outerjoin(CreditReportAccount)\
-                   .filter(or_(Candidate.first_name.ilike(search),
-                               Candidate.last_name.ilike(search),
-                               Candidate.prequal_number.ilike(search),
-                               Candidate.address.ilike(search),
-                               Candidate.county.ilike(search),
-                               Candidate.state.ilike(search),
-                               Candidate.city.ilike(search),
-                               Candidate.phone.ilike(search),
-                               Candidate.email.ilike(search),
-                               Candidate.public_id.ilike(search))).count()
+        return Candidate.query.outerjoin(CreditReportAccount) \
+            .filter(or_(Candidate.first_name.ilike(search),
+                        Candidate.last_name.ilike(search),
+                        Candidate.prequal_number.ilike(search),
+                        Candidate.address.ilike(search),
+                        Candidate.county.ilike(search),
+                        Candidate.state.ilike(search),
+                        Candidate.city.ilike(search),
+                        Candidate.phone.ilike(search),
+                        Candidate.email.ilike(search),
+                        Candidate.public_id.ilike(search))).count()
 
 
 def get_candidates_with_pagination(sort, order, page_number, limit):
     field = getattr(Candidate, sort)
     column_sorted = getattr(field, order)()
     return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
+
 
 def candidate_filter(limit=25, sort_col='id', order="asc", 
                      pageno=1, search_fields=None, search_val="",
@@ -512,6 +516,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
     except Exception as err:
         app.logger.warning('candidate filter issue, {}'.format(str(err)))
         raise ValueError("Invalid filter query")  
+
 
 def get_candidate(public_id):
     candidate = Candidate.query.filter_by(public_id=public_id).join(CreditReportAccount).first()

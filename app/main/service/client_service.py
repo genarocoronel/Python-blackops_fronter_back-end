@@ -52,8 +52,8 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         address=candidate.address,
         city=candidate.city,
         state=candidate.state,
-        zip=candidate.zip5,
-        zip4=candidate.zip4,
+        _zip=candidate.zip5,
+        _zip4=candidate.zip4,
         estimated_debt=candidate.estimated_debt,
         language=candidate.language,
         phone= candidate.phone,
@@ -90,6 +90,7 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
 
 def get_all_clients(client_type=ClientType.client):
     return Client.query.filter_by(type=client_type).all()
+
 
 def client_filter(limit=25, sort_col='id', order="desc",
                   pageno=1, search_fields=None, search_val="", 
@@ -272,6 +273,9 @@ def get_client_employments(client):
 
     return employment_data, None
 
+def get_all_clients_dispositions():
+    return ClientDisposition.query.filter_by().all()
+
 def update_client_employments(client, employments):
     prev_employments = ClientEmployment.query.join(Client).filter(Client.id == client.id).all()
 
@@ -327,6 +331,7 @@ def update_client_addresses(client, addresses):
 def get_client_addresses(client):
     addresses = Address.query.filter_by(client_id=client.id).all()
     return addresses, None
+
 
 def get_client_income_sources(client):
     income_sources_assoc = ClientIncome.query.join(Client).filter(Client.id == client.id).all()

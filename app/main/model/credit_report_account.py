@@ -5,11 +5,12 @@ from app.main.model.task import ScrapeTask
 
 
 class CreditReportSignupStatus(enum.Enum):
-    INITIATING_SIGNUP = 'initiating_signup'
-    ACCOUNT_CREATED = 'account_created'
-    ACCOUNT_VALIDATING = 'account_validating'
-    ACCOUNT_VALIDATED = 'account_validated'
-    FULL_MEMBER = 'full_member'
+    INITIATING_SIGNUP = 'initiating_signup'  # represents a request to create account with third-party vendor
+    ACCOUNT_CREATED = 'account_created'  # represents initial account defined/created with third-party vendor
+    ACCOUNT_VALIDATING = 'account_validating'  # represents any step in account creation requiring validation
+    ACCOUNT_VALIDATED = 'account_validated'  # represents any account validation being complete
+    FULL_MEMBER = 'full_member'  # represents account created with third-party vendor; awaiting additional steps
+    FULL_MEMBER_LOGIN = 'full_member_login'  # represents account creation complete including any additional steps
 
 
 class CreditReportAccount(db.Model):
@@ -113,14 +114,3 @@ class CreditPaymentPlan(db.Model):
     monitoring_fee_1signer = db.Column(db.Float, nullable=False) 
     monitoring_fee_2signer = db.Column(db.Float, nullable=False) 
     
-
-def populate_credit_payment_plan():
-    plan = CreditPaymentPlan(name='Universal', 
-                             enrolled_percent=33, 
-                             monthly_bank_fee=10, 
-                             minimum_fee=2475, 
-                             monitoring_fee_1signer=59, 
-                             monitoring_fee_2signer=89)    
-    db.session.add(plan)
-    db.session.commit()
-

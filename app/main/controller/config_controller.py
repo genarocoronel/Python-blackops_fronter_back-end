@@ -1,7 +1,7 @@
-from flask import request
 from flask_restplus import Resource
 
-from app.main.service.config_service import get_contact_number_types, get_income_types, get_expense_types, get_dispositions, get_all_candidates_dispositions, get_all_clients_dispositions
+from app.main.service.config_service import get_contact_number_types, get_income_types, get_expense_types, \
+    get_all_candidates_dispositions, get_all_clients_dispositions
 
 from ..util.dto import ConfigDto, CandidateDto, ClientDto
 
@@ -42,14 +42,6 @@ class ExpenseTypesList(Resource):
         types = get_expense_types()
         return types, 200
 
-@api.route('/dispositions')
-class ExpenseTypesList(Resource):
-    @api.doc('get dispositions')
-    @api.marshal_list_with(_disposition, envelope='data')
-    def get(self):
-        """ Get all Expense types """
-        dispositions = get_dispositions()
-        return dispositions, 200
 
 @api.route('/candidate-dispositions')
 class CandidateDispositionsList(Resource):

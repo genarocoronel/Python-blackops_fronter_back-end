@@ -45,7 +45,7 @@ client_dispositions = [
     {"value": 'Dead',"select_type": 'MANUAL', "name":'Sales_DeadStatus_ListofOptions' },
     {"value": 'No credit card debt',"select_type": 'MANUAL', "name":'Sales_DeadStatus_NoCreditCardDebt' },
     {"value": 'Already BK',"select_type": 'MANUAL', "name":'Sales_DeadStatus_AlreadyBankrupt' },
-    {"value": 'Cannot Afford',"select_type": 'MANUAL', "name":'Sales_DeadStatus_Cannot Afford' },
+    {"value": 'Cannot Afford',"select_type": 'MANUAL', "name":'Sales_DeadStatus_CannotAfford' },
     {"value": 'Take off list',"select_type": 'MANUAL', "name":'Sales_DeadStatus_TakeoffList' },
     {"value": 'Working with another company',"select_type": 'MANUAL', "name":'Sales_DeadStatus_WorkingWithOtherCompany' },
     {"value": 'Do not call',"select_type": 'MANUAL', "name":'Sales_DeadStatus_DoNotCall' },

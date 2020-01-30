@@ -19,6 +19,8 @@ services:
     environment:
       BOILERPLATE_ENV: dev
       REDIS_URL: redis://redis
+    env_file:
+      - ./docker/api.env
     working_dir: /app
     volumes:
       - ./:/app

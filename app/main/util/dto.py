@@ -5,7 +5,7 @@ from flask_restplus import Namespace, fields
 from app.main.model import Language, Frequency
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDispositionType
 from app.main.model.employment import FrequencyStatus
-from app.main.model.client import ClientType, ClientDispositionType, EmploymentStatus
+from app.main.model.client import ClientType, EmploymentStatus, ClientDispositionType
 from app.main.model.address import AddressType
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
@@ -31,6 +31,7 @@ class FrequencyTypeField(fields.String):
             return value.name
         else:
             return 'UNKNOWN'
+
 
 class DateTimeFormatField(fields.String):
     def format(self, value):
@@ -166,6 +167,22 @@ class CandidateDispositionTypeField(fields.String):
         else:
             return 'UNKNOWN' 
 
+class ClientDispositionTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, ClientDispositionType):
+            return value.name
+        else:
+            return 'UNKNOWN'
+
+
+class CandidateDispositionTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, CandidateDispositionType):
+            return value.name
+        else:
+            return 'UNKNOWN'
+
+
 _credit_report_debt_model = {
     'debt_name': fields.String(),
     'creditor': fields.String(),
@@ -184,6 +201,7 @@ _credit_report_debt_model = {
     'graduation': fields.DateTime(),
     'last_update': fields.DateTime(required=True)
 }
+
 
 class EmploymentStatusField(fields.String):
     def format(self, value):
@@ -347,6 +365,7 @@ class CreditReportAccountStatusField(fields.String):
         else:
             return 'unknown'
 
+
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
     credit_report_account = api.model('credit_report_account', {
@@ -355,7 +374,7 @@ class CandidateDto:
     })
     candidate_disposition = api.model('candidate_dispositions', {
         'value': fields.String(),
-        'description':fields.String()
+        'description': fields.String()
     })
     candidate = api.model('candidate', {
         'public_id': fields.String(),
@@ -372,6 +391,7 @@ class CandidateDto:
         'inserted_on': fields.DateTime(),
         'county': fields.String(),
         'email': fields.String(),
+        'dob': fields.Date(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
@@ -401,6 +421,7 @@ class CandidateDto:
         'zip': fields.String(),
         'county': fields.String(),
         'email': fields.String(),
+        'dob': fields.DateTime(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField()
@@ -524,6 +545,7 @@ class CandidateDto:
         }), required=True, skip_none=True)
     })
 
+
 class ConfigDto:
     api = Namespace('config', description='config related operations')
     contact_number_types = api.model('contact_number_types', {
@@ -553,8 +575,10 @@ class ConfigDto:
         'description': fields.String(required=False),
     })
 
+
 class TestAPIDto:
     api = Namespace('tests', description='Test operations for Dev/QA')
+
 
 class RemoteSignDto:
     api = Namespace('rsign', description='Remote signature related operations')
@@ -563,6 +587,7 @@ class RemoteSignDto:
         'id': fields.Integer(),
         'name': fields.String()
     })
+
 
 class DebtPaymentDto:
     api = Namespace('debtpayment', description='Debt Payment related operations')
