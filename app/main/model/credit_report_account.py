@@ -5,11 +5,12 @@ from app.main.model.task import ScrapeTask
 
 
 class CreditReportSignupStatus(enum.Enum):
-    INITIATING_SIGNUP = 'initiating_signup'
-    ACCOUNT_CREATED = 'account_created'
-    ACCOUNT_VALIDATING = 'account_validating'
-    ACCOUNT_VALIDATED = 'account_validated'
-    FULL_MEMBER = 'full_member'
+    INITIATING_SIGNUP = 'initiating_signup'  # represents a request to create account with third-party vendor
+    ACCOUNT_CREATED = 'account_created'  # represents initial account defined/created with third-party vendor
+    ACCOUNT_VALIDATING = 'account_validating'  # represents any step in account creation requiring validation
+    ACCOUNT_VALIDATED = 'account_validated'  # represents any account validation being complete
+    FULL_MEMBER = 'full_member'  # represents account created with third-party vendor; awaiting additional steps
+    FULL_MEMBER_LOGIN = 'full_member_login'  # represents account creation complete including any additional steps
 
 
 class CreditReportAccount(db.Model):

@@ -149,7 +149,8 @@ def update_customer(customer_token, data, tracking_token):
 
 
 def get_id_verification_question(customer_token, tracking_token):
-    current_app.logger.info(f'get_id_verification_question {current_app.smart_credit_url}/api/signup/id-verification, {current_app.smart_credit_client_key}, {customer_token}, {tracking_token}')
+    current_app.logger.debug(
+        f'get_id_verification_question {current_app.smart_credit_url}/api/signup/id-verification, {current_app.smart_credit_client_key}, {customer_token}, {tracking_token}')
     response = requests.get(f'{current_app.smart_credit_url}/api/signup/id-verification',
                             headers=headers,
                             params={
@@ -198,6 +199,29 @@ def complete_credit_account_signup(customer_token, tracking_token):
         raise Exception(error)
     else:
         return result
+
+
+def get_security_questions(tracking_token):
+    response = requests.get(f'{current_app.smart_credit_url}/api/signup/security-questions',
+                            headers=headers,
+                            params={
+                                'clientKey': current_app.smart_credit_client_key,
+                                'trackingToken': tracking_token
+                            })
+    result, error = _handle_errors(response)
+    if error:
+        raise Exception(error)
+    else:
+        return result
+
+
+def answer_security_question(customer_token, tracking_token, data):
+    try:
+        assert data.get('security_question_id'), 'security_question_id is required'
+        assert data.get('security_question_answer'), 'security_question_answer is required'
+        return update_customer(customer_token=customer_token, data=data, tracking_token=tracking_token)
+    except AssertionError as ae:
+        raise Exception(f'Malformed payload: {ae}')
 
 
 def optionally_add_to_payload(optional_keys, payload, data):

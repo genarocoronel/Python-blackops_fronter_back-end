@@ -11,15 +11,14 @@ from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, get_candidates_count, get_candidates_with_pagination, update_candidate, \
+    get_candidate, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
     get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_filter
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
-    activate_smart_credit_insurance
-from app.main.service.debt_service import scrape_credit_report
+    activate_smart_credit_insurance, get_security_questions
 from ..util.dto import CandidateDto
 from ..util.parsers import filter_request_parse
 
@@ -541,6 +540,75 @@ class CompleteCreditReportAccount(Resource):
             response_object = {
                 'success': True,
                 'message': 'Successfully completed credit account signup'
+            }
+            return response_object, 200
+
+        except LockedException as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+
+@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/security-questions')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CreditReportAccountSecurityQuestions(Resource):
+    @api.doc('get credit report account security questions')
+    def get(self, candidate_public_id, credit_account_public_id):
+        """ Get Available Security Questions"""
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                api.abort(404, **error_response)
+
+            account, error_response = _handle_get_credit_report(candidate)
+            if not account:
+                return error_response
+
+            questions = get_security_questions(account.tracking_token)
+            return questions, 200
+
+        except LockedException as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 409
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+    @api.doc('submit answer to security question')
+    def put(self, candidate_public_id, public_id):
+        """ Submit Answer to Security Question """
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_public_id)
+            if not candidate:
+                api.abort(404, **error_response)
+
+            account, error_response = _handle_get_credit_report(candidate)
+            if not account:
+                return error_response
+
+            data = request.json
+            update_customer(account.customer_token, data, account.tracking_token)
+            account.status = CreditReportSignupStatus.FULL_MEMBER_LOGIN
+            update_credit_report_account(account)
+
+            response_object = {
+                'success': True,
+                'message': 'Successfully submitted security question answer'
             }
             return response_object, 200
 
