@@ -15,13 +15,13 @@ from app.main.background.worker import run_worker
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
-from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction
+from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction, DebtPaymentContract
 from app.main.model.client import Client
+from app.main.model.client_call import ClientCall
 from app.main.model.contact_number import ContactNumberType, ContactNumber
 from app.main.model.address import AddressType, Address
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
-from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
 from app.main.seed.client_dispositions import seed_client_disposition_values

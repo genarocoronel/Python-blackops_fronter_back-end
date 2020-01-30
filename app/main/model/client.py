@@ -1,4 +1,5 @@
 import enum
+from app.main.model.user import User
 
 from .. import db
 
@@ -60,18 +61,26 @@ class Client(db.Model):
     # foreign keys
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
     disposition_id = db.Column(db.Integer, db.ForeignKey('client_dispositions.id'))
+    account_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    team_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    opener_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     # relationships
     disposition = db.relationship('ClientDisposition', back_populates='clients')
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='client')
+    payment_contract = db.relationship('DebtPaymentContract', uselist=False, backref='client')
     co_client = db.relationship('Client', uselist=False, remote_side=[client_id])
     employments = db.relationship('ClientEmployment')
     income_sources = db.relationship('ClientIncome')
     monthly_expenses = db.relationship('ClientMonthlyExpense')
     addresses = db.relationship("Address", backref="client")
     contact_numbers = db.relationship('ClientContactNumber')
-
+    # account manager
+    account_manager = db.relationship('User', backref='client_accounts', foreign_keys=[account_manager_id])
+    team_manager = db.relationship('User', backref='team_accounts', foreign_keys=[team_manager_id])
+    opener = db.relationship('User', backref='opened_accounts', foreign_keys=[opener_id])
+    
     # fields
     suffix = db.Column(db.String(25), nullable=True)
     first_name = db.Column(db.String(25), nullable=False)
@@ -88,10 +97,18 @@ class Client(db.Model):
     phone = db.Column(db.String(25), nullable=True)
     # date of birth
     dob  = db.Column(db.DateTime, nullable=True)
-    # SSN ID, all digits '000000000'
-    ssn = db.Column(db.String(9), nullable=True)
+    # SSN ID
+    ssn = db.Column(db.String(9), nullable=True) 
     estimated_debt = db.Column(db.Integer, nullable=False)
     employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
+    # record modified date
+    modified_date = db.Column(db.DateTime, nullable=True)
+    # campaign name copied from candidate
+    campaign_name = db.Column(db.String(100), nullable=True)
+    # lead source
+    lead_source = db.Column(db.String(100), nullable=True)
+    # date on which application is processed
+    application_date = db.Column(db.DateTime, nullable=True)   
 
     @property
     def zip(self):
@@ -111,7 +128,6 @@ class Client(db.Model):
         self._zip = zip_parts[0].zfill(5)
         if len(zip_parts) > 1:
             self._zip4 = zip_parts[1].zfill(4)
-
 
 class ClientIncome(db.Model):
     __tablename__ = "client_income_sources"
