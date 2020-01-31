@@ -27,7 +27,7 @@ def upgrade():
         batch_op.add_column(sa.Column('inserted_on', sa.DateTime(), nullable=False))
         batch_op.add_column(sa.Column('name', sa.String(length=100), nullable=False))
         batch_op.add_column(sa.Column('public_id', sa.String(length=100), nullable=True))
-        batch_op.add_column(sa.Column('select_type', sa.Enum('MANUAL', 'AUTO', name='dispositiontype'), nullable=False))
+        batch_op.add_column(sa.Column('select_type', sa.Enum('MANUAL', 'AUTO', name='dispositiontype'), nullable=True))
         batch_op.create_unique_constraint('client_uq_disposition_public_id', ['public_id'])
         batch_op.create_unique_constraint('client_uq_disposition_name', ['name'])
 
