@@ -35,6 +35,11 @@ class FrequencyTypeField(fields.String):
 
 class DateTimeFormatField(fields.String):
     def format(self, value):
+        return value.strftime("%m-%d-%Y %H:%M")
+
+
+class DateFormatField(fields.String):
+    def format(self, value):
         return value.strftime("%m-%d-%Y")
 
 
@@ -293,20 +298,56 @@ class ClientDto:
     })
 
 
+class CreditReportAccountStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportSignupStatus):
+            return value.name
+        else:
+            return 'unknown'
+
+
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'fico': fields.Integer(),
+        'status': CreditReportAccountStatusField()
+    })
+    debt_payment_contract = api.model('debt_payment_contract', {
+        'term': fields.Integer(),
+        'payment_start_date': DateFormatField(),
+        'commission_rate': fields.Float(),
+        'sale_date': DateFormatField(),
+    })
+    user_account = api.model('users', {
+        'id': fields.Integer(),
+        'name': fields.String(attribute='full_name'),
+    })
     lead = api.model('lead', {
+        'public_id': fields.String(description='lead identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
         'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
         'email': fields.String(required=True, description='lead email address'),
         'language': fields.String(required=True, enum=Language._member_names_),
-        'phone': fields.String(required=True, description='lead phone number'),
-        'public_id': fields.String(description='lead identifier'),
         'ssn': fields.String(description='lead ssn'),
+        'dob': DateFormatField(),
+        # inserted_on is kept only for backward compatability
         'inserted_on': fields.DateTime(),
+        'created_date': DateTimeFormatField(attribute='inserted_on'),
         'employment_status':EmploymentStatusField(),
         'disposition': fields.String(attribute='disposition.value'),
+        'credit_report_account': fields.Nested(credit_report_account),
+        'payment_contract': fields.Nested(debt_payment_contract),
+        'modified_date': DateTimeFormatField(),
+        'campaign_name': fields.String(description='campaign name'),
+        'lead_source': fields.String(description='lead source'),
+        'application_date': DateFormatField(),
+        # use 'user_account' - if nested properties of user model is needed
+        # for simplicity using only 'full_name' attribute
+        'account_manager': fields.String(attribute='account_manager.full_name'),
+        'team_manager': fields.String(attribute='team_manager.full_name'),
+        'opener': fields.String(attribute='opener.full_name'),
     })
     lead_pagination=api.model('lead_pagination', {
         'page_number': fields.Integer(),
@@ -337,14 +378,6 @@ class CandidateImportStatusField(fields.String):
 class CandidateStatusField(fields.String):
     def format(self, value):
         if isinstance(value, CandidateStatus):
-            return value.name
-        else:
-            return 'unknown'
-
-
-class CreditReportAccountStatusField(fields.String):
-    def format(self, value):
-        if isinstance(value, CreditReportSignupStatus):
             return value.name
         else:
             return 'unknown'

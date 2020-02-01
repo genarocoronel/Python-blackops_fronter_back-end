@@ -36,9 +36,11 @@ class CreditReportAccount(db.Model):
     email = db.Column(db.String(100), nullable=True, unique=True)
     registered_fraud_insurance = db.Column(db.Boolean, nullable=False, default=False)
 
+    # move this to appropriate table, if needed
+    # FICO score
+    fico = db.Column(db.Integer, nullable=True)
     # debt payment
-    # temperorary for testing
-    # move this to appropriate table
+    # temp: will be moved to payment contract
     term = db.Column(db.Integer, nullable=True, default=24)
     payment_start_date = db.Column(db.DateTime, nullable=True)
     payment_recurring_begin_date = db.Column(db.DateTime, nullable=True)
