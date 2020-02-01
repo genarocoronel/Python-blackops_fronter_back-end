@@ -13,7 +13,6 @@ _disposition = ConfigDto.disposition
 _candidate_dispositions = CandidateDto.candidate_dispositions
 _client_dispositions = ClientDto.client_dispositions
 
-
 @api.route('/contact-number-types')
 class ContactNumberTypesList(Resource):
     @api.doc('get contact number types')
@@ -52,7 +51,6 @@ class CandidateDispositionsList(Resource):
         """ List all candidate dispositions"""
         candidate_disposiitions = get_all_candidates_dispositions()
         return candidate_disposiitions
-
 
 @api.route('/client-dispositions')
 class ClientDispositionsList(Resource):

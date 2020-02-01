@@ -131,7 +131,6 @@ def get_candidate_employments(candidate):
 
     return employment_data, None
 
-
 def update_candidate_employments(candidate, employments):
     prev_employments = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
 

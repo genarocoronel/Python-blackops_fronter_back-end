@@ -158,6 +158,19 @@ class FrequencyStatusField(fields.String):
         else:
             return 'UNKNOWN'
 
+class ClientDispositionTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, ClientDispositionType):
+            return value.name
+        else:
+            return 'UNKNOWN' 
+
+class CandidateDispositionTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, CandidateDispositionType):
+            return value.name
+        else:
+            return 'UNKNOWN' 
 
 class ClientDispositionTypeField(fields.String):
     def format(self, value):

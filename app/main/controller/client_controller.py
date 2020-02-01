@@ -44,7 +44,6 @@ class ClientList(Resource):
         data = request.json
         return save_new_client(data=data, client_type=CLIENT)
 
-
 @api.route('/<public_id>')
 @api.param('public_id', 'The Client Identifier')
 @api.response(404, 'Client not found')

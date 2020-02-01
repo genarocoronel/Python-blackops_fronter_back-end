@@ -78,6 +78,7 @@ class GetCandidates(Resource):
         request_data = request.json
         delete_candidates(request_data.get('ids'))
         return dict(success=True), 200
+       
 
 #### request params
 # @_limit result set max limit

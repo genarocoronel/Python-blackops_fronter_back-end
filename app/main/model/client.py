@@ -14,7 +14,7 @@ class EmploymentStatus(enum.Enum):
     RETIRED = 'retired'
     STUDENT = 'student'
     UNEMPLOYED = 'unemployed'
-
+    
     @staticmethod
     def frm_text(txt):
         if txt.lower() in 'employed':
@@ -25,13 +25,11 @@ class EmploymentStatus(enum.Enum):
             return EmploymentStatus.STUDENT
         elif txt.lower() in 'unemployed':
             return EmploymentStatus.UNEMPLOYED
-
-
+          
 class ClientDispositionType(enum.Enum):
     MANUAL = 'manual'
     AUTO = 'auto'
-
-
+    
 class ClientDisposition(db.Model):
     __tablename__ = "client_dispositions"
 
