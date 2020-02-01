@@ -298,10 +298,20 @@ class ClientDto:
     })
 
 
+class CreditReportAccountStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportSignupStatus):
+            return value.name
+        else:
+            return 'unknown'
+
+
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
     credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
         'fico': fields.Integer(),
+        'status': CreditReportAccountStatusField()
     })
     debt_payment_contract = api.model('debt_payment_contract', {
         'term': fields.Integer(),
@@ -368,14 +378,6 @@ class CandidateImportStatusField(fields.String):
 class CandidateStatusField(fields.String):
     def format(self, value):
         if isinstance(value, CandidateStatus):
-            return value.name
-        else:
-            return 'unknown'
-
-
-class CreditReportAccountStatusField(fields.String):
-    def format(self, value):
-        if isinstance(value, CreditReportSignupStatus):
             return value.name
         else:
             return 'unknown'
