@@ -303,10 +303,7 @@ class LeadDto:
         'language': fields.String(required=True, enum=Language._member_names_),
         'phone': fields.String(required=True, description='lead phone number'),
         'public_id': fields.String(description='lead identifier'),
-        'address': fields.String(description='lead address'),
         'ssn': fields.String(description='lead ssn'),
-        'city': fields.String(description='lead city'),
-        'state': fields.String(description='lead state'),
         'inserted_on': fields.DateTime(),
         'employment_status':EmploymentStatusField(),
         'disposition': fields.String(attribute='disposition.value'),
@@ -370,18 +367,13 @@ class CandidateDto:
         'last_name': fields.String(),
         'middle_initial': fields.String(),
         'suffix': fields.String(),
-        'address': fields.String(),
-        'city': fields.String(),
-        'state': fields.String(),
-        'zip': fields.String(),
         'estimated_debt': fields.Integer(),
         'inserted_on': fields.DateTime(),
-        'county': fields.String(),
         'email': fields.String(),
         'dob': fields.Date(),
         'language': fields.String(enum=Language._member_names_),
-        'phone': fields.String(),
         'status': CandidateStatusField(),
+        'employment_status': EmploymentStatusField(),
         'campaign_name': fields.String(attribute='campaign.name'),
         'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account)
@@ -411,7 +403,8 @@ class CandidateDto:
         'dob': fields.DateTime(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
-        'status': CandidateStatusField()
+        'status': CandidateStatusField(),
+        'employment_status': EmploymentStatusField(),
 
     })
     candidate_employment = api.model('candidate_employment', {
@@ -427,7 +420,7 @@ class CandidateDto:
 
     update_candidate_employment = api.model('update_candidate_employment', {
         'employer_name': fields.String(required=True),
-        'start_date': fields.DateTime(),
+        'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
         'gross_salary': fields.Float(required=False),
         'gross_salary_frequency': FrequencyStatusField(required=False),

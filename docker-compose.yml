@@ -24,7 +24,7 @@ services:
     working_dir: /app
     volumes:
       - ./:/app
-      - ./docker/.env.local:/app/.env
+      - ./docker/api.env:/app/.env
     networks:
       - app-network
 
@@ -47,7 +47,7 @@ services:
     command: ['python', 'manage.py', 'worker', 'default']
     volumes:
       - ./:/app
-      - ./docker/.env.local:/app/.env
+      - ./docker/api.env:/app/.env
     networks:
       - app-network
 
@@ -68,7 +68,7 @@ services:
     command: ['python', 'manage.py', 'kron']
     volumes:
       - ./:/app
-      - ./docker/.env.local:/app/.env
+      - ./docker/api.env:/app/.env
     networks:
       - app-network
 
