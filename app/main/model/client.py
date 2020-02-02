@@ -122,7 +122,7 @@ class Client(db.Model):
 
     @zip.setter
     def zip(self, zip):
-        zip_parts = zip.split('-')
+        zip_parts = zip.strip('-').split('-')
         self._zip = zip_parts[0].zfill(5)
         if len(zip_parts) > 1:
             self._zip4 = zip_parts[1].zfill(4)

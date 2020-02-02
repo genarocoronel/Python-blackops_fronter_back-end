@@ -43,7 +43,7 @@ def parse_candidate_file(import_id):
         csvreader = csv.reader(csvfile, delimiter=',')
         row_count = sum(1 for line in csvfile) - 1
         csvfile.seek(0)
-        app.logger.info(f'{row_count} records identified for import')
+        app.logger.info(f'{row_count} records identified for candidate import')
 
         fields = csvreader.__next__()
         app.logger.debug(f'Column names are {", ".join(fields)}')
@@ -75,7 +75,6 @@ def parse_candidate_file(import_id):
                     'middle_initial': row[keys.index('MI')],
                     'email': None,
                     'language': 'unknown',
-                    'phone': None,
                     'address': row[keys.index('ADDRESS')],
                     'city': row[keys.index('CITY')],
                     'state': row[keys.index('STATE')],
@@ -97,19 +96,20 @@ def parse_candidate_file(import_id):
                     'import_record': import_request
                 }
                 result, _ = save_new_candidate(data)
-                if 'success' == result['status']:
-                    # app.logger.debug('{first_name} {last_name} was saved successfully'.format(**data))
+                if result['success']:
                     pass
-                # else:
-                # app.logger.info('{first_name} {last_name} failed to save'.format(**data))
-                # app.logger.info(result['message'])
+                else:
+                    app.logger.info(
+                        '{first_name} {last_name} failed to save: {message}'.format(**result, **data))
 
                 line_num += 1
                 _set_task_progress(import_request, (line_num / row_count) * 100)
             except ValueError as ve:
+                app.logger.error(ve)
                 _set_task_progress(import_request, (line_num / row_count) * 100, False, str(ve))
                 return
             except Exception as e:
+                app.logger.error(e)
                 _set_task_progress(import_request, (line_num / row_count) * 100, False, str(e))
                 return
 
