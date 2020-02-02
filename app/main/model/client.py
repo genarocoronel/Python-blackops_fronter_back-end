@@ -25,11 +25,13 @@ class EmploymentStatus(enum.Enum):
             return EmploymentStatus.STUDENT
         elif txt.lower() in 'unemployed':
             return EmploymentStatus.UNEMPLOYED
-          
+
+
 class ClientDispositionType(enum.Enum):
     MANUAL = 'manual'
     AUTO = 'auto'
-    
+
+
 class ClientDisposition(db.Model):
     __tablename__ = "client_dispositions"
 
@@ -84,15 +86,8 @@ class Client(db.Model):
     first_name = db.Column(db.String(25), nullable=False)
     middle_initial = db.Column(db.CHAR, nullable=True)
     last_name = db.Column(db.String(25), nullable=False)
-    address = db.Column(db.String(100), nullable=False)
-    city = db.Column(db.String(50), nullable=False)
-    state = db.Column(db.String(2), nullable=False)
-    _zip = db.Column('zip', db.Integer, nullable=False)
-    _zip4 = db.Column('zip4', db.Integer, nullable=False)
-    county = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(255), nullable=True)
     language = db.Column(db.String(25), nullable=True)
-    phone = db.Column(db.String(25), nullable=True)
     # date of birth
     dob  = db.Column(db.DateTime, nullable=True)
     # SSN ID
@@ -107,27 +102,6 @@ class Client(db.Model):
     lead_source = db.Column(db.String(100), nullable=True)
     # date on which application is processed
     application_date = db.Column(db.DateTime, nullable=True)   
-
-    @property
-    def zip(self):
-        return self._zip if not self.zip4 else f'{self._zip}-{self.zip4}'
-
-    @property
-    def zip5(self):
-        return self._zip
-
-    @property
-    def zip4(self):
-        return self._zip4
-
-    @zip.setter
-    def zip(self, zip):
-        zip_parts = zip.strip('-').split('-')
-        self._zip = zip_parts[0].zfill(5)
-        if len(zip_parts) > 1:
-            self._zip4 = zip_parts[1].zfill(4)
-        else:
-            self._zip4 = ''
 
 
 class ClientIncome(db.Model):
@@ -161,7 +135,6 @@ class ClientEmployment(db.Model):
     # relationships
     client = db.relationship('Client', backref='client_employment_assoc')
     employment = db.relationship('Employment', backref='employment_client_assoc')
-
 
 
 class ClientContactNumber(db.Model):

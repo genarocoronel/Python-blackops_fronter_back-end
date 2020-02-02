@@ -26,9 +26,11 @@ class CandidateStatus(enum.Enum):
         else:
             return None
 
+
 class CandidateDispositionType(enum.Enum):
     MANUAL = 'manual'
     AUTO = 'auto'
+
 
 class CandidateDispositionType(enum.Enum):
     MANUAL = 'manual'
@@ -82,15 +84,8 @@ class Candidate(db.Model):
     first_name = db.Column(db.String(25), nullable=False)
     middle_initial = db.Column(db.CHAR, nullable=True)
     last_name = db.Column(db.String(25), nullable=False)
-    address = db.Column(db.String(100), nullable=False)
-    city = db.Column(db.String(50), nullable=False)
-    state = db.Column(db.String(2), nullable=False)
-    _zip = db.Column('zip', db.String(5), nullable=False)
-    _zip4 = db.Column('zip4', db.String(4), nullable=False)
-    county = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(255), unique=True, nullable=True)
     language = db.Column(db.String(25), nullable=True)
-    phone = db.Column(db.String(25), nullable=True)
     employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
     dob = db.Column(db.DateTime, nullable=True)
 
@@ -110,27 +105,6 @@ class Candidate(db.Model):
     sav215 = db.Column(db.Integer, nullable=False)  # SAV215 = (((O9*0.03)-P9)*12)-4 Assuming that O is the Debt 2 column and P is the Debt215 column
     sav15 = db.Column(db.Integer, nullable=False)  # SAV15 = (M9*12)-(N9*12) assuming that column M is Debt3 and Column N is Debt15
     sav315 = db.Column(db.Integer, nullable=False)  # Sav315 = (((Q9*0.03)-R9)*12)+4 assuming that Q is the Debt3 column and R is the Debt 315 column
-
-    @property
-    def zip(self):
-        return self._zip if not self.zip4 else f'{self._zip}-{self.zip4}'
-
-    @property
-    def zip5(self):
-        return self._zip
-
-    @property
-    def zip4(self):
-        return self._zip4
-
-    @zip.setter
-    def zip(self, zip):
-        zip_parts = zip.strip('-').split('-')
-        self._zip = zip_parts[0].zfill(5)
-        if len(zip_parts) > 1:
-            self._zip4 = zip_parts[1].zfill(4)
-        else:
-            self._zip4 = ''
 
 
 class CandidateContactNumber(db.Model):

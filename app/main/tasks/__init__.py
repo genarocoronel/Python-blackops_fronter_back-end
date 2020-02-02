@@ -109,7 +109,7 @@ def parse_candidate_file(import_id):
                 _set_task_progress(import_request, (line_num / row_count) * 100, False, str(ve))
                 return
             except Exception as e:
-                app.logger.error(e)
+                app.logger.exception(e)
                 _set_task_progress(import_request, (line_num / row_count) * 100, False, str(e))
                 return
 
