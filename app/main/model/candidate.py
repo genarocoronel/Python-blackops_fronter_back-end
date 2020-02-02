@@ -129,6 +129,8 @@ class Candidate(db.Model):
         self._zip = zip_parts[0].zfill(5)
         if len(zip_parts) > 1:
             self._zip4 = zip_parts[1].zfill(4)
+        else:
+            self._zip4 = ''
 
 
 class CandidateContactNumber(db.Model):
