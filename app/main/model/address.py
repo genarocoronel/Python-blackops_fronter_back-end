@@ -34,6 +34,14 @@ class Address(db.Model):
         else:
             return zip_parts[0]
 
+    @zip_code.setter
+    def zip_code(self, zip_code):
+        zip = zip_code.strip('-').split('-')
+        if len(zip) > 1:
+            self._zip_code = zip
+        else:
+            self._zip_code = zip[0]
+
     @property
     def zip5(self):
         return self._zip_code_parts()[0]
