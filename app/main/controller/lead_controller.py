@@ -8,7 +8,7 @@ from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments, update_client, client_filter
-from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report
+from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts
 from ..util.dto import LeadDto, ClientDto
 from ..util.parsers import filter_request_parse
 
@@ -227,7 +227,30 @@ class LeadCreditReportDebts(Resource):
 
         data = get_report_data(credit_account)
         return data, 200
+    
+    @api.doc('add credit report data')
+    @api.expect([_credit_report_debt], validate=True)
+    def post(self, public_id):
+        """ add Credit Report Data"""
+        lead, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
 
+        credit_account, error_response = _handle_get_credit_report(lead)
+        if not credit_account:
+            api.abort(404, **error_response)
+
+        data = request.json
+        # print(data)
+        resp = add_credit_report_data(data, credit_account)
+        return resp, 200
+
+    @api.doc('delete candidates')
+    def delete(self, public_id):
+        """Delete Candidates"""
+        request_data = request.json
+        delete_debts(request_data.get('ids'))
+        return dict(success=True), 200
 
 @api.route('/<lead_id>/bank-account')
 @api.param('lead_id', 'Lead public identifier')

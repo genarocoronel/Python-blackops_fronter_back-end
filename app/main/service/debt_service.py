@@ -96,3 +96,20 @@ def save_changes(*data):
     for entry in data:
         db.session.add(entry)
     db.session.commit()
+
+def add_credit_report_data(data, account):
+    for item in data:
+        save_new_debt(item, account)
+
+    response_object = {
+            'success': True,
+            'message': 'Debts Added successfully',
+        }
+    return response_object
+
+def delete_debts(ids):
+    debt_datas = CreditReportData.query.filter(CreditReportData.public_id.in_(ids)).all()
+    for c in debt_datas:
+        db.session.delete(c)
+        db.session.commit()
+    return
