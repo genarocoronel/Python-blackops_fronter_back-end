@@ -10,6 +10,7 @@ from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 from app.main.model.address import Address
+from app.main.model.credit_report_account import CreditReportAccount
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
@@ -49,14 +50,8 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         first_name=candidate.first_name,
         middle_initial=candidate.middle_initial,
         last_name=candidate.last_name,
-        address=candidate.address,
-        city=candidate.city,
-        state=candidate.state,
-        _zip=candidate.zip5,
-        _zip4=candidate.zip4,
         estimated_debt=candidate.estimated_debt,
         language=candidate.language,
-        phone= candidate.phone,
         type=client_type,
         inserted_on=datetime.datetime.utcnow(),
     )
@@ -103,7 +98,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         # base query
-        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition)
+        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition).outerjoin(CreditReportAccount)
         # search fields
         if search_fields is not None:
             _or_filts = []

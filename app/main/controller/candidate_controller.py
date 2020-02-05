@@ -587,7 +587,8 @@ class CreditReportAccountSecurityQuestions(Resource):
             return response_object, 500
 
     @api.doc('submit answer to security question')
-    def put(self, candidate_public_id, public_id):
+    @api.expect(_update_credit_report_account, validate=True)
+    def put(self, candidate_public_id, credit_account_public_id):
         """ Submit Answer to Security Question """
         try:
             candidate, error_response = _handle_get_candidate(candidate_public_id)

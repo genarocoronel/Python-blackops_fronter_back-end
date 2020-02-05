@@ -10,6 +10,23 @@ class DebtEftStatus(enum.Enum):
     Settled   = 'Settled'    # EFT Transfer completed
     Failed    = 'Failed'     # EFT Payment failed
 
+class DebtPaymentContract(db.Model):
+    """ DB model for storing debt payment contract details """
+    __tablename__ = "debt_payment_contract"
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    inserted_on = db.Column(db.DateTime, nullable=False)
+    # contract date  
+    sale_date = db.Column(db.DateTime, nullable=True)
+    # payment term
+    term = db.Column(db.Integer, nullable=True, default=24)
+    payment_start_date = db.Column(db.DateTime, nullable=True)
+    payment_recurring_begin_date = db.Column(db.DateTime, nullable=True)
+    # sales commission rate
+    commission_rate = db.Column(db.Float, default=0.5)
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id')) 
+
 class DebtPaymentSchedule(db.Model):
     """ DB model for storing debt payment schedule and payment status."""   
     __tablename__ = "debt_payment_schedule"

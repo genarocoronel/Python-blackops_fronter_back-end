@@ -5,9 +5,10 @@ from sqlalchemy import desc, asc, or_, and_
 from app.main import db
 from app.main.model.employment import Employment
 from app.main.model import Frequency
-from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, CandidateMonthlyExpense
+from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
+    CandidateMonthlyExpense
 from app.main.model.candidate import CandidateDisposition
-from app.main.model.campaign  import Campaign
+from app.main.model.campaign import Campaign
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.candidate import CandidateImport, Candidate, CandidateStatus
 from app.main.model.credit_report_account import CreditReportAccount
@@ -42,14 +43,8 @@ def save_new_candidate(data):
         first_name=data.get('first_name'),
         middle_initial=data.get('middle_initial'),
         last_name=data.get('last_name'),
-        address=data.get('address'),
-        city=data.get('city'),
-        state=data.get('state'),
-        zip=data.get('zip'),
-        county=data.get('county'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),
-        phone=data.get('phone'),
 
         debt3=data.get('debt3'),
         debt15=data.get('debt15'),
@@ -68,15 +63,16 @@ def save_new_candidate(data):
         inserted_on=datetime.datetime.utcnow(),
         import_record=data.get('import_record')
     )
-    
+
     db.session.add(new_candidate)
-    db.session.commit()
+    db.session.flush()
+    db.session.refresh(new_candidate)
 
     new_address = Address(
         candidate_id=new_candidate.id,
         address1=data.get('address'),
-        zip_code=data.get('zip'),
         city=data.get('city'),
+        zip_code=data.get('zip'),
         state=data.get('state'),
         type=AddressType.CURRENT
     )
@@ -130,6 +126,7 @@ def get_candidate_employments(candidate):
         employment_data.append(data)
 
     return employment_data, None
+
 
 def update_candidate_employments(candidate, employments):
     prev_employments = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
@@ -222,14 +219,16 @@ def get_candidate_monthly_expenses(candidate):
         data = {}
         data['expense_type_id'] = expense.expense_type_id
         data['expense_type'] = next(
-            (expense_type.name for expense_type in expense_types if expense_type.id == expense.expense_type_id), 'UNKNOWN')
+            (expense_type.name for expense_type in expense_types if expense_type.id == expense.expense_type_id),
+            'UNKNOWN')
         data['value'] = expense.value
         response.append(data)
     return response, None
 
 
 def update_candidate_monthly_expenses(candidate, expenses):
-    prev_monthly_expense_assoc = CandidateMonthlyExpense.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+    prev_monthly_expense_assoc = CandidateMonthlyExpense.query.join(Candidate).filter(
+        Candidate.id == candidate.id).all()
 
     # create new records first
     for data in expenses:
@@ -267,7 +266,8 @@ def update_candidate_addresses(candidate, addresses):
             zip_code=address.get('zip_code'),
             city=address.get('city'),
             state=address.get('state'),
-            from_date=datetime.datetime.strptime(address.get('from_date'), "%Y-%m-%d") if address.get('from_date') else None,
+            from_date=datetime.datetime.strptime(address.get('from_date'), "%Y-%m-%d") if address.get(
+                'from_date') else None,
             to_date=datetime.datetime.strptime(address.get('to_date'), "%Y-%m-%d") if address.get('to_date') else None,
             type=address.get('type')
         )
@@ -401,21 +401,22 @@ def get_candidates_count(q=None):
 def get_candidates_with_pagination(sort, order, page_number, limit):
     field = getattr(Candidate, sort)
     column_sorted = getattr(field, order)()
-    return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit, False).items
+    return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit,
+                                                                                           False).items
 
 
-def candidate_filter(limit=25, sort_col='id', order="asc", 
+def candidate_filter(limit=25, sort_col='id', order="asc",
                      pageno=1, search_fields=None, search_val="",
                      dt_fields=None, from_date=None, to_date=None,
-                     numeric_fields=None): 
+                     numeric_fields=None):
     try:
         # sort
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         total = 0
-        
+
         query = Candidate.query.outerjoin(CandidateDisposition).outerjoin(Campaign).outerjoin(CreditReportAccount)
         # search fields
-        if search_fields is not None: 
+        if search_fields is not None:
             _or_filts = []
             _and_filts = []
 
@@ -425,9 +426,9 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                 and_exp = False
                 if len(tokens) > 1:
                     and_exp = True
-                    field  = tokens[0].strip() 
+                    field = tokens[0].strip()
                     search = "%{}%".format(tokens[1].strip())
-                    e_val  = tokens[1].strip()
+                    e_val = tokens[1].strip()
                 else:
                     if search_val is not None or search_val.strip() != '':
                         search = "%{}%".format(search_val)
@@ -439,24 +440,24 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                 if 'status' in field:
                     rep = CandidateStatus.frm_text(e_val)
                     if rep is not None:
-                        filt = (Candidate.status == rep) 
-                # string fields
+                        filt = (Candidate.status == rep)
+                        # string fields
                 else:
                     if 'disposition' in field:
-                        column = getattr(CandidateDisposition, 'value', None)  
+                        column = getattr(CandidateDisposition, 'value', None)
                     elif 'campaign_name' in field:
-                        column = getattr(Campaign, 'name', None)  
+                        column = getattr(Campaign, 'name', None)
                     else:
-                        column = getattr(Candidate, field, None) 
+                        column = getattr(Candidate, field, None)
                     filt = column.ilike(search)
 
                 # append to the filters
                 if filt is not None:
                     if and_exp is True:
-                        _and_filts.append(filt) 
+                        _and_filts.append(filt)
                     else:
                         _or_filts.append(filt)
-            
+
             # check if filters are present
             if len(_or_filts) == 0 and len(_and_filts) == 0:
                 return {"candidates": [], "page_number": pageno, "total_number_of_records": total, "limit": limit}
@@ -465,7 +466,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                     query = query.filter(or_(*_or_filts))
                 if len(_and_filts) > 0:
                     query = query.filter(and_(*_and_filts))
-                
+
         # datetime fields
         if dt_fields is not None:
             for field in dt_fields:
@@ -487,8 +488,8 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                     continue
                 # format  field:op:val
                 field = tokens[0].strip()
-                op    = tokens[1].strip()
-                val   = float(tokens[2].strip())
+                op = tokens[1].strip()
+                val = float(tokens[2].strip())
                 column = getattr(Client, field, None)
 
                 if column is None:
@@ -515,7 +516,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
 
     except Exception as err:
         app.logger.warning('candidate filter issue, {}'.format(str(err)))
-        raise ValueError("Invalid filter query")  
+        raise ValueError("Invalid filter query")
 
 
 def get_candidate(public_id):

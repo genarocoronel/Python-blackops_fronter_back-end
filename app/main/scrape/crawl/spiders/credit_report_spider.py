@@ -41,7 +41,21 @@ class CreditReportSpider(scrapy.Spider):
             )
 
     def visit_credit_report(self, response):
-        yield SplashRequest(url=self.credit_report_url, callback=self.parse_credit_report, args={'wait': 10})
+        yield SplashRequest(url=self.credit_report_url, callback=self.check_for_order_prompt, args={'wait': 10})
+
+    def check_for_order_prompt(self, response):
+        you_are_ordering_text = response.xpath("//div[@id='confirm']/div[@class='content-heading']/h3/text()").get()
+        if you_are_ordering_text and 'you are ordering' == you_are_ordering_text.lower():
+            return scrapy.FormRequest.from_response(
+                response,
+                formdata={'isConfirmedTerms': 'on'},
+                callback=self.parse_credit_report
+            )
+            # raise Exception('Still need to order 3B report before scrape')
+            # POST form to 'https://stage-sc.consumerdirect.com/member/credit-report/3b/confirm.htm'
+            # with data: 'isConfirmedTerms: on'
+        else:
+            return self.parse_credit_report(response)
 
     def parse_credit_report(self, response):
         address = ' '.join(response.xpath("//div[@id='TokenDisplay']//table[6]//tr[@class='crTradelineHeader']//td[2]//span[@class='Rsmall']/span/text()").getall()).replace('\t', '').replace('\n', '')

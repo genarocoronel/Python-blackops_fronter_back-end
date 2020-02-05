@@ -35,6 +35,11 @@ class FrequencyTypeField(fields.String):
 
 class DateTimeFormatField(fields.String):
     def format(self, value):
+        return value.strftime("%m-%d-%Y %H:%M")
+
+
+class DateFormatField(fields.String):
+    def format(self, value):
         return value.strftime("%m-%d-%Y")
 
 
@@ -312,23 +317,55 @@ class ClientDto:
         'value': fields.Integer(required=True),
     })
 
+class CreditReportAccountStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportSignupStatus):
+            return value.name
+        else:
+            return 'unknown'
+
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'fico': fields.Integer(),
+        'status': CreditReportAccountStatusField()
+    })
+    debt_payment_contract = api.model('debt_payment_contract', {
+        'term': fields.Integer(),
+        'payment_start_date': DateFormatField(),
+        'commission_rate': fields.Float(),
+        'sale_date': DateFormatField(),
+    })
+    user_account = api.model('users', {
+        'id': fields.Integer(),
+        'name': fields.String(attribute='full_name'),
+    })
     lead = api.model('lead', {
+        'public_id': fields.String(description='lead identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
         'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
         'email': fields.String(required=True, description='lead email address'),
         'language': fields.String(required=True, enum=Language._member_names_),
-        'phone': fields.String(required=True, description='lead phone number'),
-        'public_id': fields.String(description='lead identifier'),
-        'address': fields.String(description='lead address'),
         'ssn': fields.String(description='lead ssn'),
-        'city': fields.String(description='lead city'),
-        'state': fields.String(description='lead state'),
+        'dob': DateFormatField(),
+        # inserted_on is kept only for backward compatability
         'inserted_on': fields.DateTime(),
+        'created_date': DateTimeFormatField(attribute='inserted_on'),
         'employment_status':EmploymentStatusField(),
         'disposition': fields.String(attribute='disposition.value'),
+        'credit_report_account': fields.Nested(credit_report_account),
+        'payment_contract': fields.Nested(debt_payment_contract),
+        'modified_date': DateTimeFormatField(),
+        'campaign_name': fields.String(description='campaign name'),
+        'lead_source': fields.String(description='lead source'),
+        'application_date': DateFormatField(),
+        # use 'user_account' - if nested properties of user model is needed
+        # for simplicity using only 'full_name' attribute
+        'account_manager': fields.String(attribute='account_manager.full_name'),
+        'team_manager': fields.String(attribute='team_manager.full_name'),
+        'opener': fields.String(attribute='opener.full_name'),
     })
     lead_pagination=api.model('lead_pagination', {
         'page_number': fields.Integer(),
@@ -364,14 +401,6 @@ class CandidateStatusField(fields.String):
             return 'unknown'
 
 
-class CreditReportAccountStatusField(fields.String):
-    def format(self, value):
-        if isinstance(value, CreditReportSignupStatus):
-            return value.name
-        else:
-            return 'unknown'
-
-
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
     credit_report_account = api.model('credit_report_account', {
@@ -389,18 +418,13 @@ class CandidateDto:
         'last_name': fields.String(),
         'middle_initial': fields.String(),
         'suffix': fields.String(),
-        'address': fields.String(),
-        'city': fields.String(),
-        'state': fields.String(),
-        'zip': fields.String(),
         'estimated_debt': fields.Integer(),
         'inserted_on': fields.DateTime(),
-        'county': fields.String(),
         'email': fields.String(),
         'dob': fields.Date(),
         'language': fields.String(enum=Language._member_names_),
-        'phone': fields.String(),
         'status': CandidateStatusField(),
+        'employment_status': EmploymentStatusField(),
         'campaign_name': fields.String(attribute='campaign.name'),
         'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account)
@@ -430,7 +454,8 @@ class CandidateDto:
         'dob': fields.DateTime(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
-        'status': CandidateStatusField()
+        'status': CandidateStatusField(),
+        'employment_status': EmploymentStatusField(),
 
     })
     candidate_employment = api.model('candidate_employment', {
@@ -446,7 +471,7 @@ class CandidateDto:
 
     update_candidate_employment = api.model('update_candidate_employment', {
         'employer_name': fields.String(required=True),
-        'start_date': fields.DateTime(),
+        'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
         'gross_salary': fields.Float(required=False),
         'gross_salary_frequency': FrequencyStatusField(required=False),
