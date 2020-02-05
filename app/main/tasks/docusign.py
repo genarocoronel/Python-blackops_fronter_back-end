@@ -6,6 +6,8 @@ from app.main.model.client import Client, ClientDisposition
 from app.main.model.credit_report_account import CreditPaymentPlan
 from app.main.model.docsign import *
 from app.main.model.credit_report_account import *
+from app.main.model.address import Address, AddressType
+from app.main.model.contact_number import ContactNumberType
 
 from flask import current_app as app
 
@@ -168,22 +170,25 @@ def send_contract_for_signature(session_id):
             co_sign = True
             cc_id = client.client_id
 
+        # fetch the address 
+        client_address = Address.query.filter_by(client_id=client.id, type=AddressType.CURRENT).first()
+        # fetch the phone numbers
+        phone_numbers = {}
+        client_contact_numbers = client.contact_numbers
+        for ccn in client_contact_numbers:
+            contact_number = ccn.contact_number
+            number_type = ContactNumberType.query.filter_by(id=contact_number.contact_number_type_id).first()
+            phone_numbers[number_type.name] = contact_number.phone_number
+            
+
         client_full_name = '{} {}'.format(client.first_name, client.last_name)
         ssn4 = client.ssn[-4:] if client.ssn is not None else ""
         t_params['ClientFirstName'] = client.first_name
         t_params['ClientLastName'] = client.last_name 
-        t_params['ClientAddress'] = client.address 
-        t_params['AcctOwnerAddress'] = client.address
-        t_params['ClientCity'] = client.city
-        t_params['AcctOwnerCity'] = client.city
-        t_params['ClientState'] = client.state
-        t_params['AcctOwnerState'] = client.state
-        t_params['ClientZip'] = client.zip 
-        t_params['AcctOwnerZip'] = client.zip
-        t_params['ClientHomePhone'] = client.phone if client.phone is not None else ""
-        t_params['ClientWorkPhone'] = client.phone if client.phone is not None else ""
-        t_params['ClientMobilePhone'] = client.phone if client.phone is not None else ""
-        t_params['AcctOwnerMobile'] = client.phone if client.phone is not None else ""
+        t_params['ClientHomePhone'] = phone_numbers['Home'] if 'Home' in phone_numbers else ""
+        t_params['ClientWorkPhone'] = phone_numbers['Work Phone'] if 'Work Phone' in phone_numbers else ""
+        t_params['ClientMobilePhone'] = phone_numbers['Cell Phone'] if 'Cell Phone' in phone_numbers else ""
+        t_params['AcctOwnerMobile'] = phone_numbers['Cell Phone'] if 'Cell Phone' in phone_numbers else ""
         t_params['ClientEmail'] = client.email
         t_params['ClientDOB'] = client.dob.strftime("%m/%d/%Y") if client.dob is not None else ""
         t_params['AcctOwnerDOB'] = client.dob.strftime("%m/%d/%Y") if client.dob is not None else ""
@@ -191,6 +196,25 @@ def send_contract_for_signature(session_id):
         t_params['AcctOwnerName'] = client_full_name
         t_params['ClientFullName1'] = client_full_name
         t_params['ClientFullName2'] = client_full_name
+
+        if client_address is not None:
+            t_params['ClientAddress'] = client_address.address1
+            t_params['AcctOwnerAddress'] = client_address.address1
+            t_params['ClientCity'] = client_address.city
+            t_params['AcctOwnerCity'] = client_address.city
+            t_params['ClientState'] = client_address.state
+            t_params['AcctOwnerState'] = client_address.state
+            t_params['ClientZip'] = client_address.zip_code 
+            t_params['AcctOwnerZip'] = client_address.zip_code
+        else:
+            t_params['ClientAddress'] = ''
+            t_params['AcctOwnerAddress'] = ''
+            t_params['ClientCity'] = ''
+            t_params['AcctOwnerCity'] = ''
+            t_params['ClientState'] = ''
+            t_params['AcctOwnerState'] = ''
+            t_params['ClientZip'] = ''
+            t_params['AcctOwnerZip'] = ''
 
         t_params['AcctOwnerSSN'] =  client.ssn if client.ssn is not None else ""
         t_params['BankName'] =  client.bank_account.name
@@ -285,17 +309,23 @@ def send_contract_for_signature(session_id):
                 db.session.commit()
                 raise ValueError("Co-Client is not valid")
 
+            ## find the co-client address
+            cc_address = Address.query.filter_by(client_id=cc.id, type=AddressType.CURRENT).first()
+            # fetch the phone numbers
+            cc_phone_numbers = {}
+            client_contact_numbers = cc.contact_numbers
+            for ccn in client_contact_numbers:
+                contact_number = ccn.contact_number
+                number_type = ContactNumberType.query.filter_by(id=contact_number.contact_number_type_id).first()
+                cc_phone_numbers[number_type.name] = contact_number.phone_number
+
             co_client_fname = '{} {}'.format(cc.first_name, cc.last_name)
             co_ssn4 = cc.ssn[-4:] if cc.ssn is not None else ""
             t_params['CoClientFirstName'] = cc.first_name
             t_params['CoClientLastName'] = cc.last_name
-            t_params['CoClientAddress'] = cc.address
-            t_params['CoClientCity'] = cc.city
-            t_params['CoClientState'] = cc.state
-            t_params['CoClientZip'] = cc.zip
-            t_params['CoClientHomePhone'] = cc.phone if cc.phone is not None else ""
-            t_params['CoClientWorkPhone'] = cc.phone if cc.phone is not None else ""
-            t_params['CoClientMobilePhone'] = cc.phone if cc.phone is not None else ""
+            t_params['CoClientHomePhone'] = cc_phone_numbers['Home'] if 'Home' in cc_phone_numbers else ""
+            t_params['CoClientWorkPhone'] = cc_phone_numbers['Work Phone'] if 'Work Phone' in cc_phone_numbers else ""
+            t_params['CoClientMobilePhone'] = cc_phone_numbers['Cell'] if 'Cell Phone' in cc_phone_numbers else ""
             t_params['CoClientEmail'] = cc.email if cc.email is not None else ""
             t_params['CoClientDOB'] = cc.dob.strftime("%m/%d/%Y") if cc.dob is not None else ""
             t_params['CoClientLast4SSN'] = co_ssn4
@@ -303,6 +333,17 @@ def send_contract_for_signature(session_id):
             t_params['CoClientFullName1'] = co_client_fname
             t_params['CoClientFullName2'] = co_client_fname
 
+            if cc_address is not None:
+                t_params['CoClientAddress'] = cc_address.address1
+                t_params['CoClientCity'] = cc_address.city
+                t_params['CoClientState'] = cc_address.state
+                t_params['CoClientZip'] = cc_address.zip_code
+            else:
+                t_params['CoClientAddress'] = ''
+                t_params['CoClientCity'] = ''
+                t_params['CoClientState'] = ''
+                t_params['CoClientZip'] = ''
+               
         #Docusign interface
         ds = DocuSign()
         ds.authorize()

@@ -361,11 +361,6 @@ def get_all_candidates(search_query):
         .filter(or_(Candidate.prequal_number.like(search) if search_query else True,
                     Candidate.first_name.like(search) if search_query else True,
                     Candidate.status.like(search) if search_query else True,
-                    Candidate.address.like(search) if search_query else True,
-                    Candidate.county.like(search) if search_query else True,
-                    Candidate.state.like(search) if search_query else True,
-                    Candidate.city.like(search) if search_query else True,
-                    Candidate.phone.like(search) if search_query else True,
                     Candidate.email.like(search) if search_query else True,
                     Candidate.public_id.like(search) if search_query else True,
                     Candidate.last_name.like(search) if search_query else True)) \
@@ -389,10 +384,6 @@ def get_candidates_count(q=None):
             .filter(or_(Candidate.first_name.ilike(search),
                         Candidate.last_name.ilike(search),
                         Candidate.prequal_number.ilike(search),
-                        Candidate.address.ilike(search),
-                        Candidate.county.ilike(search),
-                        Candidate.state.ilike(search),
-                        Candidate.city.ilike(search),
                         Candidate.phone.ilike(search),
                         Candidate.email.ilike(search),
                         Candidate.public_id.ilike(search))).count()

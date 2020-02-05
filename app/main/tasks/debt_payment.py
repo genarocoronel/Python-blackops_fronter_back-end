@@ -2,6 +2,8 @@
 from app.main.model.client import Client
 from app.main.service.epps_service import *
 from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction
+from app.main.model.contact_number import ContactNumberType
+from app.main.model.address import Address, AddressType
 from datetime import datetime, date, timedelta
 from sqlalchemy import func
 
@@ -18,6 +20,18 @@ def register_customer(client_id):
         client = Client.query.filter_by(public_id=client_id).first()
         if client is None:
             raise ValueError("Client not found")
+ 
+        client_address = Address.query.filter_by(client_id=client.id, type=AddressType.CURRENT).first()
+        if client_address is None:
+            raise ValueError("Client Address is not found")
+
+        # fetch the phone numbers
+        phone_numbers = {}
+        client_contact_numbers = client.contact_numbers
+        for ccn in client_contact_numbers:
+            contact_number = ccn.contact_number
+            number_type = ContactNumberType.query.filter_by(id=contact_number.contact_number_type_id).first()
+            phone_numbers[number_type.name] = contact_number.phone_number
 
         card = CardHolder()
         card.id = client.public_id
@@ -25,12 +39,17 @@ def register_customer(client_id):
         card.last_name = client.last_name
         card.dob = client.dob
         card.ssn = client.ssn
-        card.street = client.address
-        card.city = client.city
-        card.state = client.state
-        card.zip = client.zip
-        card.phone = client.phone
+        card.street = client_address.address1
+        card.city = client_address.city
+        card.state = client_address.state
+        card.zip = client_address.zip_code
         card.email = client.email
+        if 'Cell Phone' in phone_numbers:
+            card.phone = phone_numbers['Cell Phone']
+        elif 'Home' in phone_numbers:
+            card.phone = phone_numbers['Home']
+        elif 'Work Phone' in phone_numbers:
+            card.phone = phone_numbers['Work Phone']
 
         epps_chnl = EppsClient()
         epps_chnl.connect()
