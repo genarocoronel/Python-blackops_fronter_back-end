@@ -42,6 +42,29 @@ class DateFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y")
 
+# set the current address
+class CurrentAddressField(fields.Raw):
+    def format(self, records):
+        for addr in records:
+            if addr.type == AddressType.CURRENT:
+                return {
+                  'address' : addr.address1,
+                  'zip': addr.zip_code,
+                  'city': addr.city,
+                  'state': addr.state
+                }
+
+        return {}
+
+class PreferedPhoneField(fields.Raw):
+    def format(self, records):
+        for record in records:
+            cn = record.contact_number
+            if cn is not None and cn.preferred is True:
+                return cn.phone_number
+
+        return ""
+
 
 class CampaignDto(object):
     api = Namespace('campaigns', description='campaign related operations')
@@ -366,6 +389,8 @@ class LeadDto:
         'account_manager': fields.String(attribute='account_manager.full_name'),
         'team_manager': fields.String(attribute='team_manager.full_name'),
         'opener': fields.String(attribute='opener.full_name'),
+        'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
+        'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber',attribute='contact_numbers')
     })
     lead_pagination=api.model('lead_pagination', {
         'page_number': fields.Integer(),
@@ -427,7 +452,9 @@ class CandidateDto:
         'employment_status': EmploymentStatusField(),
         'campaign_name': fields.String(attribute='campaign.name'),
         'disposition': fields.String(attribute='disposition.value'),
-        'credit_report_account': fields.Nested(credit_report_account)
+        'credit_report_account': fields.Nested(credit_report_account),
+        'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
+        'phone': PreferedPhoneField(cls_or_instance='CandidateContactNumber',attribute='contact_numbers')
     })
     candidate_dispositions = api.model('candidate_disposition', {
         'select_type': CandidateDispositionTypeField(),

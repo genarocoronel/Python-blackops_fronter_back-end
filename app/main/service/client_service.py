@@ -4,8 +4,8 @@ import datetime
 from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
-from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense, ClientContactNumber, ClientDisposition, EmploymentStatus
-
+from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, \
+                                  ClientMonthlyExpense, ClientContactNumber, ClientDisposition, EmploymentStatus
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
@@ -115,7 +115,10 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         # base query
-        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition).outerjoin(CreditReportAccount)
+        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition)\
+                                                        .outerjoin(CreditReportAccount)\
+                                                        .outerjoin(Address)\
+                                                        .outerjoin(ClientContactNumber)
         # search fields
         if search_fields is not None:
             _or_filts = []
