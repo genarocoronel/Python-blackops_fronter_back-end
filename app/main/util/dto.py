@@ -45,16 +45,15 @@ class DateFormatField(fields.String):
 # set the current address
 class CurrentAddressField(fields.Raw):
     def format(self, records):
+        result = { 'address': '', 'zip': '', 'city': '', 'state': ''}
         for addr in records:
             if addr.type == AddressType.CURRENT:
-                return {
-                  'address' : addr.address1,
-                  'zip': addr.zip_code,
-                  'city': addr.city,
-                  'state': addr.state
-                }
+                result['address'] = addr.address1
+                result['zip'] = addr.zip_code
+                result['city'] = addr.city
+                result['state'] = addr.state
 
-        return {}
+        return result
 
 class PreferedPhoneField(fields.Raw):
     def format(self, records):
