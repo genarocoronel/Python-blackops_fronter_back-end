@@ -12,6 +12,13 @@ class CreditReportSignupStatus(enum.Enum):
     FULL_MEMBER = 'full_member'  # represents account created with third-party vendor; awaiting additional steps
     FULL_MEMBER_LOGIN = 'full_member_login'  # represents account creation complete including any additional steps
 
+class CreditReportDataAccountType(enum.Enum):
+    CREDIT_CARD = 'credit_card'  # represents a request to create account with third-party vendor
+    MEDICAL_BILL = 'medical_bill'  # represents initial account defined/created with third-party vendor
+    LINE_OF_CREDIT = 'line_of_credit'  # represents any step in account creation requiring validation
+    PERSONAL_LOAN = 'personal_loan'  # represents any account validation being complete
+    UNSECURED_DEBT = 'unsecured_debt'  # represents account created with third-party vendor; awaiting additional steps
+    OTHER = 'other'  # represents account creation complete including any additional steps
 
 class CreditReportAccount(db.Model):
     """ User Model for storing user related details """
@@ -73,6 +80,7 @@ class CreditReportData(db.Model):
     __tablename__ = "credit_report_data"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    public_id = db.Column(db.String(100), unique=True)
     last_update = db.Column(db.DateTime, nullable=True)
 
     # foreign keys
@@ -83,7 +91,8 @@ class CreditReportData(db.Model):
     creditor = db.Column(db.String(100), nullable=True)
     ecoa = db.Column(db.String(50), nullable=True)
     account_number = db.Column(db.String(25), nullable=True)
-    account_type = db.Column(db.String(100), nullable=True)
+    account_type = db.Column(db.Enum(CreditReportDataAccountType), nullable=False,
+                       default=CreditReportDataAccountType.CREDIT_CARD)
     push = db.Column(db.Boolean, nullable=True, default=False)
     last_collector = db.Column(db.String(100), nullable=True)
     collector_account = db.Column(db.String(100), nullable=True)

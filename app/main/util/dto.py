@@ -7,7 +7,7 @@ from app.main.model.candidate import CandidateImportStatus, CandidateStatus, Can
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType, EmploymentStatus, ClientDispositionType
 from app.main.model.address import AddressType
-from app.main.model.credit_report_account import CreditReportSignupStatus
+from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportDataAccountType
 from app.main.service.auth_helper import Auth
 from app.main.util import parsers
 
@@ -187,24 +187,31 @@ class CandidateDispositionTypeField(fields.String):
         else:
             return 'UNKNOWN'
 
+class CreditReportDataAccountTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportDataAccountType):
+            return value.name
+        else:
+            return 'UNKNOWN'
 
 _credit_report_debt_model = {
-    'debt_name': fields.String(),
-    'creditor': fields.String(),
-    'ecoa': fields.String(),
-    'account_number': fields.String(),
-    'account_type': fields.String(),
-    'push': fields.Boolean(),
+    'debt_name': fields.String(required=True),
+    'public_id': fields.String(required=False),
+    'creditor': fields.String(required=True),
+    'ecoa': fields.String(required=True),
+    'account_number': fields.String(required=True),
+    'account_type': CreditReportDataAccountTypeField(required=True),
+    'push': fields.Boolean(required=True),
     'last_collector': fields.String(),
     'collector_account': fields.String(),
     'last_debt_status': fields.String(),
     'bureaus': fields.DateTime(),
-    'days_delinquent': fields.Integer(),
-    'balance_original': fields.Integer(),
+    'days_delinquent': fields.Integer(required=True),
+    'balance_original': fields.Float(required=True),
     'payment_amount': fields.Integer(),
     'credit_limit': fields.Integer(),
     'graduation': fields.DateTime(),
-    'last_update': fields.DateTime(required=True)
+    'last_update': fields.DateTime()
 }
 
 
@@ -310,14 +317,12 @@ class ClientDto:
         'value': fields.Integer(required=True),
     })
 
-
 class CreditReportAccountStatusField(fields.String):
     def format(self, value):
         if isinstance(value, CreditReportSignupStatus):
             return value.name
         else:
             return 'unknown'
-
 
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
