@@ -21,13 +21,11 @@ from flask import current_app as app
 
 
 def save_new_candidate(data):
-    if data.get('phone') is not None:
-        exist_candidate = Candidate.query.filter(Candidate.phone == data.get('phone')).first()
-    else:
-        exist_candidate = Candidate.query.filter(and_(Candidate.first_name == data.get('first_name'),
-                                                      Candidate.last_name == data.get('last_name'),
-                                                      Candidate.email == data.get('email'),
-                                                      )).first()
+    
+    exist_candidate = Candidate.query.filter(and_(Candidate.first_name == data.get('first_name'),
+                                                  Candidate.last_name == data.get('last_name'),
+                                                  Candidate.email == data.get('email'),
+                                                  )).first()
 
     if exist_candidate is not None:
         response_object = {
@@ -361,11 +359,6 @@ def get_all_candidates(search_query):
         .filter(or_(Candidate.prequal_number.like(search) if search_query else True,
                     Candidate.first_name.like(search) if search_query else True,
                     Candidate.status.like(search) if search_query else True,
-                    Candidate.address.like(search) if search_query else True,
-                    Candidate.county.like(search) if search_query else True,
-                    Candidate.state.like(search) if search_query else True,
-                    Candidate.city.like(search) if search_query else True,
-                    Candidate.phone.like(search) if search_query else True,
                     Candidate.email.like(search) if search_query else True,
                     Candidate.public_id.like(search) if search_query else True,
                     Candidate.last_name.like(search) if search_query else True)) \
@@ -389,11 +382,6 @@ def get_candidates_count(q=None):
             .filter(or_(Candidate.first_name.ilike(search),
                         Candidate.last_name.ilike(search),
                         Candidate.prequal_number.ilike(search),
-                        Candidate.address.ilike(search),
-                        Candidate.county.ilike(search),
-                        Candidate.state.ilike(search),
-                        Candidate.city.ilike(search),
-                        Candidate.phone.ilike(search),
                         Candidate.email.ilike(search),
                         Candidate.public_id.ilike(search))).count()
 
@@ -414,7 +402,11 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         total = 0
 
-        query = Candidate.query.outerjoin(CandidateDisposition).outerjoin(Campaign).outerjoin(CreditReportAccount)
+        query = Candidate.query.outerjoin(CandidateDisposition)\
+                               .outerjoin(Campaign)\
+                               .outerjoin(CreditReportAccount)\
+                               .outerjoin(Address)\
+                               .outerjoin(CandidateContactNumber)
         # search fields
         if search_fields is not None:
             _or_filts = []

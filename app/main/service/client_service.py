@@ -4,18 +4,20 @@ import datetime
 from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
-from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientMonthlyExpense, ClientContactNumber, ClientDisposition, EmploymentStatus
-
+from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, \
+                                  ClientMonthlyExpense, ClientContactNumber, ClientDisposition, EmploymentStatus
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
-from app.main.model.address import Address
+from app.main.model.address import Address, AddressType
 from app.main.model.credit_report_account import CreditReportAccount
+from app.main.model.contact_number import ContactNumber, ContactNumberType
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
+  
     new_client = Client(
         public_id=str(uuid.uuid4()),
         email=data.get('email'),
@@ -23,18 +25,32 @@ def save_new_client(data, client_type=ClientType.lead):
         first_name=data.get('first_name'),
         middle_initial=data.get('middle_initial'),
         last_name=data.get('last_name'),
-        address=data.get('address'),
-        city=data.get('city'),
-        state=data.get('state'),
-        zip=data.get('zip'),
-        zip4=data.get('zip4'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),
-        phone=data.get('phone'),
         type=client_type,
         inserted_on=datetime.datetime.utcnow()
     )
     save_changes(new_client)
+    # current address
+    addr = Address(client_id=new_client.id,
+                   address1=data.get('address'),
+                   zip_code=data.get('zip'),
+                   city=data.get('city'),
+                   state=data.get('state'),
+                   typr=AddressType.CURRENT)
+    save_changes(addr)
+    # contact number
+    #phone=data.get('phone'),
+    number_type = ContactNumberType.query.filter_by(name='Cell Phone').first()
+    cn = ContactNumber(inserted_on=datetime.datetime.utcnow(),
+                       contact_number_type_id=number_type.id,
+                       phone_number= data.get('phone'))
+    save_changes(cn)
+    ccn = ClientContactNumber(client_id=new_client.id,
+                              contact_number_id=cn.id)
+    save_changes(ccn)
+   
+
     response_object = {
         'status': 'success',
         'message': 'Successfully created client'
@@ -98,7 +114,10 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         # base query
-        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition).outerjoin(CreditReportAccount)
+        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition)\
+                                                        .outerjoin(CreditReportAccount)\
+                                                        .outerjoin(Address)\
+                                                        .outerjoin(ClientContactNumber)
         # search fields
         if search_fields is not None:
             _or_filts = []
