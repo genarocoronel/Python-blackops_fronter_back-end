@@ -17,7 +17,10 @@ def _convert_payload_datetime_values(payload, *keys):
     elif isinstance(payload, dict):
         for key in keys:
             if key in payload.keys():
-                payload[key] = datetime.datetime.strptime(payload.get(key), datetime_format)
+                try:
+                    payload[key] = datetime.datetime.strptime(payload.get(key), datetime_format)
+                except TypeError:
+                    payload[key] = None
 
 
 def _handle_get_client(public_id, client_type=ClientType.client):
