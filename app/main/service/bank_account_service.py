@@ -96,7 +96,6 @@ def create_bank_account(client, data, override=False, overridable_codes=None):
                 'message': message,
                 'bank_account': {},
             }
-            print(result)
             return result, None
 
 def save_changes(*data):
