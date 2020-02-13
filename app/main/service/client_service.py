@@ -482,7 +482,6 @@ def get_client_contact_numbers(client):
         data['preferred'] = contact_number.preferred
         number_data.append(data)
 
-    print(number_data)
     return number_data, None
 
 
