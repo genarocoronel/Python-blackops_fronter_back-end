@@ -417,7 +417,7 @@ def update_client_income_sources(client, income_sources):
             save_changes(client_income)
         else:
             client_income.income_source.value = income_val
-            client_income.income_source.frequency = Frequency[data.get('frequency')
+            client_income.income_source.frequency = Frequency[data.get('frequency')]
             db.session.commit()
 
     return {'message': 'Successfully updated income sources'}, None
