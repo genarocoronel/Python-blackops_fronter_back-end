@@ -286,12 +286,23 @@ class ClientDto:
         'frequency': FrequencyTypeField(required=True),
     })
     client_employment = api.model('client_employment', {
+        'employer_name': fields.String(required=True),
         'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
+        'gross_salary': fields.Float(required=False),
         'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
+        'current': fields.Boolean(required=True, default=False)
+    })
+    update_client_employment = api.model('update_client_employment', {
+        'employer_name': fields.String(required=True),
+        'start_date': fields.DateTime(),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=False),
+        'gross_salary_frequency': FrequencyStatusField(required=False),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
         'current': fields.Boolean(required=True, default=False)
     })
     client_dispositions = api.model('client_dispositions', {
@@ -299,23 +310,14 @@ class ClientDto:
         'name': fields.String(required=True),
         'value': fields.String(required=True)
     })
-    update_client_employment = api.model('update_client_employment', {
-        'start_date': fields.DateTime(required=True),
-        'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
-        'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
-        'current': fields.Boolean(required=True, default=False)
-    })
     client_address = api.model('client_address', {
         'address1': fields.String(required=True),
         'address2': fields.String(required=False),
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
+        'fromDate': fields.Date(required=True, source="from_date"),
+        'toDate': fields.Date(required=True, source="to_date"),
         'type': AddressTypeField(required=True)
     })
     update_client_address = api.model('update_client_address', {
@@ -324,8 +326,8 @@ class ClientDto:
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
+        'fromDate': fields.Date(required=True, source="from_date"),
+        'toDate': fields.Date(required=True, source="to_date"),
         'type': AddressTypeField(required=True)
     })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
@@ -337,6 +339,17 @@ class ClientDto:
     update_client_monthly_expense = api.model('update_client_monthly_expense', {
         'expense_type_id': fields.Integer(required=True),
         'value': fields.Integer(required=True),
+    })
+    contact_number = api.model('contact_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_type': fields.String(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
+    update_contact_number = api.model('update_contact_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
     })
 
 class CreditReportAccountStatusField(fields.String):

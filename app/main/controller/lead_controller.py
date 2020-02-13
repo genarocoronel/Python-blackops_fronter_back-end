@@ -7,7 +7,8 @@ from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_COD
 from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
-    update_client_employments, update_client, client_filter
+    update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
+    get_client_addresses, update_client_addresses 
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract
@@ -27,6 +28,10 @@ _lead_income = ClientDto.client_income
 _update_lead_income = ClientDto.update_client_income
 _lead_monthly_expense = ClientDto.client_monthly_expense
 _update_lead_monthly_expense = ClientDto.update_client_monthly_expense
+_contact_number = ClientDto.contact_number
+_update_contact_number = ClientDto.update_contact_number
+_lead_address = ClientDto.client_address
+_update_lead_address = ClientDto.update_client_address
 
 LEAD = ClientType.lead
 
@@ -116,6 +121,64 @@ class LeadIncomeSources(Resource):
             else:
                 return dict(success=True, **result), 200
 
+@api.route('/<lead_id>/contact_numbers')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Lead not found')
+class LeadContactNumbers(Resource):
+    @api.doc('get lead contact numbers')
+    @api.marshal_list_with(_contact_number)
+    def get(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_contact_numbers(lead)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update lead contact numbers')
+    @api.expect([_update_contact_number], validate=True)
+    def put(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            numbers = request.json
+            result, err_msg = update_client_contact_numbers(lead, numbers)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
+
+@api.route('/<lead_id>/addresses')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Lead not found')
+class LeadAddresses(Resource):
+    @api.response(200, 'Address successfully created')
+    @api.doc('create new address')
+    def put(self, lead_id):
+        """ Creates new Address """
+        addresses = request.json
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        return update_client_addresses(lead, addresses)
+
+    @api.doc('get candidate addresses')
+    @api.marshal_list_with(_lead_address)
+    def get(self, lead_id):
+        print("Inside get addresses")
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_addresses(lead)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
 
 @api.route('/<lead_id>/monthly-expenses')
 @api.param('lead_id', 'Lead public identifier')
@@ -167,7 +230,6 @@ class LeadEmployments(Resource):
                 return result, 200
 
     @api.doc('update lead employment')
-    @api.expect([_update_lead_employment], validate=True)
     def put(self, public_id):
         lead, error_response = _handle_get_client(public_id, client_type=LEAD)
         if not lead:
