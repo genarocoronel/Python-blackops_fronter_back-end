@@ -29,6 +29,7 @@ from app.main.seed.contact_number_types import seed_contact_number_types
 from app.main.seed.expense_types import seed_expense_type_values
 from app.main.seed.income_types import seed_income_types
 from app.main.seed.rsign import seed_rsign_records
+from app.main.seed.bank_account import seed_datax_validation_codes
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -52,6 +53,7 @@ def seed():
     seed_expense_type_values()
     seed_income_types()
     seed_rsign_records()
+    seed_datax_validation_codes()
 
 
 @manager.command

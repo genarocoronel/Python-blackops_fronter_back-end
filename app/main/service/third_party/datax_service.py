@@ -37,8 +37,12 @@ def validate_bank_account(bank_account_number, bank_aba_number, tracking_id=''):
     if response.ok:
         response_xml = ET.fromstring(response.content)
         response_node = response_xml.find('Response')
-        if response_node and (response_node.find('ErrorCode') or response_node.find('ErrorMsg')):
-            return None, dict(message=response_node.find('ErrorMsg').text, code=response_node.find('ErrorCode').text)
+        if response_node is not None:
+            error_code = response_node.find('ErrorCode')
+            error_msg = response_node.find('ErrorMsg')
+            if error_code is not None or error_msg is not None:
+                print("Response Error")
+                return None, dict(message=response_node.find('ErrorMsg').text, code=response_node.find('ErrorCode').text)
         else:
             data_node = response_xml.find('BAVSegment')
             routing_number = data_node.find('NewRoutingNumber').text
@@ -52,8 +56,18 @@ def validate_bank_account(bank_account_number, bank_aba_number, tracking_id=''):
             acct_valid = True if data_node.find('Pass').text == 'true' else False
             valid = True if aba_valid and acct_valid else False
 
-            return dict(valid=valid, routing_number=routing_number, bank_name=bank_name, aba_number=aba_number,
-                        account_number=account_number, validation_code=validation_code,
-                        validation_detail=validation_detail), None
+            result = {
+                'aba_valid': aba_valid,
+                'acct_valid': acct_valid,
+                'bank_name': bank_name,
+                'aba_number': aba_number,
+                'account_number': account_number,
+                'new_routing_number': routing_number,
+                'valid': valid,
+                'code': validation_code, 
+            }
+
+            return result, None
+
     else:
         return None, dict(message='Failed to make call to DataX')

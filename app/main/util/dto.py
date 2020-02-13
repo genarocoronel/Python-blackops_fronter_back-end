@@ -363,6 +363,18 @@ class LeadDto:
         'id': fields.Integer(),
         'name': fields.String(attribute='full_name'),
     })
+    bank_account = api.model('bank_accounts', {
+        'bank_name': fields.String(),
+        'account_number': fields.String(),
+        'routing_number': fields.String(),
+        'owner_name': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'ssn': fields.String(),
+        'zip': fields.String(),
+        'email': fields.String(),
+    })
     lead = api.model('lead', {
         'public_id': fields.String(description='lead identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
@@ -383,6 +395,7 @@ class LeadDto:
         'campaign_name': fields.String(description='campaign name'),
         'lead_source': fields.String(description='lead source'),
         'application_date': DateFormatField(),
+        'bank_account': fields.Nested(bank_account),
         # use 'user_account' - if nested properties of user model is needed
         # for simplicity using only 'full_name' attribute
         'account_manager': fields.String(attribute='account_manager.full_name'),

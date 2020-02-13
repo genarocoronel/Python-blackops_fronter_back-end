@@ -164,6 +164,15 @@ def send_contract_for_signature(session_id):
             db.session.commit()
             raise ValueError("Client is not valid")
 
+        # bank account
+        bank_account = client.bank_account
+        # payment contract
+        payment_contract = client.payment_contract
+        if payment_contract is None:
+            session.state = SessionState.FAILED
+            db.session.commit()
+            raise ValueError("No payment contract found")
+
         # check if client has co-client associated with it
         co_sign = False
         if client.client_id is not None:
@@ -193,34 +202,31 @@ def send_contract_for_signature(session_id):
         t_params['ClientDOB'] = client.dob.strftime("%m/%d/%Y") if client.dob is not None else ""
         t_params['AcctOwnerDOB'] = client.dob.strftime("%m/%d/%Y") if client.dob is not None else ""
         t_params['ClientLast4SSN'] = ssn4
-        t_params['AcctOwnerName'] = client_full_name
+        t_params['AcctOwnerName'] = bank_account.owner_name if bank_account.owner_name is not None else ""
         t_params['ClientFullName1'] = client_full_name
         t_params['ClientFullName2'] = client_full_name
 
+
         if client_address is not None:
             t_params['ClientAddress'] = client_address.address1
-            t_params['AcctOwnerAddress'] = client_address.address1
             t_params['ClientCity'] = client_address.city
-            t_params['AcctOwnerCity'] = client_address.city
             t_params['ClientState'] = client_address.state
-            t_params['AcctOwnerState'] = client_address.state
             t_params['ClientZip'] = client_address.zip_code 
-            t_params['AcctOwnerZip'] = client_address.zip_code
         else:
             t_params['ClientAddress'] = ''
-            t_params['AcctOwnerAddress'] = ''
             t_params['ClientCity'] = ''
-            t_params['AcctOwnerCity'] = ''
             t_params['ClientState'] = ''
-            t_params['AcctOwnerState'] = ''
             t_params['ClientZip'] = ''
-            t_params['AcctOwnerZip'] = ''
 
-        t_params['AcctOwnerSSN'] =  client.ssn if client.ssn is not None else ""
-        t_params['BankName'] =  client.bank_account.name
+        t_params['BankName'] =  client.bank_account.bank_name
         t_params['BankRoutingNbr'] =  client.bank_account.routing_number
         t_params['BankAccountNbr'] = client.bank_account.account_number
         t_params['BankAccountType'] = client.bank_account.type.value
+        t_params['AcctOwnerAddress'] = bank_account.address if bank_account.address is not None else ""
+        t_params['AcctOwnerCity'] = bank_account.city if bank_account.city is not None else ""
+        t_params['AcctOwnerState'] = bank_account.state if bank_account.state is not None else ""
+        t_params['AcctOwnerZip'] = bank_account.zip if bank_account.zip is not None else ""
+        t_params['AcctOwnerSSN'] =  bank_account.ssn if bank_account.ssn is not None else ""
 
         t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")
         t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")
@@ -267,7 +273,7 @@ def send_contract_for_signature(session_id):
         if co_sign is True:
             credit_monitoring_fee = credit_plan.monitoring_fee_2signer
         monthly_bank_fee = credit_plan.monthly_bank_fee
-        pymt_term = credit_account.term
+        pymt_term = payment_contract.term
         min_allowed_fee = credit_plan.minimum_fee
 
         total_fee = (total_debt * (debt_enrolled_percent/100)) + (credit_monitoring_fee * pymt_term) + (monthly_bank_fee *pymt_term) 
@@ -279,7 +285,7 @@ def send_contract_for_signature(session_id):
         savings_amount = monthly_fee
         t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
         t_params['SavingsAmount42'] = "${:.2f}".format(savings_amount)
-        pymt_start = credit_account.payment_start_date
+        pymt_start = payment_contract.payment_start_date
         t_params['1stPaymentDate'] = pymt_start.strftime("%m/%d/%Y")
         t_params['1stPaymentDate10'] = pymt_start.strftime("%m/%d/%Y")
         # First payment 
@@ -287,7 +293,7 @@ def send_contract_for_signature(session_id):
         t_params['SavingsAmount1'] = "${:.2f}".format(savings_amount)
         t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
 
-        start = credit_account.payment_recurring_begin_date
+        start = payment_contract.payment_recurring_begin_date
         for i in range(1, pymt_term):
             index = i + 1
             t_params['paymentNumber{}'.format(index)] = str(index)
