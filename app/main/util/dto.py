@@ -439,6 +439,7 @@ class CandidateDto:
         'first_name': fields.String(),
         'last_name': fields.String(),
         'middle_initial': fields.String(),
+        'disposition': fields.String(),
         'suffix': fields.String(),
         'address': fields.String(),
         'city': fields.String(),

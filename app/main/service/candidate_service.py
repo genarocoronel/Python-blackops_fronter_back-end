@@ -89,6 +89,11 @@ def save_new_candidate(data):
 
 def update_candidate(public_id, data):
     candidate = Candidate.query.filter_by(public_id=public_id).first()
+    if data['disposition']:
+        disposition = CandidateDisposition.query.filter_by(value=data['disposition']).first()
+        del data['disposition']
+        data['disposition_id'] = disposition.id
+
     if candidate:
         for attr in data:
             if hasattr(candidate, attr):
