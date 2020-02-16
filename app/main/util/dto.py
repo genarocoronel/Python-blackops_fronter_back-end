@@ -7,7 +7,7 @@ from app.main.model.candidate import CandidateImportStatus, CandidateStatus, Can
 from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType, EmploymentStatus, ClientDispositionType
 from app.main.model.address import AddressType
-from app.main.model.credit_report_account import CreditReportSignupStatus
+from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportDataAccountType
 from app.main.service.auth_helper import Auth
 from app.main.util import parsers
 
@@ -41,6 +41,28 @@ class DateTimeFormatField(fields.String):
 class DateFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y")
+
+# set the current address
+class CurrentAddressField(fields.Raw):
+    def format(self, records):
+        result = { 'address': '', 'zip': '', 'city': '', 'state': ''}
+        for addr in records:
+            if addr.type == AddressType.CURRENT:
+                result['address'] = addr.address1
+                result['zip'] = addr.zip_code
+                result['city'] = addr.city
+                result['state'] = addr.state
+
+        return result
+
+class PreferedPhoneField(fields.Raw):
+    def format(self, records):
+        for record in records:
+            cn = record.contact_number
+            if cn is not None and cn.preferred is True:
+                return cn.phone_number
+
+        return ""
 
 
 class CampaignDto(object):
@@ -187,24 +209,31 @@ class CandidateDispositionTypeField(fields.String):
         else:
             return 'UNKNOWN'
 
+class CreditReportDataAccountTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportDataAccountType):
+            return value.name
+        else:
+            return 'UNKNOWN'
 
 _credit_report_debt_model = {
-    'debt_name': fields.String(),
-    'creditor': fields.String(),
-    'ecoa': fields.String(),
-    'account_number': fields.String(),
-    'account_type': fields.String(),
-    'push': fields.Boolean(),
+    'debt_name': fields.String(required=True),
+    'public_id': fields.String(required=False),
+    'creditor': fields.String(required=True),
+    'ecoa': fields.String(required=True),
+    'account_number': fields.String(required=True),
+    'account_type': CreditReportDataAccountTypeField(required=True),
+    'push': fields.Boolean(required=True),
     'last_collector': fields.String(),
     'collector_account': fields.String(),
     'last_debt_status': fields.String(),
     'bureaus': fields.DateTime(),
-    'days_delinquent': fields.Integer(),
-    'balance_original': fields.Integer(),
+    'days_delinquent': fields.Integer(required=True),
+    'balance_original': fields.Float(required=True),
     'payment_amount': fields.Integer(),
     'credit_limit': fields.Integer(),
     'graduation': fields.DateTime(),
-    'last_update': fields.DateTime(required=True)
+    'last_update': fields.DateTime()
 }
 
 
@@ -310,14 +339,12 @@ class ClientDto:
         'value': fields.Integer(required=True),
     })
 
-
 class CreditReportAccountStatusField(fields.String):
     def format(self, value):
         if isinstance(value, CreditReportSignupStatus):
             return value.name
         else:
             return 'unknown'
-
 
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
@@ -335,6 +362,18 @@ class LeadDto:
     user_account = api.model('users', {
         'id': fields.Integer(),
         'name': fields.String(attribute='full_name'),
+    })
+    bank_account = api.model('bank_accounts', {
+        'bank_name': fields.String(),
+        'account_number': fields.String(),
+        'routing_number': fields.String(),
+        'owner_name': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'ssn': fields.String(),
+        'zip': fields.String(),
+        'email': fields.String(),
     })
     lead = api.model('lead', {
         'public_id': fields.String(description='lead identifier'),
@@ -356,11 +395,14 @@ class LeadDto:
         'campaign_name': fields.String(description='campaign name'),
         'lead_source': fields.String(description='lead source'),
         'application_date': DateFormatField(),
+        'bank_account': fields.Nested(bank_account),
         # use 'user_account' - if nested properties of user model is needed
         # for simplicity using only 'full_name' attribute
         'account_manager': fields.String(attribute='account_manager.full_name'),
         'team_manager': fields.String(attribute='team_manager.full_name'),
         'opener': fields.String(attribute='opener.full_name'),
+        'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
+        'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber',attribute='contact_numbers')
     })
     lead_pagination=api.model('lead_pagination', {
         'page_number': fields.Integer(),
@@ -422,7 +464,9 @@ class CandidateDto:
         'employment_status': EmploymentStatusField(),
         'campaign_name': fields.String(attribute='campaign.name'),
         'disposition': fields.String(attribute='disposition.value'),
-        'credit_report_account': fields.Nested(credit_report_account)
+        'credit_report_account': fields.Nested(credit_report_account),
+        'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
+        'phone': PreferedPhoneField(cls_or_instance='CandidateContactNumber',attribute='contact_numbers')
     })
     candidate_dispositions = api.model('candidate_disposition', {
         'select_type': CandidateDispositionTypeField(),

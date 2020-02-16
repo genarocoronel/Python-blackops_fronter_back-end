@@ -69,8 +69,8 @@ def save_new_debt(data, account):
     return debt_data
 
 
-def update_debt(data, account, public_id):
-    debt_data = CreditReportData.query.filter_by(public_id=public_id).first()
+def update_debt(data):
+    debt_data = CreditReportData.query.filter_by(public_id=data['public_id']).first()
     if debt_data:
         for attr in data:
             if hasattr(debt_data, attr):
@@ -95,4 +95,27 @@ def update_debt(data, account, public_id):
 def save_changes(*data):
     for entry in data:
         db.session.add(entry)
+    db.session.commit()
+
+def add_credit_report_data(data, account):
+    for item in data:
+        save_new_debt(item, account)
+
+    response_object = {
+            'success': True,
+            'message': 'Debts Added successfully',
+        }
+    return response_object
+
+def delete_debts(ids):
+    debt_datas = CreditReportData.query.filter(CreditReportData.public_id.in_(ids)).all()
+    for c in debt_datas:
+        db.session.delete(c)
+        db.session.commit()
+    return
+
+def push_debts(ids, push_type):
+    debt_datas = CreditReportData.query.filter(CreditReportData.public_id.in_(ids)).all()
+    for debt_data in debt_datas:
+        debt_data.push = push_type
     db.session.commit()

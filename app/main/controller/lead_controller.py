@@ -8,7 +8,9 @@ from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments, update_client, client_filter
-from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report
+from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
+    push_debts, update_debt
+from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract
 from ..util.dto import LeadDto, ClientDto
 from ..util.parsers import filter_request_parse
 
@@ -227,23 +229,70 @@ class LeadCreditReportDebts(Resource):
 
         data = get_report_data(credit_account)
         return data, 200
+    
+    @api.doc('add credit report data')
+    @api.expect([_credit_report_debt], validate=True)
+    def post(self, public_id):
+        """ add Credit Report Data"""
+        lead, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
 
+        credit_account, error_response = _handle_get_credit_report(lead)
+        if not credit_account:
+            api.abort(404, **error_response)
 
-@api.route('/<lead_id>/bank-account')
+        data = request.json
+        # print(data)
+        resp = add_credit_report_data(data, credit_account)
+        return resp, 200
+
+    @api.doc('delete debts')
+    def delete(self, public_id):
+        """Delete Debts"""
+        request_data = request.json
+        delete_debts(request_data.get('ids'))
+        return dict(success=True), 200
+
+@api.route('/<public_id>/credit-report/push-debts')
+@api.param('public_id', 'The lead Identifier')
+@api.response(404, 'lead or credit report account does not exist')
+class LeadCreditReportPushDebts(Resource):
+    @api.doc('fetch credit report data')
+    def put(self, public_id):
+        """Push Debts"""
+        request_data = request.json
+        push_debts(request_data.get('data')['ids'], request_data.get('data')['push'])
+        return dict(success=True), 200
+
+@api.route('/<public_id>/credit-report/update-debt')
+@api.param('public_id', 'The lead Identifier')
+@api.response(404, 'lead or credit report account does not exist')
+class LeadCreditReportUpdateDebt(Resource):
+    @api.doc('fetch credit report data')
+    def put(self, public_id):
+        """Push Debts"""
+        request_data = request.json
+        # print(request_data.get('data')['debt_data'])
+        update_debt(request_data.get('data')['debt_data'])
+        return dict(success=True), 200
+
+@api.route('/<lead_id>/payment/bank_account')
 @api.param('lead_id', 'Lead public identifier')
-@api.param('override', 'Override use of invalid/failing bank information')
+#@api.param('override', 'Override use of invalid/failing bank information')
 @api.response(404, 'Client not found')
 class LeadBankAccount(Resource):
-    @api.doc('create bank account')
+    @api.doc('create payment information')
     @api.expect(_new_bank_account, validate=True)
     def post(self, lead_id):
-        """ Create Bank Account """
+        """ Create/Update Payment Information """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
             api.abort(404)
         else:
-            override_arg = request.args.get('override')
-            override = True if override_arg.lower() == 'true' else False
+            #override_arg = request.args.get('override')
+            #override = True if override_arg.lower() == 'true' else False
+            override = False
 
             overridable_codes = _get_codes_for_current_user()
             result, error = create_bank_account(client, request.json, override=override,
@@ -251,4 +300,38 @@ class LeadBankAccount(Resource):
             if error:
                 api.abort(500, **error)
             else:
-                return None, 201
+                return result, 200
+
+
+@api.route('/<lead_id>/payment/plan')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Client not found')
+class LeadPaymentPlan(Resource):
+    @api.doc('fetch payment plan')
+    def get(selfi, lead_id):
+        """ Fetch payment plan for the client """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                contract = fetch_payment_contract(client) 
+                return contract
+            except Exception:
+                api.abort(500, "Internal Server Error")
+
+    @api.doc('save payment plan')
+    def post(self, lead_id):
+        """ Save payment plan for the client """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                # update and fetch the latest contract
+                update_payment_contract(client, request.json)
+                contract = fetch_payment_contract(client)
+                return contract
+
+            except Exception:
+                api.abort(500, "Internal Server Error")

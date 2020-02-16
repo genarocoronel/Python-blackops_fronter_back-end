@@ -2,13 +2,117 @@ from datetime import datetime
 from app.main import db
 from app.main.model.credit_report_account import CreditReportData, CreditPaymentPlan
 from app.main.model.client import Client
-from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus
+from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus, DebtPaymentContract
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import and_
 
 import logging
 
 from flask import current_app as app
+
+"""
+Fetch Payment Contract for a given client
+"""
+def fetch_payment_contract(client):
+    credit_plan = CreditPaymentPlan.query.filter_by(name='Universal').first() 
+    if credit_plan is None: 
+        raise ValueError("Credit payment plan not present")
+    
+    # check if client has co-client associated with it
+    co_sign = False
+    if client.client_id is not None:
+        co_sign = True
+
+    # credit report
+    credit_report = client.credit_report_account
+    if credit_report is None:
+        raise ValueError("Credit report for client not found")
+    # credit records
+    credit_records = credit_report.records
+    if credit_records is None or len(credit_records) == 0:
+        raise ValueError("Credit records are empty")
+
+    # calculate the debt
+    total = 0
+    for record in credit_records:
+        total = total + float(record.balance_original)
+
+    total_debt = total
+    debt_enrolled_percent = credit_plan.enrolled_percent
+    enrolled_debt = (total_debt * (debt_enrolled_percent/100))
+
+    credit_monitoring_fee = credit_plan.monitoring_fee_1signer
+    if co_sign is True:
+        credit_monitoring_fee = credit_plan.monitoring_fee_2signer
+    monthly_bank_fee = credit_plan.monthly_bank_fee
+    min_allowed_fee = credit_plan.minimum_fee
+
+    # payment contract
+    pymt_contract = client.payment_contract
+    if pymt_contract is not None:
+        term = pymt_contract.term
+        pymt_start = pymt_contract.payment_start_date
+        pymt_start = datetime.now() if pymt_start is None else pymt_start
+        pymt_rec_begin_date = pymt_contract.payment_recurring_begin_date
+        pymt_rec_begin_date = datetime.now() if pymt_rec_begin_date is None else pymt_rec_begin_date
+    else:
+        term = 24
+        pymt_start = datetime.utcnow()
+        pymt_rec_begin_date = datetime.utcnow()
+
+    total_fee = (total_debt * (debt_enrolled_percent/100)) + (credit_monitoring_fee * term) + (monthly_bank_fee * term)
+    total_fee = round(total_fee, 2)
+    if total_fee < min_allowed_fee:
+        total_fee = min_allowed_fee
+    # monthly fee
+    monthly_fee = round((total_fee / term), 2)
+
+    result = {
+        "term": term,
+        "total_debt": total_debt,
+        "enrolled_debt": enrolled_debt,
+        "enroll_percent": debt_enrolled_percent,
+        "bank_fee": monthly_bank_fee,
+        "min_fee": min_allowed_fee,
+        "credit_monitoring_fee": credit_monitoring_fee,
+        "monthly_fee": monthly_fee,
+        "payment_1st_date": pymt_start.strftime('%m-%d-%Y'),
+        "payment_2nd_date": pymt_rec_begin_date.strftime('%m-%d-%Y'),
+    }
+
+    return result
+
+"""
+Update Payment contract for a given client
+"""
+def update_payment_contract(client, data):
+    term = data.get('term')
+    payment_1st_date = data.get('payment_1st_date') 
+    payment_2nd_date = data.get('payment_2nd_date')
+
+
+    term = int(term)
+    pymt_start = datetime.strptime(payment_1st_date, '%m-%d-%Y')
+    pymt_rec_begin_date = datetime.strptime(payment_2nd_date, '%m-%d-%Y')
+
+    # payment contract
+    pymt_contract = client.payment_contract 
+
+    if pymt_contract is None:
+        dpc = DebtPaymentContract(client_id=client.id,
+                                  term=term,
+                                  payment_start_date=pymt_start,
+                                  payment_recurring_begin_date=pymt_rec_begin_date,
+                                  inserted_on=datetime.now()) 
+        db.session.add(dpc)
+    else:
+        pymt_contract.term = term
+        pymt_contract.payment_start_date = pymt_start
+        pymt_contract.payment_recurring_begin_date = pymt_rec_begin_date 
+    # commit the changes
+    db.session.commit()
+
+
 """
 Generate Debt Payment schedule for the client
 Called after Document signature/s are completed.
@@ -29,6 +133,12 @@ def create_debt_payment_schedule(client_id):
         credit_report = client.credit_report_account
         if credit_report is None:
             raise ValueError("Credit report for client not found")
+        # payment contract
+        pymt_contract = client.payment_contract
+        if pymt_contract is None:
+            raise ValueError("Payment Contract for client not found")
+        term = pymt_contract.term
+        pymt_start = pymt_contract.payment_start_date
         # credit records 
         credit_records = credit_report.records
         if credit_records is None or len(credit_records) == 0:
@@ -45,21 +155,19 @@ def create_debt_payment_schedule(client_id):
             credit_monitoring_fee = credit_plan.monitoring_fee_2signer
         monthly_bank_fee = credit_plan.monthly_bank_fee
         min_allowed_fee = credit_plan.minimum_fee
-        term = credit_report.term
         total_fee = (total_debt * (debt_enrolled_percent/100)) + (credit_monitoring_fee * term) + (monthly_bank_fee * term)
         total_fee = round(total_fee, 2)
         if total_fee < min_allowed_fee:
             total_fee = min_allowed_fee
         # monthly fee
         monthly_fee = round((total_fee / term), 2)
-        pymt_start  = credit_report.payment_start_date
         dps = DebtPaymentSchedule(client_id=client_id,
                                   due_date=pymt_start,
                                   amount=monthly_fee,
                                   bank_fee=monthly_bank_fee)
         db.session.add(dps)
         db.session.commit()
-        start = credit_report.payment_recurring_begin_date
+        start = pymt_contract.payment_recurring_begin_date
         for i in range(1, term):
             dps = DebtPaymentSchedule(client_id=client_id,
                                       due_date=start,
