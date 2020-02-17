@@ -17,16 +17,17 @@ from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
+    
   
     new_client = Client(
         public_id=str(uuid.uuid4()),
         email=data.get('email'),
-        suffix=data.get('suffix'),
         first_name=data.get('first_name'),
         middle_initial=data.get('middle_initial'),
         last_name=data.get('last_name'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),
+        ssn=data.get('ssn'),
         type=client_type,
         inserted_on=datetime.datetime.utcnow()
     )
@@ -37,10 +38,10 @@ def save_new_client(data, client_type=ClientType.lead):
                    zip_code=data.get('zip'),
                    city=data.get('city'),
                    state=data.get('state'),
-                   typr=AddressType.CURRENT)
+                   type=AddressType.CURRENT)
     save_changes(addr)
+
     # contact number
-    #phone=data.get('phone'),
     number_type = ContactNumberType.query.filter_by(name='Cell Phone').first()
     cn = ContactNumber(inserted_on=datetime.datetime.utcnow(),
                        contact_number_type_id=number_type.id,
@@ -222,14 +223,20 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
 
 def get_client(public_id, client_type=ClientType.client):
-    return Client.query.filter_by(public_id=public_id, type=client_type).first()
+    client = Client.query.filter_by(public_id=public_id).first()
+    if client is not None:
+        if client.type == ClientType.coclient:
+            return client 
+        else:
+            return client if client.type == client_type else None
 
+    return client
 
 def update_client(client, data, client_type=ClientType.client):
     if client:
-        for attr in data:
-            if hasattr(client, attr):
-                setattr(client, attr, data.get(attr))
+        for key, value in data.items():
+            if hasattr(client, key):
+                setattr(client, key, value)
 
         save_changes(client)
 
@@ -513,3 +520,55 @@ def update_client_contact_numbers(client, contact_numbers):
             db.session.commit()
             
     return {'message': 'Successfully updated contact numbers'}, None
+
+def get_co_client(client):
+    # fetch the co-client 
+    co_client = client.co_client 
+    if co_client is not None:
+        return co_client
+    else:
+        return {
+        }
+
+def update_co_client(client, data):
+
+    # required fields
+    first_name = data.get('first_name')    
+    last_name  = data.get('last_name')
+    email  = data.get('email')
+    # optional fields
+    mi = data.get('middle_initial').strip()
+    dob = data.get('dob')
+    ssn = data.get('ssn')
+    language = data.get('language') 
+
+
+    co_client = client.co_client
+    if co_client is None:
+        # insert
+        co_client = Client(public_id=str(uuid.uuid4()),
+                           first_name=first_name,
+                           last_name=last_name,
+                           email=email,
+                           middle_initial=mi,
+                           dob=dob,
+                           ssn=ssn,
+                           estimated_debt=0,
+                           type=ClientType.coclient,
+                           inserted_on=datetime.datetime.utcnow())
+        save_changes(co_client)
+        client.co_client = co_client
+        db.session.commit()
+
+    else:
+        #update
+        co_client.first_name = first_name
+        co_client.last_name = last_name
+        co_client.email = email
+        co_client.middle_initial = mi
+        co_client.dob = dob
+        co_client.ssn = ssn
+        db.session.commit()
+
+    return co_client
+    

@@ -7,6 +7,7 @@ from .. import db
 class ClientType(enum.Enum):
     lead = "lead"
     client = "client"
+    coclient = "coclient"
 
 
 class EmploymentStatus(enum.Enum):
