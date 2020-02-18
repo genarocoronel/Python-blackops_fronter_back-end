@@ -286,12 +286,23 @@ class ClientDto:
         'frequency': FrequencyTypeField(required=True),
     })
     client_employment = api.model('client_employment', {
+        'employer_name': fields.String(required=True),
         'start_date': fields.DateTime(required=True),
         'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
+        'gross_salary': fields.Float(required=False),
         'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
+        'current': fields.Boolean(required=True, default=False)
+    })
+    update_client_employment = api.model('update_client_employment', {
+        'employer_name': fields.String(required=True),
+        'start_date': fields.DateTime(),
+        'end_date': fields.DateTime(),
+        'gross_salary': fields.Float(required=False),
+        'gross_salary_frequency': FrequencyStatusField(required=False),
+        'other_income': fields.Float(required=False),
+        'other_income_frequency': FrequencyStatusField(required=False),
         'current': fields.Boolean(required=True, default=False)
     })
     client_dispositions = api.model('client_dispositions', {
@@ -299,23 +310,14 @@ class ClientDto:
         'name': fields.String(required=True),
         'value': fields.String(required=True)
     })
-    update_client_employment = api.model('update_client_employment', {
-        'start_date': fields.DateTime(required=True),
-        'end_date': fields.DateTime(),
-        'gross_salary': fields.Float(required=True),
-        'gross_salary_frequency': FrequencyStatusField(),
-        'other_income': fields.Float(required=True),
-        'other_income_frequency': FrequencyStatusField(),
-        'current': fields.Boolean(required=True, default=False)
-    })
     client_address = api.model('client_address', {
         'address1': fields.String(required=True),
         'address2': fields.String(required=False),
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
+        'from_date': fields.Date(required=True, source="from_date"),
+        'to_date': fields.Date(required=True, source="to_date"),
         'type': AddressTypeField(required=True)
     })
     update_client_address = api.model('update_client_address', {
@@ -324,8 +326,8 @@ class ClientDto:
         'zip_code': fields.String(required=True),
         'city': fields.String(required=True),
         'state': fields.String(required=True),
-        'fromDate': fields.Date(required=True),
-        'toDate': fields.Date(required=True),
+        'from_date': fields.Date(required=True, source="from_date"),
+        'to_date': fields.Date(required=True, source="to_date"),
         'type': AddressTypeField(required=True)
     })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
@@ -337,6 +339,17 @@ class ClientDto:
     update_client_monthly_expense = api.model('update_client_monthly_expense', {
         'expense_type_id': fields.Integer(required=True),
         'value': fields.Integer(required=True),
+    })
+    contact_number = api.model('contact_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_type': fields.String(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
+    update_contact_number = api.model('update_contact_number', {
+        'phone_type_id': fields.Integer(required=True),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
     })
 
 class CreditReportAccountStatusField(fields.String):
@@ -379,9 +392,9 @@ class LeadDto:
         'public_id': fields.String(description='lead identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
-        'estimated_debt': fields.Integer(required=True, description='client estimated_debt'),
         'email': fields.String(required=True, description='lead email address'),
         'language': fields.String(required=True, enum=Language._member_names_),
+        'estimated_debt': fields.Integer(description='client estimated_debt'),
         'ssn': fields.String(description='lead ssn'),
         'dob': DateFormatField(),
         # inserted_on is kept only for backward compatability
@@ -419,6 +432,39 @@ class LeadDto:
         'phone': fields.String(description='lead phone number'),
         'type': ClientTypeField(description='client type')
     })
+    lead_address = api.model('lead_address', {
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'from_date': fields.Date(required=True, source="from_date"),
+        'to_date': fields.Date(required=True, source="to_date"),
+        'type': AddressTypeField(required=True)
+    })
+    contact_number = api.model('contact_number', {
+        'phone_type_id': fields.Integer(required=True, attribute="contact_number_type_id"),
+        'phone_type': fields.String(required=True, attribute="contact_number_type.name"),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    }) 
+    lead_phone = api.model('lead_phone', { 
+        'contact_number': fields.Nested(contact_number), 
+    })
+    co_client = api.model('co_client', {
+        'first_name': fields.String(description='lead first name'),
+        'last_name': fields.String(description='lead last name'),
+        'public_id': fields.String(),
+        'middle_initial': fields.String(),
+        'email': fields.String(description='lead email address'),
+        'dob': DateFormatField(),
+        'ssn': fields.String(), 
+        'language': fields.String(enum=Language._member_names_),
+        'employment_status': fields.String(),
+        'contact_numbers': fields.List(fields.Nested(lead_phone)),
+        'addresses': fields.List(fields.Nested(lead_address))
+    })
+
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
 
 

@@ -7,6 +7,7 @@ from .. import db
 class ClientType(enum.Enum):
     lead = "lead"
     client = "client"
+    coclient = "coclient"
 
 
 class EmploymentStatus(enum.Enum):
@@ -118,7 +119,7 @@ class ClientIncome(db.Model):
 class ClientMonthlyExpense(db.Model):
     __tablename__ = "client_monthly_expenses"
 
-    candidate_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
     expense_id = db.Column(db.Integer, db.ForeignKey('monthly_expenses.id'), primary_key=True)
 
     # relationships

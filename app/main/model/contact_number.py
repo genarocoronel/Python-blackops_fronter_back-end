@@ -23,3 +23,6 @@ class ContactNumber(db.Model):
     # fields
     phone_number = db.Column(db.String(20), nullable=False)
     preferred = db.Column(db.Boolean, nullable=False, default=False)
+
+    #relationship
+    contact_number_type  = db.relationship("ContactNumberType", backref="contact_numbers") 
