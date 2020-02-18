@@ -206,19 +206,27 @@ def send_contract_for_signature(session_id):
         t_params['ClientFullName1'] = client_full_name
         t_params['ClientFullName2'] = client_full_name
 
-
         if client_address is not None:
             t_params['ClientAddress'] = client_address.address1
+            t_params['AcctOwnerAddress'] = client_address.address1
             t_params['ClientCity'] = client_address.city
+            t_params['AcctOwnerCity'] = client_address.city
             t_params['ClientState'] = client_address.state
+            t_params['AcctOwnerState'] = client_address.state
             t_params['ClientZip'] = client_address.zip_code 
+            t_params['AcctOwnerZip'] = client_address.zip_code
         else:
             t_params['ClientAddress'] = ''
+            t_params['AcctOwnerAddress'] = ''
             t_params['ClientCity'] = ''
+            t_params['AcctOwnerCity'] = ''
             t_params['ClientState'] = ''
+            t_params['AcctOwnerState'] = ''
             t_params['ClientZip'] = ''
+            t_params['AcctOwnerZip'] = ''
 
-        t_params['BankName'] =  client.bank_account.bank_name
+        t_params['AcctOwnerSSN'] =  client.ssn if client.ssn is not None else ""
+        t_params['BankName'] =  client.bank_account.name
         t_params['BankRoutingNbr'] =  client.bank_account.routing_number
         t_params['BankAccountNbr'] = client.bank_account.account_number
         t_params['BankAccountType'] = client.bank_account.type.value
