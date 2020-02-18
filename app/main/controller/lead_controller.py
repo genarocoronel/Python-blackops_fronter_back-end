@@ -78,11 +78,13 @@ class Lead(Resource):
     @api.expect(_update_lead, validate=True)
     def put(self, public_id):
         """ Update lead with provided identifier"""
+        data = request.json
+        _convert_payload_datetime_values(data, 'dob')
         lead = get_client(public_id, client_type=LEAD)
         if not lead:
             api.abort(404)
         else:
-            return update_client(lead, request.json, client_type=LEAD)
+            return update_client(lead, data, client_type=LEAD)
 
 
 @api.route('/<lead_id>/income-sources')

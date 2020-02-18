@@ -229,7 +229,11 @@ def update_client(client, data, client_type=ClientType.client):
     if client:
         for attr in data:
             if hasattr(client, attr):
-                setattr(client, attr, data.get(attr))
+                if attr == 'disposition':
+                    disposition = ClientDisposition.query.filter_by(value=data.get(attr)).first()
+                    setattr(client, 'disposition_id', disposition.id)
+                else:
+                    setattr(client, attr, data.get(attr))
 
         save_changes(client)
 
