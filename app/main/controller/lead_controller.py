@@ -70,6 +70,7 @@ class LeadNew(Resource):
     @api.response(201, 'Client successfully created') 
     @api.doc('create a new lead')
     #@api.expect(_lead, validate=True)
+    @api.marshal_with(_lead)
     def put(self):
         """Create a new Lead"""    
         data = request.json

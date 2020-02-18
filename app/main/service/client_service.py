@@ -33,30 +33,32 @@ def save_new_client(data, client_type=ClientType.lead):
     )
     save_changes(new_client)
     # current address
+    # zip_code NOT NULL field
+    address1 = '' if data.get('address') is None else data.get('address')
+    zip_code = '' if data.get('zip_code') is None else data.get('zip_code')
+    city = '' if data.get('city') is None else data.get('city')
+    state = '' if data.get('state') is None else data.get('state')
+
     addr = Address(client_id=new_client.id,
-                   address1=data.get('address'),
-                   zip_code=data.get('zip'),
-                   city=data.get('city'),
-                   state=data.get('state'),
+                   address1=address1,
+                   zip_code=zip_code,
+                   city=city,
+                   state=state,
                    type=AddressType.CURRENT)
     save_changes(addr)
 
     # contact number
+    mobile_ph_number = '' if data.get('mobile_phone') is None else data.get('mobile_phone')
     number_type = ContactNumberType.query.filter_by(name='Cell Phone').first()
     cn = ContactNumber(inserted_on= datetime.datetime.utcnow(),
                        contact_number_type_id=number_type.id,
-                       phone_number= data.get('phone'))
+                       phone_number= mobile_ph_number)
     save_changes(cn)
     ccn = ClientContactNumber(client_id=new_client.id,
                               contact_number_id=cn.id)
     save_changes(ccn)
    
-
-    response_object = {
-        'status': 'success',
-        'message': 'Successfully created client'
-    }
-    return response_object, 201
+    return new_client, 201
 
 
 def create_client_from_candidate(candidate, client_type=ClientType.lead):
