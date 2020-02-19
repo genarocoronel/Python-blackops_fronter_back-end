@@ -12,6 +12,7 @@ from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 from app.main.model.address import Address, AddressType
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.contact_number import ContactNumber, ContactNumberType
+from datetime import datetime
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
@@ -42,7 +43,7 @@ def save_new_client(data, client_type=ClientType.lead):
     # contact number
     #phone=data.get('phone'),
     number_type = ContactNumberType.query.filter_by(name='Cell Phone').first()
-    cn = ContactNumber(inserted_on=datetime.datetime.utcnow(),
+    cn = ContactNumber(inserted_on= datetime.now(),
                        contact_number_type_id=number_type.id,
                        phone_number= data.get('phone'))
     save_changes(cn)

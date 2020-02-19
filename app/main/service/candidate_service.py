@@ -87,6 +87,11 @@ def save_new_candidate(data):
 
 def update_candidate(public_id, data):
     candidate = Candidate.query.filter_by(public_id=public_id).first()
+    if data['disposition']:
+        disposition = CandidateDisposition.query.filter_by(value=data['disposition']).first()
+        del data['disposition']
+        data['disposition_id'] = disposition.id
+
     if candidate:
         for attr in data:
             if hasattr(candidate, attr):
@@ -382,6 +387,7 @@ def get_candidates_count(q=None):
             .filter(or_(Candidate.first_name.ilike(search),
                         Candidate.last_name.ilike(search),
                         Candidate.prequal_number.ilike(search),
+                        Candidate.phone.ilike(search),
                         Candidate.email.ilike(search),
                         Candidate.public_id.ilike(search))).count()
 
