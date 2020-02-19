@@ -2,31 +2,33 @@ This is the back-end of the Fronter software
 
 ## Running Locally in Docker:
 
-1. Build the docker images:
+1. Create a db-data/ folder at the same level as this README.md file so we can map to it a volume for the PostgreSQL service.
+
+2. Build the docker images:
    ```
    $ docker-compose build
    ```
-2. Run the images:
+3. Run the images:
    ```
    $ docker-compose up
    ```
-3. **In a new terminal window/tab**, start an interactive shell session in the `api` container:
+4. **In a new terminal window/tab**, start an interactive shell session in the `api` container:
    ```
    $ docker exec -it api sh
    ```
-4. Create the DB file and tables:
+5. Create the DB file and tables:
    ```
    /app # python manage.py db upgrade
    ```
-5. Plant the seed data in the DB tables:
+6. Plant the seed data in the DB tables:
    ```
    /app # python manage.py seed
    ```
-6. Exit the interactive shell session:
+7. Exit the interactive shell session:
    ```
    /app # exit
    ```
-7. That's it! You can now login via the frontend with the following credentials:
+8. That's it! You can now login via the frontend with the following credentials:
    ```
    username: admin
    password: password
@@ -55,6 +57,12 @@ AWS_SECRET_ACCESS_KEY=
 ## Swagger Docs Endpoint
 
 `http://localhost:5000/api/v1/`
+
+## Connect Your Favorite Client to development PostgreSQL Service
+
+Postgresql service maps port 5432 to your host computer so you can connect your favorite PostgreSQL GUI client to it on localhost:5432. 
+For user, password and DB name, review docker-compose.yml file where these are defined under "dbsvc" service.
+
 
 ## Reset PostgreSQL Database
 

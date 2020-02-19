@@ -7,6 +7,7 @@ services:
       - worker
       - scheduler
       - redis
+      - dbsvc
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -86,6 +87,21 @@ services:
     container_name: scrapyjs
     expose:
       - 8050
+    networks:
+      - app-network
+
+# Postgres Service
+  dbsvc:
+    image: postgres:11
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: dstar
+      POSTGRES_USER: dstaruser
+      POSTGRES_PASSWORD: password123
+    restart: always
+    ports:
+      - '5432:5432'
     networks:
       - app-network
 

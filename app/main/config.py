@@ -37,7 +37,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'flask_boilerplate_main.db')
+    SQLALCHEMY_DATABASE_URI = "postgresql://dstaruser:password123@dbsvc/dstar"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ENABLE_CORS = True
 
