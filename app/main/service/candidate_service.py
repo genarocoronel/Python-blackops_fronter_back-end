@@ -371,11 +371,12 @@ def get_all_candidates(search_query):
 
 
 def delete_candidates(ids):
-    candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
-    for c in candidates:
-        db.session.delete(c)
-        db.session.commit()
-    return
+    if ids is not None:
+        candidates = Candidate.query.filter(Candidate.public_id.in_(ids)).all()
+        for c in candidates:
+            db.session.delete(c)
+            db.session.commit()
+        return
 
 
 def get_candidates_count(q=None):
@@ -387,7 +388,6 @@ def get_candidates_count(q=None):
             .filter(or_(Candidate.first_name.ilike(search),
                         Candidate.last_name.ilike(search),
                         Candidate.prequal_number.ilike(search),
-                        Candidate.phone.ilike(search),
                         Candidate.email.ilike(search),
                         Candidate.public_id.ilike(search))).count()
 
