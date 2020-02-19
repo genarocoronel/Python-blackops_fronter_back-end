@@ -18,16 +18,17 @@ from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
+    
   
     new_client = Client(
         public_id=str(uuid.uuid4()),
         email=data.get('email'),
-        suffix=data.get('suffix'),
         first_name=data.get('first_name'),
         middle_initial=data.get('middle_initial'),
         last_name=data.get('last_name'),
         estimated_debt=data.get('estimated_debt'),
         language=data.get('language'),
+        ssn=data.get('ssn'),
         type=client_type,
         inserted_on=datetime.datetime.utcnow()
     )
@@ -38,10 +39,10 @@ def save_new_client(data, client_type=ClientType.lead):
                    zip_code=data.get('zip'),
                    city=data.get('city'),
                    state=data.get('state'),
-                   typr=AddressType.CURRENT)
+                   type=AddressType.CURRENT)
     save_changes(addr)
+
     # contact number
-    #phone=data.get('phone'),
     number_type = ContactNumberType.query.filter_by(name='Cell Phone').first()
     cn = ContactNumber(inserted_on= datetime.now(),
                        contact_number_type_id=number_type.id,
@@ -223,8 +224,14 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
 
 def get_client(public_id, client_type=ClientType.client):
-    return Client.query.filter_by(public_id=public_id, type=client_type).first()
+    client = Client.query.filter_by(public_id=public_id).first()
+    if client is not None:
+        if client.type == ClientType.coclient:
+            return client 
+        else:
+            return client if client.type == client_type else None
 
+    return client
 
 def update_client(client, data, client_type=ClientType.client):
     if client:
@@ -281,6 +288,7 @@ def get_client_employments(client):
     employment_data = []
     for employment in employments:
         data = {}
+        data['employer_name'] = employment.employer_name
         data['start_date'] = employment.start_date
         data['end_date'] = employment.end_date
         data['gross_salary'] = employment.gross_salary
@@ -296,54 +304,85 @@ def get_all_clients_dispositions():
     return ClientDisposition.query.filter_by().all()
 
 def update_client_employments(client, employments):
-    prev_employments = ClientEmployment.query.join(Client).filter(Client.id == client.id).all()
-
     # create new records first
     for data in employments:
-        new_employment = ClientEmployment()
-        new_employment.client = client
-        new_employment.employment = Employment(
-            inserted_on=datetime.datetime.utcnow(),
-            start_date=data.get('start_date'),
-            end_date=data.get('end_date'),
-            gross_salary=data.get('gross_salary'),
-            gross_salary_frequency=data.get('gross_salary_frequency'),
-            other_income=data.get('other_income'),
-            other_income_frequency=data.get('other_income_frequency'),
-            current=data.get('current')
-        )
-        db.session.add(new_employment)
-    save_changes()
+        start_date = datetime.datetime.utcnow() if data.get('start_date') is None else data.get('start_date')
+        employer_name = "" if data.get('employer_name') is None else data.get('employer_name')
+        gross_salary = 0 if data.get('gross_salary') is None else data.get('gross_salary')
 
-    # remove previous records
-    for prev_employment in prev_employments:
-        ClientEmployment.query.filter(ClientEmployment.client_id == client.id,
-                                      ClientEmployment.employment_id == prev_employment.employment_id).delete()
-        Employment.query.filter_by(id=prev_employment.employment_id).delete()
-    save_changes()
+        client_emplyoment = ClientEmployment.query.join(Client)\
+                                                  .join(Employment)\
+                                                  .filter(and_(Client.id==client.id, Employment.current==data.get('current'))).first()
+        if client_emplyoment is None:
+            client_employment = ClientEmployment()
+            client_employment.employment = Employment(
+                inserted_on=datetime.datetime.utcnow(),
+                employer_name=employer_name,
+                start_date=start_date,
+                end_date=data.get('end_date'),
+                gross_salary=gross_salary,
+                gross_salary_frequency=data.get('gross_salary_frequency'),
+                other_income=data.get('other_income'),
+                other_income_frequency=data.get('other_income_frequency'),
+                current=data.get('current')
+            )
+            client_employment.client = client
+            save_changes(client_employment)
+        else:
+            empl = client_emplyoment.employment
+            empl.employer_name = employer_name
+            empl.start_date = start_date
+            empl.end_date = data.get('end_date')
+            empl.gross_salary = gross_salary
+            empl.gross_salary_frequency = data.get('gross_salary_frequency')
+            empl.other_income = data.get('other_income')
+            empl.other_income_frequency = data.get('other_income_frequency')
+            save_changes() 
+
 
     return {'message': 'Successfully updated employments'}, None
 
 
 def update_client_addresses(client, addresses):
-    prev_addresses = Address.query.filter_by(client_id=client.id).all()
 
     for address in addresses:
-         new_address = Address(
-            client_id=client.id,
-            address1=address['address1'],
-            address2=address['address2'],
-            zip_code=address['zip_code'],
-            city=address['city'],
-            state=address['state'],
-            from_date=datetime.datetime.strptime(address['fromDate'], "%Y-%m-%d"),
-            to_date=datetime.datetime.strptime(address['toDate'], "%Y-%m-%d"),
-            type=address['type']
-         )
-         db.session.add(new_address)
-    for prev_address in prev_addresses:
-        Address.query.filter_by(id=prev_address.id).delete()
-    save_changes()
+        addr1 = '' if address['address1'] is None else address['address1']
+        addr2 = address['address2'] if 'address2' in address else None
+        zip_code = '' if address['zip_code'] is None else address['zip_code']
+        city = '' if address['city'] is None else address['city']
+        state = '' if address['state'] is None else address['state']
+
+        from_date = datetime.datetime.utcnow() 
+        to_date = datetime.datetime.utcnow()
+        if address['from_date'] != '':
+            from_date = datetime.datetime.strptime(address['from_date'], "%Y-%m-%d")
+        if address['to_date'] != '':
+            to_date = datetime.datetime.strptime(address['to_date'], "%Y-%m-%d") 
+        # check already exists,if exists update
+        # else create new one
+        client_address = Address.query.filter_by(client_id=client.id, 
+                                                 type=address['type']).first()
+        if client_address is None:
+            client_address = Address(client_id=client.id,
+                                     address1=addr1,
+                                     address2=addr2,
+                                     zip_code=zip_code,
+                                     city=city,
+                                     state=state,
+                                     from_date=from_date,
+                                     to_date=to_date, 
+                                     type=address['type'])
+            save_changes(client_address)
+        else:
+            client_address.address1 = addr1
+            client_address.address2 = addr2
+            client_address.zip_code = zip_code
+            client_address.city = city
+            client_address.state = state
+            client_address.from_date = from_date
+            client_address.to_date = to_date
+            save_changes() 
+
     return {'message': 'Successfully updated client addresses'}, None
 
 
@@ -372,30 +411,26 @@ def get_client_income_sources(client):
 
 
 def update_client_income_sources(client, income_sources):
-    prev_income_sources_assoc = ClientIncome.query.join(Client).filter(Client.id == client.id).all()
 
-    # create new records first
     for data in income_sources:
-        income_type = IncomeType.query.filter_by(id=data.get('income_type_id')).first()
-        if income_type:
-            new_candidate_income = ClientIncome()
-            new_candidate_income.candidate = client
-            new_candidate_income.income_source = Income(
-                inserted_on=datetime.datetime.utcnow(),
-                income_type_id=data.get('income_type_id'),
-                value=data.get('value'),
-                frequency=Frequency[data.get('frequency')]
-            )
-            db.session.add(new_candidate_income)
-        else:
-            return None, 'Invalid Income Type'
+        income_type_id = data.get('income_type_id')
+        income_val = data.get('value')
 
-    # remove previous records
-    for income_assoc in prev_income_sources_assoc:
-        ClientIncome.query.filter(ClientIncome.candidate_id == client.id,
-                                  ClientIncome.income_id == income_assoc.income_id).delete()
-        Income.query.filter_by(id=income_assoc.income_id).delete()
-    save_changes()
+        client_income = ClientIncome.query.join(Client)\
+                                          .join(Income)\
+                                          .filter(and_(Client.id==client.id, Income.income_type_id==income_type_id)).first()
+        if client_income is None:
+            income = Income(inserted_on=datetime.datetime.utcnow(),
+                            income_type_id=income_type_id,
+                            value=income_val,
+                            frequency=Frequency[data.get('frequency')]) 
+            save_changes(income)
+            client_income = ClientIncome(client_id=client.id, income_id=income.id) 
+            save_changes(client_income)
+        else:
+            client_income.income_source.value = income_val
+            client_income.income_source.frequency = Frequency[data.get('frequency')]
+            db.session.commit()
 
     return {'message': 'Successfully updated income sources'}, None
 
@@ -415,32 +450,130 @@ def get_client_monthly_expenses(client):
             (expense_type.name for expense_type in expense_types if expense_type.id == expense.expense_type_id), 'UNKNOWN')
         data['value'] = expense.value
         response.append(data)
+
     return response, None
 
 
 def update_client_monthly_expenses(client, expenses):
-    prev_monthly_expense_assoc = ClientMonthlyExpense.query.join(Client).filter(Client.id == client.id).all()
 
-    # create new records first
     for data in expenses:
-        expense_type = ExpenseType.query.filter_by(id=data.get('expense_type_id')).first()
-        if expense_type:
-            new_candidate_expense = ClientMonthlyExpense()
-            new_candidate_expense.candidate = client
-            new_candidate_expense.monthly_expense = MonthlyExpense(
-                inserted_on=datetime.datetime.utcnow(),
-                expense_type_id=data.get('expense_type_id'),
-                value=data.get('value'),
-            )
-            db.session.add(new_candidate_expense)
-        else:
-            return None, 'Invalid Income Type'
+        expense_type_id = data.get('expense_type_id')
+        expense_val = data.get('value')
 
-    # remove previous records
-    for expense_assoc in prev_monthly_expense_assoc:
-        ClientMonthlyExpense.query.filter(ClientMonthlyExpense.candidate_id == client.id,
-                                          ClientMonthlyExpense.expense_id == expense_assoc.expense_id).delete()
-        MonthlyExpense.query.filter_by(id=expense_assoc.expense_id).delete()
-    save_changes()
+        cme = ClientMonthlyExpense.query.join(Client)\
+                                        .join(MonthlyExpense)\
+                                        .filter(and_(Client.id==client.id, MonthlyExpense.expense_type_id==expense_type_id)).first()
+        if cme is None:
+            monthly_expense = MonthlyExpense(inserted_on=datetime.datetime.utcnow(),
+                                             expense_type_id=expense_type_id,
+                                             value=expense_val)
+            save_changes(monthly_expense)
+            cme = ClientMonthlyExpense(client_id=client.id, expense_id=monthly_expense.id)
+            save_changes(cme)
+        else:
+            cme.monthly_expense.value = expense_val 
+            db.session.commit()
 
     return {'message': 'Successfully updated monthly expenses'}, None
+
+
+def get_client_contact_numbers(client):
+    contact_number_assoc = ClientContactNumber.query.join(Client).filter(Client.id == client.id).all()
+    contact_numbers = [num.contact_number for num in contact_number_assoc]
+    phone_types = ContactNumberType.query.filter(
+        ContactNumberType.id.in_([num.contact_number_type_id for num in contact_numbers])).all()
+
+    number_data = []
+    for contact_number in contact_numbers:
+        data = {}
+        data['phone_type_id'] = contact_number.contact_number_type_id
+        data['phone_type'] = next(
+            (phone_type.name for phone_type in phone_types if phone_type.id == contact_number.contact_number_type_id),
+            'UNKNOWN')
+        data['phone_number'] = contact_number.phone_number
+        data['preferred'] = contact_number.preferred
+        number_data.append(data)
+
+    return number_data, None
+
+
+def update_client_contact_numbers(client, contact_numbers):
+    ## contact number list
+    for data in contact_numbers:
+        phone_type_id = data.get('phone_type_id')
+        phone_type = data.get('phone_type')
+        phone_number = data.get('phone_number')
+        preferred=data.get('preferred')
+
+        # check already exists,if exists update
+        # else create new one
+        ccn = ClientContactNumber.query.join(Client)\
+                                 .join(ContactNumber)\
+                                 .filter(and_(Client.id==client.id, ContactNumber.contact_number_type_id==phone_type_id)).first()
+        if ccn is None:
+            new_cn = ContactNumber(inserted_on=datetime.datetime.utcnow(),
+                                   contact_number_type_id=phone_type_id,
+                                   phone_number=phone_number,
+                                   preferred=preferred)
+            save_changes(new_cn)
+            new_ccn = ClientContactNumber(client_id=client.id, contact_number_id=new_cn.id)  
+            save_changes(new_ccn)
+        else:
+            cn = ccn.contact_number
+            cn.phone_number = phone_number
+            cn.preferred = preferred
+            db.session.commit()
+            
+    return {'message': 'Successfully updated contact numbers'}, None
+
+def get_co_client(client):
+    # fetch the co-client 
+    co_client = client.co_client 
+    if co_client is not None:
+        return co_client
+    else:
+        return {
+        }
+
+def update_co_client(client, data):
+
+    # required fields
+    first_name = data.get('first_name')    
+    last_name  = data.get('last_name')
+    email  = data.get('email')
+    # optional fields
+    mi = data.get('middle_initial').strip()
+    dob = data.get('dob')
+    ssn = data.get('ssn')
+    language = data.get('language') 
+
+
+    co_client = client.co_client
+    if co_client is None:
+        # insert
+        co_client = Client(public_id=str(uuid.uuid4()),
+                           first_name=first_name,
+                           last_name=last_name,
+                           email=email,
+                           middle_initial=mi,
+                           dob=dob,
+                           ssn=ssn,
+                           estimated_debt=0,
+                           type=ClientType.coclient,
+                           inserted_on=datetime.datetime.utcnow())
+        save_changes(co_client)
+        client.co_client = co_client
+        db.session.commit()
+
+    else:
+        #update
+        co_client.first_name = first_name
+        co_client.last_name = last_name
+        co_client.email = email
+        co_client.middle_initial = mi
+        co_client.dob = dob
+        co_client.ssn = ssn
+        db.session.commit()
+
+    return co_client
+    

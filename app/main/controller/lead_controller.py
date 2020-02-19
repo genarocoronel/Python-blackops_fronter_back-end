@@ -7,7 +7,8 @@ from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_COD
 from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
-    update_client_employments, update_client, client_filter
+    update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
+    get_client_addresses, update_client_addresses, get_co_client, update_co_client 
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract
@@ -27,6 +28,11 @@ _lead_income = ClientDto.client_income
 _update_lead_income = ClientDto.update_client_income
 _lead_monthly_expense = ClientDto.client_monthly_expense
 _update_lead_monthly_expense = ClientDto.update_client_monthly_expense
+_contact_number = ClientDto.contact_number
+_update_contact_number = ClientDto.update_contact_number
+_lead_address = ClientDto.client_address
+_update_lead_address = ClientDto.update_client_address
+_co_client = LeadDto.co_client
 
 LEAD = ClientType.lead
 
@@ -59,6 +65,16 @@ class LeadFilter(Resource):
         result =  client_filter(client_type=LEAD, **fargs)
         return result, 200
 
+@api.route('/new')
+class LeadNew(Resource):
+    @api.response(201, 'Client successfully created') 
+    @api.doc('create a new lead')
+    #@api.expect(_lead, validate=True)
+    def put(self):
+        """Create a new Lead"""    
+        data = request.json
+        return save_new_client(data=data, client_type=LEAD)
+
 
 @api.route('/<public_id>')
 @api.param('public_id', 'The Client Identifier')
@@ -75,7 +91,7 @@ class Lead(Resource):
             return client
 
     @api.doc('update lead')
-    @api.expect(_update_lead, validate=True)
+    #@api.expect(_update_lead, validate=True)
     def put(self, public_id):
         """ Update lead with provided identifier"""
         data = request.json
@@ -118,6 +134,63 @@ class LeadIncomeSources(Resource):
             else:
                 return dict(success=True, **result), 200
 
+@api.route('/<lead_id>/contact_numbers')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Lead not found')
+class LeadContactNumbers(Resource):
+    @api.doc('get lead contact numbers')
+    @api.marshal_list_with(_contact_number)
+    def get(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_contact_numbers(lead)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('update lead contact numbers')
+    @api.expect([_update_contact_number], validate=True)
+    def put(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            numbers = request.json
+            result, err_msg = update_client_contact_numbers(lead, numbers)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
+
+@api.route('/<lead_id>/addresses')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Lead not found')
+class LeadAddresses(Resource):
+    @api.response(200, 'Address successfully created')
+    @api.doc('create new address')
+    def put(self, lead_id):
+        """ Creates new Address """
+        addresses = request.json
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        return update_client_addresses(lead, addresses)
+
+    @api.doc('get candidate addresses')
+    @api.marshal_list_with(_lead_address)
+    def get(self, lead_id):
+        lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_addresses(lead)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
 
 @api.route('/<lead_id>/monthly-expenses')
 @api.param('lead_id', 'Lead public identifier')
@@ -169,7 +242,6 @@ class LeadEmployments(Resource):
                 return result, 200
 
     @api.doc('update lead employment')
-    @api.expect([_update_lead_employment], validate=True)
     def put(self, public_id):
         lead, error_response = _handle_get_client(public_id, client_type=LEAD)
         if not lead:
@@ -245,7 +317,6 @@ class LeadCreditReportDebts(Resource):
             api.abort(404, **error_response)
 
         data = request.json
-        # print(data)
         resp = add_credit_report_data(data, credit_account)
         return resp, 200
 
@@ -275,7 +346,6 @@ class LeadCreditReportUpdateDebt(Resource):
     def put(self, public_id):
         """Push Debts"""
         request_data = request.json
-        # print(request_data.get('data')['debt_data'])
         update_debt(request_data.get('data')['debt_data'])
         return dict(success=True), 200
 
@@ -310,7 +380,7 @@ class LeadBankAccount(Resource):
 @api.response(404, 'Client not found')
 class LeadPaymentPlan(Resource):
     @api.doc('fetch payment plan')
-    def get(selfi, lead_id):
+    def get(self, lead_id):
         """ Fetch payment plan for the client """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
@@ -334,6 +404,40 @@ class LeadPaymentPlan(Resource):
                 update_payment_contract(client, request.json)
                 contract = fetch_payment_contract(client)
                 return contract
+
+            except Exception:
+                api.abort(500, "Internal Server Error")
+
+@api.route('/<lead_id>/coclient')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Client not found')
+class LeadCoClient(Resource):
+    @api.doc('fetch co-client for the account')
+    @api.marshal_with(_co_client)
+    def get(self, lead_id):
+        """ fetch co-client for the lead"""
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                co_client = get_co_client(client)
+                return co_client
+            except Exception:
+                api.abort(500, "Internal Server Error")
+
+    @api.doc('add co-client')
+    @api.marshal_with(_co_client)
+    def put(self, lead_id):
+        """Adds co-clien to the lead"""
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                # update and fetch the latest contract
+                co_client = update_co_client(client, request.json)
+                return co_client
 
             except Exception:
                 api.abort(500, "Internal Server Error")
