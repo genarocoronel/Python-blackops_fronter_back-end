@@ -236,6 +236,7 @@ def get_client(public_id, client_type=ClientType.client):
 
 def update_client(client, data, client_type=ClientType.client):
     if client:
+
         for key, value in data.items():
             if hasattr(client, key):
                 setattr(client, key, value)
@@ -555,6 +556,7 @@ def update_co_client(client, data):
                            middle_initial=mi,
                            dob=dob,
                            ssn=ssn,
+                           language=language,
                            estimated_debt=0,
                            type=ClientType.coclient,
                            inserted_on=datetime.datetime.utcnow())
@@ -570,6 +572,7 @@ def update_co_client(client, data):
         co_client.middle_initial = mi
         co_client.dob = dob
         co_client.ssn = ssn
+        co_client.language = language,
         db.session.commit()
 
     return co_client

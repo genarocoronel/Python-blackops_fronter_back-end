@@ -392,6 +392,7 @@ class LeadDto:
         'public_id': fields.String(description='lead identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
+        'middle_initial': fields.String(),
         'email': fields.String(required=True, description='lead email address'),
         'language': fields.String(required=True, enum=Language._member_names_),
         'estimated_debt': fields.Integer(description='client estimated_debt'),
@@ -459,7 +460,7 @@ class LeadDto:
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
         'ssn': fields.String(), 
-        'language': fields.String(enum=Language._member_names_),
+        'language': fields.String(),
         'employment_status': fields.String(),
         'contact_numbers': fields.List(fields.Nested(lead_phone)),
         'addresses': fields.List(fields.Nested(lead_address))
