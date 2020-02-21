@@ -17,7 +17,8 @@ from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
-    
+    total_debt = data.get('estimated_debt')    
+    total_debt = 0 if total_debt is None else int(total_debt) 
   
     new_client = Client(
         public_id=str(uuid.uuid4()),
@@ -25,7 +26,7 @@ def save_new_client(data, client_type=ClientType.lead):
         first_name=data.get('first_name'),
         middle_initial=data.get('middle_initial'),
         last_name=data.get('last_name'),
-        estimated_debt=data.get('estimated_debt'),
+        estimated_debt=total_debt,
         language=data.get('language'),
         ssn=data.get('ssn'),
         type=client_type,
