@@ -54,3 +54,4 @@ zeep==3.4.0
 zipp==0.6.0
 scrapy==1.8.0
 scrapy-splash
+pySqsListener==0.8.7
