@@ -19,6 +19,10 @@ services:
       - '5000:5000'
     environment:
       BOILERPLATE_ENV: dev
+      POSTGRES_DB: dstar
+      POSTGRES_USER: dstaruser
+      POSTGRES_PASSWORD: password123
+      POSTGRES_SERVICE: dbsvc
       REDIS_URL: redis://redis
     env_file:
       - ./docker/api.env
@@ -94,7 +98,7 @@ services:
   dbsvc:
     image: postgres:11
     volumes:
-      - ./db-data:/var/lib/postgresql/data
+      - ./docker/_data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: dstar
       POSTGRES_USER: dstaruser
