@@ -12,6 +12,7 @@ from app.main import create_app, db
 from app.main.seed.admins import create_super_admin
 
 from app.main.background.worker import run_worker
+from app.main.model.notes import Note
 from app.main.model.sms import SMSMessage
 from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature

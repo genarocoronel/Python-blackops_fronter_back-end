@@ -708,3 +708,12 @@ class RemoteSignDto:
 
 class DebtPaymentDto:
     api = Namespace('debtpayment', description='Debt Payment related operations')
+
+
+class NotesDto:
+    api = Namespace('notes', description='note related operations')
+    note = api.model('note', {
+        'candidate_id': fields.String(required=False, description='identifier for candidate'),
+        'client_id': fields.String(required=False, description='identifier for client'),
+        'content': fields.String(required=True)
+    })

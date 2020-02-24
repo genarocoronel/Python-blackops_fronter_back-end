@@ -7,7 +7,7 @@ from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
     CandidateMonthlyExpense
-from app.main.model.candidate import CandidateDisposition
+from app.main.model.candidate import CandidateDisposition, CandidateDispositionType
 from app.main.model.campaign import Campaign
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.candidate import CandidateImport, Candidate, CandidateStatus
@@ -92,7 +92,14 @@ def update_candidate(public_id, data):
             if hasattr(candidate, attr):
                     if attr == 'disposition':
                         disposition = CandidateDisposition.query.filter_by(value=data.get(attr)).first()
-                        setattr(candidate, 'disposition_id', disposition.id)
+                        if disposition.select_type == CandidateDispositionType.MANUAL:
+                            setattr(candidate, 'disposition_id', disposition.id)
+                        else:
+                            response_object = {
+                                'success': False,
+                                'message': 'Invalid Disposition to update manually',
+                            }
+                            return response_object, 400
                     else:
                         setattr(candidate, attr, data.get(attr))
 
