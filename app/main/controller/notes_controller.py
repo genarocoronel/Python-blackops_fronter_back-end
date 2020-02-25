@@ -20,7 +20,6 @@ class Notes(Resource):
             candidate_id = request.args.get('candidate_id', default=None)
             client_id = request.args.get('client_id', None)
             author = get_a_user(author_id)
-            print(author_id, candidate_id, client_id, author)
             if author:
                 if candidate_id:
                     candidate = get_candidate(candidate_id)
