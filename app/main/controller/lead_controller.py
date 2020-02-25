@@ -99,7 +99,9 @@ class Lead(Resource):
         if not lead:
             api.abort(404)
         else:
-            return update_client(lead, request.json, client_type=LEAD)
+            data = request.json
+            _convert_payload_datetime_values(data, 'dob')
+            return update_client(lead, data, client_type=LEAD)
 
 
 @api.route('/<lead_id>/income-sources')
