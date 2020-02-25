@@ -429,6 +429,7 @@ class LeadDto:
         'last_name': fields.String(description='lead last name'),
         'estimated_debt': fields.Integer(description='client estimated_debt'),
         'email': fields.String(description='lead email address'),
+        'dob': fields.DateTime(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(description='lead phone number'),
         'type': ClientTypeField(description='client type')
@@ -532,7 +533,6 @@ class CandidateDto:
         'middle_initial': fields.String(),
         'disposition': fields.String(),
         'suffix': fields.String(),
-        'address': fields.String(),
         'city': fields.String(),
         'state': fields.String(),
         'zip': fields.String(),
@@ -542,7 +542,7 @@ class CandidateDto:
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(),
         'status': CandidateStatusField(),
-        'employment_status': EmploymentStatusField(),
+        # 'employment_status': EmploymentStatusField(),
 
     })
     candidate_employment = api.model('candidate_employment', {
@@ -709,3 +709,12 @@ class RemoteSignDto:
 
 class DebtPaymentDto:
     api = Namespace('debtpayment', description='Debt Payment related operations')
+
+
+class NotesDto:
+    api = Namespace('notes', description='note related operations')
+    note = api.model('note', {
+        'candidate_id': fields.String(required=False, description='identifier for candidate'),
+        'client_id': fields.String(required=False, description='identifier for client'),
+        'content': fields.String(required=True)
+    })

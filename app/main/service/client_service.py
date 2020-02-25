@@ -5,7 +5,7 @@ from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, \
-                                  ClientMonthlyExpense, ClientContactNumber, ClientDisposition, EmploymentStatus
+                                  ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
@@ -237,10 +237,20 @@ def get_client(public_id, client_type=ClientType.client):
 
 def update_client(client, data, client_type=ClientType.client):
     if client:
-
-        for key, value in data.items():
-            if hasattr(client, key):
-                setattr(client, key, value)
+        for attr in data:
+            if hasattr(client, attr):
+                if attr == 'disposition':
+                    disposition = ClientDisposition.query.filter_by(value=data.get(attr)).first()
+                    if disposition.select_type == ClientDispositionType.MANUAL:
+                        setattr(client, 'disposition_id', disposition.id)
+                    else:
+                        response_object = {
+                                'success': False,
+                                'message': 'Invalid Disposition to update manually',
+                        }
+                        return response_object, 400
+                else:
+                    setattr(client, attr, data.get(attr))
 
         save_changes(client)
 

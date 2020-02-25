@@ -115,7 +115,7 @@ class UpdateCandidate(Resource):
         return candidate, 200
 
     @api.doc('update candidate')
-    @api.expect(_update_candidate, validate=False)
+    @api.expect(_update_candidate, validate=True)
     def put(self, candidate_id):
         data = request.json
         _convert_payload_datetime_values(data, 'dob')
