@@ -2,12 +2,13 @@ import uuid
 import datetime
 from app.main import db
 from app.main.model.task import ScrapeTask
-from app.main.model.credit_report_account import CreditReportData
+from app.main.model.credit_report_account import CreditReportData, CreditReportAccount
 
-def scrape_credit_report(account):
+def scrape_credit_report(account: CreditReportAccount, task_message='Capture credit report debts'):
+    """ Pulls credit report debts by queueing scrape job """
     task = account.launch_spider(
         'capture',
-        'Capture credit report debts for lead',  # TODO: allow passing custom message for task execution
+        task_message
     )
     save_changes(task)
 

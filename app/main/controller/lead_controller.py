@@ -287,7 +287,7 @@ class LeadCreditReportDebts(Resource):
         if exists:
             api.abort(409, **error_response)
 
-        resp = scrape_credit_report(credit_account)
+        resp = scrape_credit_report(credit_account, 'Capture credit report debts for Lead')
         return resp, 200
 
     @api.doc('view credit report data')
