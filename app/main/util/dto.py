@@ -662,6 +662,38 @@ class CandidateDto:
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
     })
+    candidate_address = api.model('candidate_address', {
+        'address1': fields.String(required=True),
+        'address2': fields.String(required=False),
+        'zip_code': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'from_date': fields.Date(required=True, source="from_date"),
+        'to_date': fields.Date(required=True, source="to_date"),
+        'type': AddressTypeField(required=True)
+    })
+    contact_number = api.model('contact_number', {
+        'phone_type_id': fields.Integer(required=True, attribute="contact_number_type_id"),
+        'phone_type': fields.String(required=True, attribute="contact_number_type.name"),
+        'phone_number': fields.String(required=True),
+        'preferred': fields.Boolean(required=True, default=False)
+    })
+    candidate_phone = api.model('candidate_phone', {
+        'contact_number': fields.Nested(contact_number),
+    })
+    co_client = api.model('co_client', {
+        'first_name': fields.String(description='first name'),
+        'last_name': fields.String(description='last name'),
+        'public_id': fields.String(),
+        'middle_initial': fields.String(),
+        'email': fields.String(description='email address'),
+        'dob': DateFormatField(),
+        'ssn': fields.String(),
+        'language': fields.String(),
+        'employment_status': fields.String(),
+        'contact_numbers': fields.List(fields.Nested(candidate_phone)),
+        'addresses': fields.List(fields.Nested(candidate_address))
+    })
 
 
 class ConfigDto:

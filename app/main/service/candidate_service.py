@@ -15,6 +15,7 @@ from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
+from app.main.model.client import ClientType
 from app.main.service.client_service import create_client_from_candidate
 
 from flask import current_app as app
@@ -145,32 +146,40 @@ def get_candidate_employments(candidate):
 
 
 def update_candidate_employments(candidate, employments):
-    prev_employments = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
-
     # create new records first
     for data in employments:
-        new_employment = CandidateEmployment()
-        new_employment.candidate = candidate
-        new_employment.employment = Employment(
-            inserted_on=datetime.datetime.utcnow(),
-            employer_name=data.get('employer_name'),
-            start_date=data.get("start_date"),
-            end_date=data.get("end_date"),
-            gross_salary=data.get('gross_salary'),
-            gross_salary_frequency=data.get('gross_salary_frequency'),
-            other_income=data.get('other_income'),
-            other_income_frequency=data.get('other_income_frequency'),
-            current=data.get('current')
-        )
-        db.session.add(new_employment)
-    save_changes()
+        start_date = datetime.datetime.utcnow() if data.get('start_date') is None else data.get('start_date')
+        employer_name = "" if data.get('employer_name') is None else data.get('employer_name')
+        gross_salary = 0 if data.get('gross_salary') is None else data.get('gross_salary')
 
-    # remove previous records
-    for prev_employment in prev_employments:
-        CandidateEmployment.query.filter(CandidateEmployment.candidate_id == candidate.id,
-                                         CandidateEmployment.employment_id == prev_employment.employment_id).delete()
-        Employment.query.filter_by(id=prev_employment.employment_id).delete()
-    save_changes()
+        candid_emplyoment = CandidateEmployment.query.join(Candidate)\
+                                                     .join(Employment)\
+                                                     .filter(and_(Candidate.id==candidate.id, Employment.current==data.get('current'))).first()
+        if candid_emplyoment is None:
+            candid_employment = CandidateEmployment()
+            candid_employment.employment = Employment(
+                inserted_on=datetime.datetime.utcnow(),
+                employer_name=employer_name,
+                start_date=start_date,
+                end_date=data.get('end_date'),
+                gross_salary=gross_salary,
+                gross_salary_frequency=data.get('gross_salary_frequency'),
+                other_income=data.get('other_income'),
+                other_income_frequency=data.get('other_income_frequency'),
+                current=data.get('current')
+            )
+            candid_employment.candidate = candidate
+            save_changes(candid_employment)
+        else:
+            empl = candid_emplyoment.employment
+            empl.employer_name = employer_name
+            empl.start_date = start_date
+            empl.end_date = data.get('end_date')
+            empl.gross_salary = gross_salary
+            empl.gross_salary_frequency = data.get('gross_salary_frequency')
+            empl.other_income = data.get('other_income')
+            empl.other_income_frequency = data.get('other_income_frequency')
+            save_changes()
 
     return {'message': 'Successfully updated employments'}, None
 
@@ -272,25 +281,44 @@ def update_candidate_monthly_expenses(candidate, expenses):
 
 
 def update_candidate_addresses(candidate, addresses):
-    prev_addresses = Address.query.filter_by(candidate_id=candidate.id).all()
-
     for address in addresses:
-        new_address = Address(
-            candidate_id=candidate.id,
-            address1=address.get('address1'),
-            address2=address.get('address2'),
-            zip_code=address.get('zip_code'),
-            city=address.get('city'),
-            state=address.get('state'),
-            from_date=datetime.datetime.strptime(address.get('from_date'), "%Y-%m-%d") if address.get(
-                'from_date') else None,
-            to_date=datetime.datetime.strptime(address.get('to_date'), "%Y-%m-%d") if address.get('to_date') else None,
-            type=address.get('type')
-        )
-        db.session.add(new_address)
-    for prev_address in prev_addresses:
-        Address.query.filter_by(id=prev_address.id).delete()
-    save_changes()
+        addr1 = '' if address['address1'] is None else address['address1']
+        addr2 = address['address2'] if 'address2' in address else None
+        zip_code = '' if address['zip_code'] is None else address['zip_code']
+        city = '' if address['city'] is None else address['city']
+        state = '' if address['state'] is None else address['state']
+
+        from_date = datetime.datetime.utcnow()
+        to_date = datetime.datetime.utcnow()
+        if address['from_date'] != None and address['from_date'] != '':
+            from_date = datetime.datetime.strptime(address['from_date'], "%Y-%m-%d")
+        if address['to_date'] != None and address['to_date'] != '':
+            to_date = datetime.datetime.strptime(address['to_date'], "%Y-%m-%d")
+        # check already exists,if exists update
+        # else create new one
+        candid_address = Address.query.filter_by(candidate_id=candidate.id,
+                                                 type=address['type']).first()
+        if candid_address is None:
+            candid_address = Address(candidate_id=candidate.id,
+                                     address1=addr1,
+                                     address2=addr2,
+                                     zip_code=zip_code,
+                                     city=city,
+                                     state=state,
+                                     from_date=from_date,
+                                     to_date=to_date,
+                                     type=address['type'])
+            save_changes(candid_address)
+        else:
+            candid_address.address1 = addr1
+            candid_address.address2 = addr2
+            candid_address.zip_code = zip_code
+            candid_address.city = city
+            candid_address.state = state
+            candid_address.from_date = from_date
+            candid_address.to_date = to_date
+            save_changes()
+
     return {'message': 'Successfully updated candidate addresses'}, None
 
 
@@ -373,14 +401,14 @@ def get_all_candidate_imports():
 
 def get_all_candidates(search_query):
     search = "%{}%".format(search_query)
-    return Candidate.query \
-        .filter(or_(Candidate.prequal_number.like(search) if search_query else True,
-                    Candidate.first_name.like(search) if search_query else True,
-                    Candidate.status.like(search) if search_query else True,
-                    Candidate.email.like(search) if search_query else True,
-                    Candidate.public_id.like(search) if search_query else True,
-                    Candidate.last_name.like(search) if search_query else True)) \
-        .outerjoin(CreditReportAccount).paginate(1, 50, False).items
+    return Candidate.query.filter_by(is_co_borrower=False) \
+                          .filter(or_(Candidate.prequal_number.like(search) if search_query else True,
+                                      Candidate.first_name.like(search) if search_query else True,
+                                      Candidate.status.like(search) if search_query else True,
+                                      Candidate.email.like(search) if search_query else True,
+                                      Candidate.public_id.like(search) if search_query else True,
+                                      Candidate.last_name.like(search) if search_query else True)) \
+                          .outerjoin(CreditReportAccount).paginate(1, 50, False).items
 
 
 def delete_candidates(ids):
@@ -397,18 +425,18 @@ def get_candidates_count(q=None):
         return Candidate.query.outerjoin(CreditReportAccount).count()
     else:
         search = "%{}%".format(q)
-        return Candidate.query.outerjoin(CreditReportAccount) \
-            .filter(or_(Candidate.first_name.ilike(search),
-                        Candidate.last_name.ilike(search),
-                        Candidate.prequal_number.ilike(search),
-                        Candidate.email.ilike(search),
-                        Candidate.public_id.ilike(search))).count()
+        return Candidate.query.filter_by(is_co_borrower=False).outerjoin(CreditReportAccount) \
+                              .filter(or_(Candidate.first_name.ilike(search),
+                                          Candidate.last_name.ilike(search),
+                                          Candidate.prequal_number.ilike(search),
+                                          Candidate.email.ilike(search),
+                                          Candidate.public_id.ilike(search))).count()
 
 
 def get_candidates_with_pagination(sort, order, page_number, limit):
     field = getattr(Candidate, sort)
     column_sorted = getattr(field, order)()
-    return Candidate.query.outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit,
+    return Candidate.query.filter_by(is_co_borrower=False).outerjoin(CreditReportAccount).order_by(column_sorted).paginate(page_number, limit,
                                                                                            False).items
 
 
@@ -421,7 +449,8 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         total = 0
 
-        query = Candidate.query.outerjoin(CandidateDisposition)\
+        query = Candidate.query.filter_by(is_co_borrower=False)\
+                               .outerjoin(CandidateDisposition)\
                                .outerjoin(Campaign)\
                                .outerjoin(CreditReportAccount)\
                                .outerjoin(Address)\
@@ -557,4 +586,65 @@ def save_new_candidate_import(data):
 
 
 def convert_candidate_to_lead(candidate):
-    return create_client_from_candidate(candidate)
+    client = create_client_from_candidate(candidate)
+    # if coclient present, create
+    if candidate.co_borrower:
+      co_client =  create_client_from_candidate(candidate.co_borrower, ClientType.coclient)
+      client.co_client = co_client
+      db.session.commit()
+
+    return client
+
+def get_co_client(candidate):
+    # fetch the co-client
+    co_client = candidate.co_borrower
+    if co_client is not None:
+        return co_client
+    else:
+        return {
+        }
+
+def update_co_client(candidate, data):
+
+    # required fields
+    first_name = data.get('first_name')
+    last_name  = data.get('last_name')
+    email  = data.get('email')
+    # optional fields
+    mi = data.get('middle_initial').strip()
+    dob = data.get('dob')
+    ssn = data.get('ssn')
+    language = data.get('language')
+
+
+    co_client = candidate.co_borrower
+    if co_client is None:
+        # insert
+        co_client = Candidate(public_id=str(uuid.uuid4()),
+                              first_name=first_name,
+                              last_name=last_name,
+                              email=email,
+                              middle_initial=mi,
+                              dob=dob,
+                              language=language,
+                              estimated_debt=0,
+                              is_co_borrower=True,
+                              inserted_on=datetime.datetime.utcnow(),
+                              debt3=0, debt15=0, debt2=0, debt215=0, debt3_2=0,
+                              checkamt=0, spellamt="", debt315=0, year_interest=0,
+                              total_interest=0, sav215=0, sav15=0, sav315=0)
+        save_changes(co_client)
+        candidate.co_borrower = co_client
+        db.session.commit()
+
+    else:
+        #update
+        co_client.first_name = first_name
+        co_client.last_name = last_name
+        co_client.email = email
+        co_client.middle_initial = mi
+        co_client.dob = dob
+        co_client.language = language,
+        db.session.commit()
+
+    return co_client

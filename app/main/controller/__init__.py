@@ -1,4 +1,5 @@
 import datetime
+from dateutil.parser import parse as dt_parse
 
 from app.main.model.client import ClientType
 from app.main.service.client_service import get_client
@@ -19,6 +20,23 @@ def _convert_payload_datetime_values(payload, *keys):
             if key in payload.keys():
                 try:
                     payload[key] = datetime.datetime.strptime(payload.get(key), datetime_format)
+                except TypeError:
+                    payload[key] = None
+
+def _parse_datetime_values(payload, *keys):
+    if isinstance(payload, list):
+        for item in payload:
+            for key in keys:
+                if key in item.keys():
+                    try:
+                        item[key] = dt_parse(item.get(key))
+                    except ValueError:
+                        item[key] = None
+    elif isinstance(payload, dict):
+        for key in keys:
+            if key in payload.keys():
+                try:
+                    payload[key] = dt_parse(payload.get(key))
                 except TypeError:
                     payload[key] = None
 

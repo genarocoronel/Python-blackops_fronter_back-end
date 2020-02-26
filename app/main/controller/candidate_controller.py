@@ -5,7 +5,7 @@ from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
 from app.main.config import upload_location
-from app.main.controller import _convert_payload_datetime_values
+from app.main.controller import _convert_payload_datetime_values, _parse_datetime_values
 from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.auth_helper import Auth
@@ -13,7 +13,8 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_filter
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_filter, \
+    get_co_client, update_co_client
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
@@ -41,6 +42,7 @@ _candidate_monthly_expense = CandidateDto.candidate_monthly_expense
 _update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
 _candidate_address = CandidateDto.candidate_address
 _update_candidate_addresses = CandidateDto.update_candidate_addresses
+_co_client = CandidateDto.co_client
 
 
 #### request params
@@ -689,7 +691,7 @@ class CandidateEmployments(Resource):
             api.abort(404, **error_response)
         else:
             employments = request.json
-            _convert_payload_datetime_values(employments, 'start_date', 'end_date')
+            _parse_datetime_values(employments, 'start_date', 'end_date')
             result, err_msg = update_candidate_employments(candidate, employments)
             if err_msg:
                 api.abort(500, err_msg)
@@ -703,7 +705,7 @@ class CandidateEmployments(Resource):
 class CandidateAddresses(Resource):
     @api.response(200, 'Address successfully created')
     @api.doc('create new address')
-    @api.expect([_update_candidate_addresses], validate=True)
+    @api.expect([_update_candidate_addresses], validate=False)
     def put(self, candidate_id):
         """ Creates new Address """
         addresses = request.json
@@ -754,3 +756,37 @@ class CandidateToLead(Resource):
         scrape_credit_report(credit_report_account, 'Pulling credit report debts for Lead in STU')
 
         return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200
+
+@api.route('/<candidate_id>/coclient')
+@api.param('canidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateCoClient(Resource):
+    @api.doc('fetch co-client for the account')
+    @api.marshal_with(_co_client)
+    def get(self, candidate_id):
+        """ fetch co-client for the candidate"""
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            try:
+                co_client = get_co_client(candidate)
+                return co_client
+            except Exception:
+                api.abort(500, "Internal Server Error")
+
+    @api.doc('add co-client')
+    @api.marshal_with(_co_client)
+    def put(self, candidate_id):
+        """Adds co-client to the candidate"""
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response) 
+        else:
+            try:
+                co_client = update_co_client(candidate, request.json)
+                return co_client
+
+            except Exception:
+                api.abort(500, "Internal Server Error")
+                                                           

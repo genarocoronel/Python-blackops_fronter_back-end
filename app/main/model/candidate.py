@@ -62,13 +62,16 @@ class Candidate(db.Model):
     inserted_on = db.Column(db.DateTime, nullable=False)
     prequal_number = db.Column(db.String(12), unique=True, nullable=True)
     status = db.Column(db.Enum(CandidateStatus), nullable=True, default=CandidateStatus.IMPORTED)
+    is_co_borrower = db.Column(db.Boolean, default=False) 
 
     # foreign keys
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'))
     disposition_id = db.Column(db.Integer, db.ForeignKey('candidate_dispositions.id'))
     import_id = db.Column(db.Integer, db.ForeignKey('candidate_imports.id'))
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id'))
 
     # relationships
+    co_borrower = db.relationship('Candidate', uselist=False, remote_side=[candidate_id])
     import_record = db.relationship('CandidateImport', back_populates='candidates')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='candidate')
     disposition = db.relationship('CandidateDisposition', back_populates='candidates')
