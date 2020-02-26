@@ -90,18 +90,25 @@ def update_candidate(public_id, data):
     if candidate:
         for attr in data:
             if hasattr(candidate, attr):
-                    if attr == 'disposition':
-                        disposition = CandidateDisposition.query.filter_by(value=data.get(attr)).first()
-                        if disposition.select_type == CandidateDispositionType.MANUAL:
-                            setattr(candidate, 'disposition_id', disposition.id)
+                if attr == 'disposition':
+                    desired_disposition = CandidateDisposition.query.filter_by(value=data.get(attr)).first()
+                    # Do not update if disposition is unchanged, especially for internally managed dipositions
+                    if desired_disposition.id != candidate.disposition_id:
+                        if desired_disposition.select_type == CandidateDispositionType.MANUAL:
+                            setattr(candidate, 'disposition_id', desired_disposition.id)
                         else:
                             response_object = {
                                 'success': False,
                                 'message': 'Invalid Disposition to update manually',
                             }
                             return response_object, 400
-                    else:
+                
+                elif attr == 'email':
+                    # Do not udpate candidates.email with empty string, since it violates unique constraint
+                    if data.get(attr) and data.get(attr) != '':
                         setattr(candidate, attr, data.get(attr))
+                else:
+                    setattr(candidate, attr, data.get(attr))
 
         save_changes(candidate)
 
