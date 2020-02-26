@@ -15,6 +15,7 @@ from app.main.service.candidate_service import save_new_candidate_import, save_c
     get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
     get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_filter
 from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
+from app.main.service.debt_service import scrape_credit_report
 from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
     get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
     activate_smart_credit_insurance, get_security_questions
@@ -739,7 +740,7 @@ class CandidateToLead(Resource):
 
         credit_report_account = candidate.credit_report_account
         if not credit_report_account:
-            api.abort(404, "No credit report account associated with candidate")
+            api.abort(404, "No credit report account associated with candidate. Create SC account first.")
 
         convert_candidate_to_lead(candidate)
 
@@ -750,10 +751,6 @@ class CandidateToLead(Resource):
             credit_report_account.registered_fraud_insurance = True
             update_credit_report_account(credit_report_account)
 
-        task = credit_report_account.launch_spider(
-            'capture',
-            'Capture credit report debts for new lead',
-        )
-        save_changes(task)
+        scrape_credit_report(credit_report_account, 'Pulling credit report debts for Lead in STU')
 
         return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200

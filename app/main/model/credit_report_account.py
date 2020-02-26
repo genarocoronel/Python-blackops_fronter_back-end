@@ -91,8 +91,7 @@ class CreditReportData(db.Model):
     creditor = db.Column(db.String(100), nullable=True)
     ecoa = db.Column(db.String(50), nullable=True)
     account_number = db.Column(db.String(25), nullable=True)
-    account_type = db.Column(db.Enum(CreditReportDataAccountType), nullable=False,
-                       default=CreditReportDataAccountType.CREDIT_CARD)
+    account_type = db.Column(db.String(25), nullable=False, default='other')
     push = db.Column(db.Boolean, nullable=True, default=False)
     last_collector = db.Column(db.String(100), nullable=True)
     collector_account = db.Column(db.String(100), nullable=True)

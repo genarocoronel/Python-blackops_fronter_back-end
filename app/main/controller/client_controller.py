@@ -8,6 +8,7 @@ from app.main.service.client_service import get_all_clients, save_new_client, ge
     update_client, get_client_employments, update_client_employments, get_client_income_sources, update_client_income_sources, \
     get_client_monthly_expenses, update_client_monthly_expenses, save_changes, update_client_addresses, \
     get_client_addresses
+from app.main.service.debt_service import scrape_credit_report
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
@@ -231,16 +232,8 @@ class ClientCreditReportDebts(Resource):
         if exists:
             api.aport(409, **error_response)
 
-        task = credit_account.launch_spider(
-            'capture',
-            'Capture credit report debts for lead',  # TODO: allow passing custom message for task execution
-        )
-        save_changes(task)
+        resp = scrape_credit_report(credit_account, 'Capture credit report debts for Client')
 
-        resp = {
-            'message': 'Spider queued',
-            'task_id': task.id
-        }
         return resp, 200
 
     @api.doc('view credit report data')
