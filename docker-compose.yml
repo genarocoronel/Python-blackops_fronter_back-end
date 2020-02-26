@@ -7,6 +7,7 @@ services:
       - worker
       - scheduler
       - redis
+      - dbsvc
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -18,6 +19,10 @@ services:
       - '5000:5000'
     environment:
       BOILERPLATE_ENV: dev
+      POSTGRES_DB: dstar
+      POSTGRES_USER: dstaruser
+      POSTGRES_PASSWORD: password123
+      POSTGRES_SERVICE: dbsvc
       REDIS_URL: redis://redis
     env_file:
       - ./docker/api.env
@@ -86,6 +91,21 @@ services:
     container_name: scrapyjs
     expose:
       - 8050
+    networks:
+      - app-network
+
+# Postgres Service
+  dbsvc:
+    image: postgres:11
+    volumes:
+      - ./docker/_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: dstar
+      POSTGRES_USER: dstaruser
+      POSTGRES_PASSWORD: password123
+    restart: always
+    ports:
+      - '5432:5432'
     networks:
       - app-network
 
