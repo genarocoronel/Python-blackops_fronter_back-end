@@ -14,6 +14,7 @@ from app.main.seed.admins import create_super_admin
 from app.main.background.worker import run_worker
 from app.main.model.notes import Note
 from app.main.model.sms import SMSMessage
+from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
 from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
 from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction, DebtPaymentContract

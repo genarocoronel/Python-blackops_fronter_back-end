@@ -14,6 +14,7 @@ from .main.controller.lead_controller import api as lead_ns
 from .main.controller.rsign_controller import api as rsign_ns
 from .main.controller.debt_payment_controller import api as debtpay_ns
 from .main.controller.notes_controller import api as notes_ns
+from .main.controller.sms_controller import api as sms_ns
 
 blueprint = Blueprint('api', __name__)
 
@@ -34,3 +35,4 @@ api.add_namespace(appointment_ns)
 api.add_namespace(rsign_ns)
 api.add_namespace(debtpay_ns)
 api.add_namespace(notes_ns)
+api.add_namespace(sms_ns)

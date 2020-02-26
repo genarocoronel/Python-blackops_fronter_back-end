@@ -718,3 +718,16 @@ class NotesDto:
         'client_id': fields.String(required=False, description='identifier for client'),
         'content': fields.String(required=True)
     })
+
+
+class SmsDto:
+    api = Namespace('sms', description='SMS related operations')
+
+    new_sms_mssg_registration = api.model('sms_message_create_request', {
+        'time': fields.String(required=False, example='2020-02-18T18:38:38.620Z'),
+        'type': fields.String(required=False, example='message-received'),
+        'to': fields.String(required=False, example='+15554443333'),
+        'description': fields.String(required=False, example='Incoming message received'),
+        'message': fields.String(required=False, example='a Provider message object'),
+
+    })
