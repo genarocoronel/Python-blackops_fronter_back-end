@@ -43,8 +43,8 @@ def upgrade():
     sa.Column('public_id', sa.String(length=100), nullable=True),
     sa.Column('inserted_on', sa.DateTime(), nullable=True),
     sa.Column('file_uri', sa.String(length=500), nullable=True),
-    sa.Column('fk_sms_message', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['fk_sms_message'], ['sms_messages.id'], ),
+    sa.Column('sms_message_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['sms_message_id'], ['sms_messages.id'], name='fk_sms_media_files_sms_message_id'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('public_id'),
     )
@@ -54,7 +54,7 @@ def upgrade():
     sa.Column('inserted_on', sa.DateTime(), nullable=True),
     sa.Column('updated_on', sa.DateTime(), nullable=True),
     sa.Column('client_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], name='fk_client'),
+    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], name='fk_sms_convos_client_id'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('public_id'),
     )
@@ -71,7 +71,7 @@ def upgrade():
         batch_op.add_column(sa.Column('segment_count', sa.Integer(), nullable=True))
         batch_op.add_column(sa.Column('sms_convo_id', sa.Integer(), nullable=True))
         batch_op.add_column(sa.Column('to_phone', sa.String(length=20), nullable=True))
-        batch_op.create_foreign_key('fk_sms_convos_id', 'sms_convos', ['sms_convo_id'], ['id'])
+        batch_op.create_foreign_key('fk_sms_messages_sms_convo_id', 'sms_convos', ['sms_convo_id'], ['id'])
         batch_op.create_unique_constraint('sms_uq_convos_public_id', ['public_id']),
         batch_op.drop_column('phone_target')
         batch_op.drop_column('status')
@@ -89,7 +89,7 @@ def downgrade():
         batch_op.add_column(sa.Column('user_id', sa.INTEGER(), autoincrement=False, nullable=False))
         batch_op.add_column(sa.Column('status', sa.VARCHAR(length=25), autoincrement=False, nullable=False))
         batch_op.add_column(sa.Column('phone_target', sa.VARCHAR(length=25), autoincrement=False, nullable=False))
-        batch_op.drop_constraint('fk_sms_convos_id', type_='foreignkey')
+        batch_op.drop_constraint('fk_sms_messages_sms_convo_id', type_='foreignkey')
         batch_op.drop_constraint('sms_uq_convos_public_id', type_='unique')
         batch_op.drop_column('to_phone')
         batch_op.drop_column('sms_convo_id')

@@ -11,7 +11,7 @@ class SMSConvo(db.Model):
     
     # relationships
     sms_messages = db.relationship('SMSMessage', backref='sms_convo')
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_client'))
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_sms_convos_client_id'))
     
     
 class SMSMessage(db.Model):
@@ -33,7 +33,7 @@ class SMSMessage(db.Model):
     is_viewed = db.Column(db.Boolean, default=False)
 
     # Relationships
-    sms_convo_id = db.Column(db.Integer, db.ForeignKey('sms_convos.id', name='fk_sms_convos_id'))
+    sms_convo_id = db.Column(db.Integer, db.ForeignKey('sms_convos.id', name='fk_sms_messages_sms_convo_id'))
     sms_media_files = db.relationship('SMSMediaFile', backref='sms_message')
 
 
@@ -47,7 +47,7 @@ class SMSMediaFile(db.Model):
     file_uri = db.Column(db.String(500))
 
     # relationships
-    sms_message_id = db.Column(db.Integer, db.ForeignKey('sms_messages.id'), name='fk_sms_message')
+    sms_message_id = db.Column(db.Integer, db.ForeignKey('sms_messages.id', name='fk_sms_media_files_sms_message_id'))
 
 
 class SMSBandwidth(db.Model):
