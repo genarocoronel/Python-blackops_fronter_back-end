@@ -63,8 +63,8 @@ def save_new_client(data, client_type=ClientType.lead):
 
     # notification preference
     np = NotificationPreference(client_id=new_client.id)
-    save_changes(np) 
-   
+    save_changes(np)
+
     return new_client, 201
 
 
@@ -116,7 +116,7 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
     new_client.credit_report_account = candidate.credit_report_account
     # notification preference
     np = NotificationPreference(client_id=new_client.id)
-    db.session.add(np) 
+    db.session.add(np)
 
     for employment_item in candidate.employments:
         new_client_employment = ClientEmployment(
@@ -255,7 +255,6 @@ def client_filter(limit=25, sort_col='id', order="desc",
 def get_client(public_id, client_type=ClientType.client):
     client = Client.query.filter_by(public_id=public_id).first()
     if client is not None:
-        app.logger.info(f"Found a Client of type {client_type} with ID {public_id}")
         if client.type == ClientType.coclient:
             return client 
         else:
@@ -357,8 +356,10 @@ def get_client_employments(client):
 
     return employment_data, None
 
+
 def get_all_clients_dispositions():
     return ClientDisposition.query.filter_by().all()
+
 
 def update_client_employments(client, employments):
     # create new records first
@@ -394,8 +395,7 @@ def update_client_employments(client, employments):
             empl.gross_salary_frequency = data.get('gross_salary_frequency')
             empl.other_income = data.get('other_income')
             empl.other_income_frequency = data.get('other_income_frequency')
-            save_changes() 
-
+            save_changes()
 
     return {'message': 'Successfully updated employments'}, None
 
@@ -583,6 +583,7 @@ def update_client_contact_numbers(client, contact_numbers):
             
     return {'message': 'Successfully updated contact numbers'}, None
 
+
 def get_co_client(client):
     # fetch the co-client 
     co_client = client.co_client 
@@ -592,20 +593,21 @@ def get_co_client(client):
         return {
         }
 
+
 def update_co_client(client, data):
 
 
     co_client = client.co_client
     if co_client is None:
         # required fields
-        first_name = data.get('first_name')    
+        first_name = data.get('first_name')
         last_name  = data.get('last_name')
         email  = data.get('email')
         # optional fields
         mi = data.get('middle_initial').strip()
         dob = data.get('dob')
         ssn = data.get('ssn')
-        language = data.get('language') 
+        language = data.get('language')
 
         # insert
         co_client = Client(public_id=str(uuid.uuid4()),
@@ -632,7 +634,8 @@ def update_co_client(client, data):
         db.session.commit()
 
     return co_client
-    
+
+
 def get_client_checklist(client):
     result = []
     items = CheckList.query.all()
@@ -645,12 +648,13 @@ def get_client_checklist(client):
                'id': item.id,
                'title': item.title,
                'checked': True if item.id in client_items else False,
-           }     
+           }
            result.append(cl)
     except Exception:
         raise ValueError("Error in fetching client checklist")
 
     return result
+
 
 def update_client_checklist(client, data):
     item = data
@@ -660,19 +664,20 @@ def update_client_checklist(client, data):
         raise ValueError("Checklist item is not valid")
 
     if item['checked']:
-       ccl = ClientCheckList(client_id=client.id, 
+       ccl = ClientCheckList(client_id=client.id,
                              checklist_id=item['id'])
        save_changes(ccl)
     else:
        try:
-           ClientCheckList.query.filter_by(client_id=client.id, checklist_id=item['id']).delete() 
+           ClientCheckList.query.filter_by(client_id=client.id, checklist_id=item['id']).delete()
            db.session.commit()
        except Exception:
            raise ValueError("Not a valid checklist item for the client")
 
+
 def update_notification_pref(client, data):
     try:
-        pref = client.notification_pref 
+        pref = client.notification_pref
         if pref is None:
             pref = NotificationPreference(client_id=client.id)
             save_changes(pref)
@@ -684,4 +689,4 @@ def update_notification_pref(client, data):
         db.session.commit()
     except Exception as err:
         raise ValueError("Update preferences error: Invalid parameter")
-                                   
+
