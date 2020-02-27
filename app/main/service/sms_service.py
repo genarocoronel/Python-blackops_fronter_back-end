@@ -2,6 +2,7 @@ import uuid
 import datetime
 import re
 from twilio.rest import Client
+from flask import current_app
 
 from app.main import db
 from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
@@ -12,20 +13,18 @@ from app.main.service.client_service import get_client_by_phone, get_client_by_i
 account_sid = "AC27a28affdf746d9c7b06788016b35c8c"
 sms_auth_token = "a91db8822f78e7a928676140995290db"
 
-# TODO: Consider refactoring to be in DB
-_webhook_auth_identities = {
-    'e2547ff6-1273-4f8e-b386-04f9f1d96a01':'bandwidth', 
-    '57ed776c-5d38-42fb-a320-70890e303310':'jive'
-}
+PROVIDER_BANDWIDTH = 'bandwidth'
+PROVIDER_JIVE = 'jive'
 
 
 def whois_webhook_token(webhook_token):
     """ Checks if a Webhook token for SMS message registration is valid """
     provider_name = None
-    # TODO: Refactor with webhook_token in _webhook_auth_identities.items()
-    for whtoken, provider in _webhook_auth_identities.items():
+    
+    for whtoken, provider in current_app.sms_webhook_identities.items():
         if webhook_token == whtoken:
             provider_name = provider
+            break
 
     return provider_name
 
@@ -97,14 +96,20 @@ def synth_messages_for_convo(convo, client=None):
 
 def register_new_sms_mssg(mssg_data, provider_name):
     """ Registers a new SMS message and tries to associate it with a Conversation """
-    message_id = None
-    if (provider_name == 'bandwidth'):
+    result = None
+    if (provider_name == PROVIDER_BANDWIDTH):
         crm_mssg_data = _save_bandwidth_sms_message(mssg_data)
         crm_mssg = process_new_sms_mssg(crm_mssg_data)
+
+        result = {
+                'success': True,
+                'message': "Successfully registered a Provider SMS message. Thank you.",
+                'our_message_id': crm_mssg.public_id
+            }
     else:
-        raise Exception('Error: That SMS provider is unknown.')
+        raise Exception(f'Error: That SMS provider {provider_name} is unknown.')
     
-    return crm_mssg.public_id
+    return result
 
 
 def process_new_sms_mssg(mssg_data):

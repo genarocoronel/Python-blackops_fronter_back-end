@@ -26,17 +26,13 @@ class SmsRegistration(Resource):
 
         # Bandwidth always must expect 200 HTTP code, except for when not using our webhook token
         try:
-            mssg_public_id = register_new_sms_mssg(mssg_data, provider_name)
-            response_object = {
-                'success': True,
-                'public_id': mssg_public_id
-            }
-            return response_object, 200 
+            response = register_new_sms_mssg(mssg_data, provider_name)
+            return response, 200 
 
         except Exception as e:
             response_object = {
                 'success': False,
-                'message': str(e)
+                'message': "Returning 200 but in fact an Internal server error occurred trying to register a new Provider SMS message"
             }
             return response_object, 200
         
@@ -50,10 +46,14 @@ class SmsConversation(Resource):
             convo_mssgs = get_convo(convo_public_id)
 
         except Exception as e:
-            api.abort(500, 'Internal Server error - {}'.format( str(e) ))
+            api.abort(500, f'Internal Server error encountered while trying to get a SMS Conversation with ID {convo_public_id}')
 
         if not convo_mssgs:
-            api.abort(404, "Conversation not found.") 
+            convo_mssgs = {
+                'success': False,
+                'message': "Conversation does not exist"
+            }
+            return convo_mssgs, 404
 
         return convo_mssgs, 200
 
@@ -67,9 +67,13 @@ class SmsClientConversation(Resource):
             convo_mssgs = get_convo_for_client(client_public_id)
 
         except Exception as e:
-            api.abort(500, 'Internal Server error - {}'.format( str(e) ))
+           api.abort(500, f'Internal Server error encountered while trying to get a SMS Conversation for Client ID {client_public_id}')
 
         if not convo_mssgs:
-            api.abort(404, "Conversation not found.") 
+            convo_mssgs = {
+                'success': False,
+                'message': "Conversation does not exist"
+            }
+            return convo_mssgs, 404
 
         return convo_mssgs, 200

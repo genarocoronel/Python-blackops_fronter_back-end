@@ -1,4 +1,5 @@
 import rq
+import ast
 from cryptography.fernet import Fernet
 from flask import Flask
 from flask_cors import CORS
@@ -42,6 +43,11 @@ def create_app(config_name):
     app.datax_call_type = app.config['DATAX_CALL_TYPE']
     app.datax_license_key = app.config['DATAX_LICENSE_KEY']
     app.datax_password = app.config['DATAX_PASSWORD']
+
+    try:
+        app.sms_webhook_identities = ast.literal_eval(app.config['SMS_WEBHOOK_IDENTITIES'])
+    except Exception as e:
+        pass
 
     db.init_app(app)
     flask_bcrypt.init_app(app)
