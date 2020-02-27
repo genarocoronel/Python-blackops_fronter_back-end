@@ -18,6 +18,7 @@ from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
 from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
 from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction, DebtPaymentContract
+from app.main.model.checklist import CheckList
 from app.main.model.client import Client
 from app.main.model.client_call import ClientCall
 from app.main.model.contact_number import ContactNumberType, ContactNumber
@@ -25,6 +26,7 @@ from app.main.model.address import AddressType, Address
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.credit_report_account import CreditReportAccount
+from app.main.model.notification import NotificationPreference
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
 from app.main.seed.client_dispositions import seed_client_disposition_values
 from app.main.seed.contact_number_types import seed_contact_number_types
@@ -32,6 +34,7 @@ from app.main.seed.expense_types import seed_expense_type_values
 from app.main.seed.income_types import seed_income_types
 from app.main.seed.rsign import seed_rsign_records
 from app.main.seed.bank_account import seed_datax_validation_codes
+from app.main.seed.checklist import seed_client_main_checklist
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -56,6 +59,7 @@ def seed():
     seed_income_types()
     seed_rsign_records()
     seed_datax_validation_codes()
+    seed_client_main_checklist()
 
 
 @manager.command

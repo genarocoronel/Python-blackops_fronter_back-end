@@ -1,0 +1,25 @@
+from app.main.model.checklist import CheckList
+from app.main import db
+
+def seed_client_main_checklist():
+    cl = CheckList(title='Brand Phone Number')
+    db.session.add(cl)
+    cl = CheckList(title='Summon')
+    db.session.add(cl)
+    cl = CheckList(title='Collection Violation')
+    db.session.add(cl)
+    cl = CheckList(title='Not Debt Settlement')
+    db.session.add(cl)
+    cl = CheckList(title='Financial Rehabilitation')
+    db.session.add(cl)
+    cl = CheckList(title='Smart Credit')
+    db.session.add(cl)
+    cl = CheckList(title='Smart Credit: Co-Client')
+    db.session.add(cl)
+    cl = CheckList(title='FDCPA Attorney Intro')
+    db.session.add(cl)
+    cl = CheckList(title='Fully Disputed')
+    db.session.add(cl)
+    cl = CheckList(title='Salesman Declaration-March 21, 2019 by Sarah Flores')
+    db.session.add(cl)
+    db.session.commit()

@@ -1,14 +1,15 @@
 from flask import request
 from flask_restplus import Resource
 
-from app.main.controller import _handle_get_client, _handle_get_credit_report, _convert_payload_datetime_values
+from app.main.controller import _handle_get_client, _handle_get_credit_report, _convert_payload_datetime_values, _parse_datetime_values
 from app.main.model.client import ClientType
 from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_CODES_SALES_OVERRIDABLE
 from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
-    get_client_addresses, update_client_addresses, get_co_client, update_co_client 
+    get_client_addresses, update_client_addresses, get_co_client, update_co_client, get_client_checklist, update_client_checklist, \
+    update_notification_pref
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract
@@ -100,7 +101,7 @@ class Lead(Resource):
             api.abort(404)
         else:
             data = request.json
-            _convert_payload_datetime_values(data, 'dob')
+            _parse_datetime_values(data, 'dob')
             return update_client(lead, data, client_type=LEAD)
 
 
@@ -442,3 +443,53 @@ class LeadCoClient(Resource):
 
             except Exception:
                 api.abort(500, "Internal Server Error")
+
+@api.route('/<lead_id>/checklist')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Client not found')
+class LeadChecklist(Resource):
+    @api.doc('fetch checklist for the lead')
+    def get(self, lead_id):
+        """ fetch checklist for the lead"""
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                checklist = get_client_checklist(client)
+                return checklist
+            except Exception:
+                api.abort(500, "Internal Server Error")
+
+    @api.doc('update checklist for the lead')
+    def put(self, lead_id):
+        """ update checklist for the lead"""
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                data = request.json
+                checklist = update_client_checklist(client, data)
+                return checklist
+            except Exception:
+                api.abort(500, "Internal Server Error")
+
+@api.route('/<lead_id>/notification/prefs')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Client not found')
+class LeadNotificationPrefs(Resource):
+    @api.doc('update notification preferences')
+    def put(self, lead_id):
+        """ update notification preferences for the lead"""
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                data = request.json
+                prefs = update_notification_pref(client, data)
+                return prefs
+            except Exception:
+                api.abort(500, "Internal Server Error")
+
