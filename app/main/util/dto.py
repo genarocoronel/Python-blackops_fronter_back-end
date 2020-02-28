@@ -468,10 +468,12 @@ class LeadDto:
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
         'ssn': fields.String(), 
-        'language': fields.String(),
+        'estimated_debt': fields.Integer(description='client estimated_debt'),
+        'language': fields.String(required=True, enum=Language._member_names_),
         'employment_status': fields.String(),
         'contact_numbers': fields.List(fields.Nested(lead_phone)),
-        'addresses': fields.List(fields.Nested(lead_address))
+        'addresses': fields.List(fields.Nested(lead_address)),
+        'notification_pref': fields.Nested(notification_preference),
     })
 
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)

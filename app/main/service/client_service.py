@@ -575,19 +575,19 @@ def get_co_client(client):
 
 def update_co_client(client, data):
 
-    # required fields
-    first_name = data.get('first_name')    
-    last_name  = data.get('last_name')
-    email  = data.get('email')
-    # optional fields
-    mi = data.get('middle_initial').strip()
-    dob = data.get('dob')
-    ssn = data.get('ssn')
-    language = data.get('language') 
-
 
     co_client = client.co_client
     if co_client is None:
+        # required fields
+        first_name = data.get('first_name')    
+        last_name  = data.get('last_name')
+        email  = data.get('email')
+        # optional fields
+        mi = data.get('middle_initial').strip()
+        dob = data.get('dob')
+        ssn = data.get('ssn')
+        language = data.get('language') 
+
         # insert
         co_client = Client(public_id=str(uuid.uuid4()),
                            first_name=first_name,
@@ -606,13 +606,10 @@ def update_co_client(client, data):
 
     else:
         #update
-        co_client.first_name = first_name
-        co_client.last_name = last_name
-        co_client.email = email
-        co_client.middle_initial = mi
-        co_client.dob = dob
-        co_client.ssn = ssn
-        co_client.language = language,
+        for attr in data:
+            if hasattr(co_client, attr):
+                setattr(co_client, attr, data.get(attr))
+
         db.session.commit()
 
     return co_client
