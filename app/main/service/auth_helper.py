@@ -29,12 +29,13 @@ class Auth:
             if user and user.check_password(data.get('password')):
                 auth_token = user.encode_auth_token(user.id)
                 if auth_token:
-                    if user.require_2fa:
-                        code = generate_code()
-                        app.logger.debug(f'user authenticated with credentials; requires 2FA code: {code}')
-                        sms_send_raw(user.personal_phone,
-                                     f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes',
-                                     user.id)
+                    # TODO: Implement 2-factor auth at a later time (per Keith & David on 2020-02-28)
+                    # if user.require_2fa:
+                    #     code = generate_code()
+                    #     app.logger.debug(f'user authenticated with credentials; requires 2FA code: {code}')
+                    #     sms_send_raw(user.personal_phone,
+                    #                  f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes',
+                    #                  user.id)
 
                     response_object = {
                         'status': 'success',
@@ -144,8 +145,10 @@ class Auth:
                 save_changes(reset_request)
                 app.logger.info('Sending password reset email...')
                 app.logger.debug(f'password reset request id: {reset_request.reset_key}, code: {code}')
-                sms_send_raw(user.personal_phone,
-                             f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes', user.id)
+                # TODO: Finish implementing feature for sending SMS messages to Users of the CRM.
+                # We may want to centralize SMS services via Bandwidth (or Jive?).
+                # sms_send_raw(user.personal_phone,
+                #              f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes', user.id)
                 response_object = {
                     'success': True,
                     'message': 'Password reset request successful',
