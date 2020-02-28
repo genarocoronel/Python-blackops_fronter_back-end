@@ -26,7 +26,7 @@ class Config:
 
     # Our own tokens to identify which provider is calling our /sms/register-message webhook API
     # If we change them, we must change the webhook endpoint with corresponding SMS Providers
-    SMS_WEBHOOK_IDENTITIES = os.environ.get('SMS_WEBHOOK_IDENTITIES')
+    SMS_WEBHOOK_IDENTITIES = os.environ.get('SMS_WEBHOOK_IDENTITIES', None)
 
     ENABLE_CORS = False
     DEBUG = False

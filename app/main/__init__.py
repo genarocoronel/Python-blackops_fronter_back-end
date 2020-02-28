@@ -45,9 +45,12 @@ def create_app(config_name):
     app.datax_password = app.config['DATAX_PASSWORD']
 
     try:
+        if not app.config['SMS_WEBHOOK_IDENTITIES']:
+            raise Exception('Error gettin SMS_WEBHOOK_IDENTITIES value. We got none.')
+
         app.sms_webhook_identities = ast.literal_eval(app.config['SMS_WEBHOOK_IDENTITIES'])
     except Exception as e:
-        pass
+        raise Exception('Error trying to get the SMS webhook identities environment variable.')
 
     db.init_app(app)
     flask_bcrypt.init_app(app)

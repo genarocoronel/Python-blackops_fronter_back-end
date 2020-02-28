@@ -19,10 +19,10 @@ class SmsRegistration(Resource):
 
         provider_name = whois_webhook_token(webhook_token)
         if not provider_name:
-            return 'Not Authorized: Contact your service representative for credentials', 401
+            return api.abort(401, 'Contact your service representative for credentials', success=False)
 
         if mssg_data is None:
-            return 'Bad Request: The message payload is missing.', 400
+            return api.abort(400, message='The message payload is missing.', success=False)
 
         # Bandwidth always must expect 200 HTTP code, except for when not using our webhook token
         try:
@@ -32,7 +32,7 @@ class SmsRegistration(Resource):
         except Exception as e:
             response_object = {
                 'success': False,
-                'message': "Returning 200 but in fact an Internal server error occurred trying to register a new Provider SMS message"
+                'message': "Failed to register a new Provider SMS message"
             }
             return response_object, 200
         
@@ -46,14 +46,10 @@ class SmsConversation(Resource):
             convo_mssgs = get_convo(convo_public_id)
 
         except Exception as e:
-            api.abort(500, f'Internal Server error encountered while trying to get a SMS Conversation with ID {convo_public_id}')
+            api.abort(500, f'Failed to retrieve SMS Conversation with ID {convo_public_id}', success=False)
 
         if not convo_mssgs:
-            convo_mssgs = {
-                'success': False,
-                'message': "Conversation does not exist"
-            }
-            return convo_mssgs, 404
+            api.abort(404, message=f"Conversation with ID {convo_public_id} does not exist", success=False)
 
         return convo_mssgs, 200
 
@@ -67,13 +63,9 @@ class SmsClientConversation(Resource):
             convo_mssgs = get_convo_for_client(client_public_id)
 
         except Exception as e:
-           api.abort(500, f'Internal Server error encountered while trying to get a SMS Conversation for Client ID {client_public_id}')
+           api.abort(500, message=f'Failed to get a SMS Conversation for Client ID {client_public_id}', success=False)
 
         if not convo_mssgs:
-            convo_mssgs = {
-                'success': False,
-                'message': "Conversation does not exist"
-            }
-            return convo_mssgs, 404
+            api.abort(404, message=f"Conversation for client with ID {client_public_id} does not exist", success=False, )
 
         return convo_mssgs, 200
