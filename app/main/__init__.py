@@ -44,10 +44,9 @@ def create_app(config_name):
     app.datax_license_key = app.config['DATAX_LICENSE_KEY']
     app.datax_password = app.config['DATAX_PASSWORD']
 
+    if not app.config['SMS_WEBHOOK_IDENTITIES']:
+        raise Exception('Error gettin SMS_WEBHOOK_IDENTITIES value. We got none.')
     try:
-        if not app.config['SMS_WEBHOOK_IDENTITIES']:
-            raise Exception('Error gettin SMS_WEBHOOK_IDENTITIES value. We got none.')
-
         app.sms_webhook_identities = ast.literal_eval(app.config['SMS_WEBHOOK_IDENTITIES'])
     except Exception as e:
         raise Exception('Error trying to get the SMS webhook identities environment variable.')
