@@ -235,6 +235,26 @@ def get_client(public_id, client_type=ClientType.client):
 
     return client
 
+
+def get_client_by_public_id(id):
+    """ Gets a client by public ID """
+    return Client.query.filter_by(public_id=id).first()
+
+
+def get_client_by_id(id):
+    """ Gets a client by (internal) ID """
+    return Client.query.filter_by(id=id).first()
+
+
+def get_client_by_phone(phone_number):
+    """ Gets a Client record by phone number """
+    client = None
+    contactnum_assoc = ClientContactNumber.query.join(ContactNumber).filter(ContactNumber.phone_number == phone_number).first()
+    if contactnum_assoc:
+        client = contactnum_assoc.client
+    return client
+
+
 def update_client(client, data, client_type=ClientType.client):
     if client:
         for attr in data:

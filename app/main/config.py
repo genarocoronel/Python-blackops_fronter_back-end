@@ -24,6 +24,10 @@ class Config:
     DATAX_PASSWORD = os.environ.get('DATAX_PASSWORD')
     DATAX_CALL_TYPE = os.environ.get('DATAX_CALL_TYPE', 'dkwconsulting-bavnew')
 
+    # Our own tokens to identify which provider is calling our /sms/register-message webhook API
+    # If we change them, we must change the webhook endpoint with corresponding SMS Providers
+    SMS_WEBHOOK_IDENTITIES = os.environ.get('SMS_WEBHOOK_IDENTITIES', None)
+
     ENABLE_CORS = False
     DEBUG = False
     SMART_CREDIT_HTTP_USER = os.environ.get('SMART_CREDIT_HTTP_USER') or 'documentservicesolutions'
