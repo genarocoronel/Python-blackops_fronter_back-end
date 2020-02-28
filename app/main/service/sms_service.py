@@ -1,7 +1,7 @@
 import uuid
 import datetime
 import re
-from twilio.rest import Client
+from twilio.rest import Client as Twilio_Client
 from flask import current_app
 
 from app.main import db
@@ -142,22 +142,23 @@ def process_new_sms_mssg(mssg_data):
 
 
 def sms_send_raw(phone_target, sms_text, user_id):
+    return None
+    # TODO: Implement sending Twilio messages to CRM users at a later time (per Keith & David on 2020-02-28)
+    # client = Twilio_Client(account_sid, sms_auth_token)
+    # new_sms_message = SMSMessage(user_id=user_id, text=sms_text, phone_target=phone_target, status='created')
 
-    client = Client(account_sid, sms_auth_token)
-    new_sms_message = SMSMessage(user_id=user_id, text=sms_text, phone_target=phone_target, status='created')
-
-    try:
-        message = client.messages.create(
-            to=phone_target,
-            from_="+18584139754",
-            body=sms_text)
-        new_sms_message.message_provider_id = message.sid
-        new_sms_message.status = 'sent'
-    except Exception as e:
-        new_sms_message.status = 'failed_to_send'
-    finally:
-        db.session.add(new_sms_message)
-        db.session.commit()
+    # try:
+    #     message = client.messages.create(
+    #         to=phone_target,
+    #         from_="+18584139754",
+    #         body=sms_text)
+    #     new_sms_message.message_provider_id = message.sid
+    #     new_sms_message.status = 'sent'
+    # except Exception as e:
+    #     new_sms_message.status = 'failed_to_send'
+    # finally:
+    #     db.session.add(new_sms_message)
+    #     db.session.commit()
 
 
 def clean_phone_to_tenchars(raw_phone):
