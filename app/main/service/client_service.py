@@ -617,36 +617,53 @@ def update_co_client(client, data):
 def get_client_checklist(client):
     result = []
     items = CheckList.query.all()
-    client_items = [ccl.checklist_id for ccl in ClientCheckList.query.filter_by(client_id=client.id).all()]
-    for item in items:
-       cl = {
-           'id': item.id,
-           'title': item.title,
-           'checked': True if item.id in client_items else False,
-       }     
-       result.append(cl)
+    if len(items) == 0:
+        raise ValueError("No records in checklist table")
+    try:
+        client_items = [ccl.checklist_id for ccl in ClientCheckList.query.filter_by(client_id=client.id).all()]
+        for item in items:
+           cl = {
+               'id': item.id,
+               'title': item.title,
+               'checked': True if item.id in client_items else False,
+           }     
+           result.append(cl)
+    except Exception:
+        raise ValueError("Error in fetching client checklist")
+
     return result
 
 def update_client_checklist(client, data):
     item = data
+    # check the valid checklist item is valid or not
+    cl = CheckList.query.filter_by(id=item['id']).first()
+    if cl is None:
+        raise ValueError("Checklist item is not valid")
+
     if item['checked']:
        ccl = ClientCheckList(client_id=client.id, 
                              checklist_id=item['id'])
        save_changes(ccl)
     else:
-       ClientCheckList.query.filter_by(client_id=client.id, checklist_id=item['id']).delete() 
-       db.session.commit()
+       try:
+           ClientCheckList.query.filter_by(client_id=client.id, checklist_id=item['id']).delete() 
+           db.session.commit()
+       except Exception:
+           raise ValueError("Not a valid checklist item for the client")
 
 def update_notification_pref(client, data):
-    pref = client.notification_pref 
-    if pref is None:
-        pref = NotificationPreference(client_id=client.id)
-        save_changes(pref)
+    try:
+        pref = client.notification_pref 
+        if pref is None:
+            pref = NotificationPreference(client_id=client.id)
+            save_changes(pref)
 
-    pref.service_call = data.get('service_call')
-    pref.appt_reminder = data.get('appt_reminder')
-    pref.doc_notification = data.get('doc_notification')
-    pref.payment_reminder = data.get('payment_reminder')
-    db.session.commit()
+        pref.service_call = data.get('service_call')
+        pref.appt_reminder = data.get('appt_reminder')
+        pref.doc_notification = data.get('doc_notification')
+        pref.payment_reminder = data.get('payment_reminder')
+        db.session.commit()
+    except Exception as err:
+        raise ValueError("Update preferences error: Invalid parameter")
                                    
 

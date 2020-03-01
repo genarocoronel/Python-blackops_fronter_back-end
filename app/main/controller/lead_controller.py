@@ -88,7 +88,7 @@ class Lead(Resource):
         """ Get client with provided identifier"""
         client = get_client(public_id, client_type=LEAD)
         if not client:
-            api.abort(404)
+            api.abort(404, "Lead not found")
         else:
             return client
 
@@ -98,10 +98,14 @@ class Lead(Resource):
         """ Update lead with provided identifier"""
         lead = get_client(public_id, client_type=LEAD)
         if not lead:
-            api.abort(404)
+            api.abort(404, "Lead not found")
         else:
             data = request.json
-            _parse_datetime_values(data, 'dob')
+            try:
+                _parse_datetime_values(data, 'dob')
+            except Exception as err:
+                api.abort(400, "DOB: {}".format(str(err)))
+
             return update_client(lead, data, client_type=LEAD)
 
 
@@ -453,27 +457,27 @@ class LeadChecklist(Resource):
         """ fetch checklist for the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
-            api.abort(404)
+            api.abort(404, "Lead not found")
         else:
             try:
                 checklist = get_client_checklist(client)
                 return checklist
-            except Exception:
-                api.abort(500, "Internal Server Error")
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
 
     @api.doc('update checklist for the lead')
     def put(self, lead_id):
         """ update checklist for the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
-            api.abort(404)
+            api.abort(404, "Lead not found")
         else:
             try:
                 data = request.json
                 checklist = update_client_checklist(client, data)
                 return checklist
-            except Exception:
-                api.abort(500, "Internal Server Error")
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
 
 @api.route('/<lead_id>/notification/prefs')
 @api.param('lead_id', 'Lead public identifier')
@@ -484,12 +488,12 @@ class LeadNotificationPrefs(Resource):
         """ update notification preferences for the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
-            api.abort(404)
+            api.abort(404, "Lead not found")
         else:
             try:
                 data = request.json
                 prefs = update_notification_pref(client, data)
                 return prefs
-            except Exception:
-                api.abort(500, "Internal Server Error")
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
 

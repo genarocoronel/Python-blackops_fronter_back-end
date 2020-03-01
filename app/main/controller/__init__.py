@@ -30,15 +30,15 @@ def _parse_datetime_values(payload, *keys):
                 if key in item.keys():
                     try:
                         item[key] = dt_parse(item.get(key))
-                    except ValueError:
-                        item[key] = None
+                    except Exception:
+                        raise ValueError("Invalid date format")
     elif isinstance(payload, dict):
         for key in keys:
             if key in payload.keys():
                 try:
                     payload[key] = dt_parse(payload.get(key))
-                except TypeError:
-                    payload[key] = None
+                except Exception:
+                    raise ValueError("Invalid date format")
 
 def _handle_get_client(public_id, client_type=ClientType.client):
     client = get_client(public_id, client_type=client_type)

@@ -34,10 +34,10 @@ def upgrade():
     op.create_table('notification_preferences',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('client_id', sa.Integer(), nullable=True),
-    sa.Column('service_call', sa.Enum('home', 'work', 'mobile', name='calloptions'), nullable=False),
-    sa.Column('appt_reminder', sa.Enum('text', 'email', 'call', 'none', name='apptreminderoptions'), nullable=False),
-    sa.Column('doc_notification', sa.Enum('text', 'email', 'post', 'fax', name='docnotificationoptions'), nullable=False),
-    sa.Column('payment_reminder', sa.Enum('email', 'call', name='pymtreminderoptions'), nullable=False),
+    sa.Column('service_call', sa.Enum('HOME', 'WORK', 'MOBILE', name='calloptions'), nullable=False),
+    sa.Column('appt_reminder', sa.Enum('TEXT', 'EMAIL', 'CALL', 'NONE', name='apptreminderoptions'), nullable=False),
+    sa.Column('doc_notification', sa.Enum('TEXT', 'EMAIL', 'POST', 'FAX', name='docnotificationoptions'), nullable=False),
+    sa.Column('payment_reminder', sa.Enum('EMAIL', 'CALL', 'NONE', name='pymtreminderoptions'), nullable=False),
     sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
