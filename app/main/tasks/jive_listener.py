@@ -3,6 +3,7 @@ import email
 import json
 from dateutil.tz import gettz
 from dateutil import parser as date_parser
+from pytimeparse import parse as time_parser
 
 import phonenumbers
 from lxml import html as htmllib
@@ -14,6 +15,7 @@ import boto3
 TEMP_EMAIL_FILE = '/tmp/email.txt'
 PDF_FILE_TYPE = 'pdf'
 AUDIO_FILE_TYPE = 'audio'
+DEFAULT_PHONE_REGION = 'US'
 
 
 def find_part_by_content_type(message, content_type):
@@ -49,8 +51,8 @@ class JiveFaxHandler(Handler):
 
         received_date = date_parser.parse(received_date_raw[0], tzinfos={'PDT': gettz('America/Los_Angeles'),
                                                                          'PST': gettz('America/Los_Angeles')})
-        source_phone = phonenumbers.parse(source_phone_raw[0], None)
-        dest_phone = phonenumbers.parse(dest_phone_raw[0], None)
+        source_phone = phonenumbers.parse(source_phone_raw[0], DEFAULT_PHONE_REGION)
+        dest_phone = phonenumbers.parse(dest_phone_raw[0], DEFAULT_PHONE_REGION)
         page_count = self._parse_page_count(page_count_raw)
 
         part = find_part_by_content_type(message, "application/pdf")
@@ -84,7 +86,44 @@ class JiveVoicemailHandler(Handler):
             raise Exception('Expected to process email.message.Message object')
 
         print('HANDLING JIVE EMAIL WITH VOICEMAIL')
-        pass
+        # print(message)
+
+        part = find_part_by_content_type(message, "text/html")
+        if part is None:
+            raise Exception('Expected fax email to contain HTML content')
+
+        payload = part.get_payload(decode=True)
+        charset = part.get_content_charset()
+        html = htmllib.fromstring(payload.decode(charset))
+
+        received_date_raw = html.xpath('//div[contains(text(), "Received on")]/following-sibling::div/text()')
+        duration_raw = html.xpath('//div[contains(text(), "Duration")]/following-sibling::div/text()')
+        dest_mailbox = html.xpath('//div[contains(text(), "Voicemail Box")]/following-sibling::div/text()')
+        source_phone_raw = html.xpath('//div[contains(text(), "From")]/following-sibling::div/div[2]/a/text()')
+
+        received_date = date_parser.parse(received_date_raw[0], tzinfos={'PDT': gettz('America/Los_Angeles'),
+                                                                         'PST': gettz('America/Los_Angeles')})
+        source_phone = phonenumbers.parse(source_phone_raw[0], DEFAULT_PHONE_REGION)
+        duration_sec = time_parser(duration_raw[0])
+
+        part = find_part_by_content_type(message, "audio/mpeg")
+        audio_filename = part.get_filename()
+        file_content = part.get_payload(decode=True)
+        file_size = len(file_content)
+
+        fax_dict = {
+            'received_date': str(received_date),
+            'source_phone': source_phone.national_number,
+            'dest_mailbox': dest_mailbox[0],
+            'duration_seconds': duration_sec,
+            'file_name': audio_filename,
+            'file_size_bytes': file_size,
+        }
+        print(fax_dict)
+
+        # TODO: write voicemail file to S3
+        with open(f'/tmp/{audio_filename}', 'wb') as attachment:
+            attachment.write(file_content)
 
 
 class JiveEmailHandler(Handler):
