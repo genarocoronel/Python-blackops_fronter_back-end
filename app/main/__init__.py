@@ -44,6 +44,12 @@ def create_app(config_name):
     app.datax_license_key = app.config['DATAX_LICENSE_KEY']
     app.datax_password = app.config['DATAX_PASSWORD']
 
+    app.bandwidth_api_endpoint = app.config['BANDWIDTH_API_ENDPOINT']
+    app.bandwidth_app_id = app.config['BANDWIDTH_APP_ID']
+    app.bandwidth_user_id = app.config['BANDWIDTH_USER_ID']
+    app.bandwidth_api_token = app.config['BANDWIDTH_API_TOKEN']
+    app.bandwidth_api_secret = app.config['BANDWIDTH_API_SECRET']
+
     if not app.config['SMS_WEBHOOK_IDENTITIES']:
         raise Exception('Error gettin SMS_WEBHOOK_IDENTITIES value. We got none.')
     try:
