@@ -63,6 +63,10 @@ def save_new_client(data, client_type=ClientType.lead):
 
 
 def create_client_from_candidate(candidate, client_type=ClientType.lead):
+    inserted_dispo = ClientDisposition.query.filter_by(name='Sales_ActiveStatus_InsertedLead').first()
+    if not inserted_dispo:
+        raise Exception('Error finding Client disposition record for "Inserted"')
+
     new_client = Client(
         public_id=str(uuid.uuid4()),
         email=candidate.email,
@@ -71,22 +75,28 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         middle_initial=candidate.middle_initial,
         last_name=candidate.last_name,
         estimated_debt=candidate.estimated_debt,
+        employment_status=candidate.employment_status,
         language=candidate.language,
+        dob=candidate.dob,
         type=client_type,
+        disposition_id=inserted_dispo.id,
         inserted_on=datetime.datetime.utcnow(),
     )
+
     for income in candidate.income_sources:
         new_client_income = ClientIncome(
             client=new_client,
             income_source=income.income_source
         )
         db.session.add(new_client_income)
+
     for expense in candidate.monthly_expenses:
         new_client_monthly_expense = ClientMonthlyExpense(
             client=new_client,
             monthly_expense=expense.monthly_expense
         )
         db.session.add(new_client_monthly_expense)
+
     for address in candidate.addresses:
         new_client.addresses.append(address)
 
@@ -99,7 +109,15 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
 
     new_client.credit_report_account = candidate.credit_report_account
 
+    for employment_item in candidate.employments:
+        new_client_employment = ClientEmployment(
+            client=new_client,
+            employment=employment_item.employment
+        )
+        db.session.add(new_client_employment)
+
     save_changes(new_client)
+
     return new_client
 
 
