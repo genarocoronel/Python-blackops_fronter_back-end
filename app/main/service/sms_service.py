@@ -152,6 +152,9 @@ def process_new_sms_mssg(mssg_data, direction: MessageDirection):
             client = get_client_by_phone(mssg_data['from_phone'])
         elif direction == MessageDirection.OUT:
             client = get_client_by_phone(mssg_data['to_phone'])
+
+        if not client:
+            raise Exception('Could not find a Client by phone number when attempting to process SMS message and convo')
         
         client_conversation = _get_sms_convo_by_client(client)
         if not client_conversation:
@@ -184,23 +187,39 @@ def sms_send_raw(phone_target, sms_text, user_id):
     #     db.session.commit()
 
 
-def send_message_to_client(client_public_id, from_phone, to_phone, message_body):
+def send_message_to_client(client_public_id, from_phone, message_body, to_phone = None):
     """ Sends a SMS message to a client on behalf of a Sales or Service person """
     sms_message = None
+    destination_phone = None
 
-    client = get_client_by_phone(clean_phone_to_tenchars(to_phone))
-    if not client:
-        raise NotFoundError('could not find a known Client for that outbound SMS message. Not sent.')
-    elif client.public_id != client_public_id:
-        raise BadRequestError('Client ID To phone number mismatch. Not sent.')
+    if to_phone:
+        # Ensure phone belongs to client when given
+        client = get_client_by_phone(clean_phone_to_tenchars(to_phone))
+        if client.public_id != client_public_id:
+            raise BadRequestError('Client ID To phone number mismatch. Not sent.')
+
+        destination_phone = to_phone
+    else:
+        client = get_client_by_public_id(client_public_id)
+        if not client:
+            raise NotFoundError('could not find a known Client for that outbound SMS message. Not sent.')
+        
+        for number_item in client.contact_numbers:
+            print(number_item.contact_number)
+            if number_item.contact_number.preferred:
+                destination_phone = number_item.contact_number.phone_number
+                break
+    
+    if not destination_phone:
+        raise Exception(f'Could not determine phone number to send the SMS message to for Client with ID {client_public_id}')
     
     try:
-        crm_mssg_data = sms_send(from_phone, to_phone, message_body)
+        crm_mssg_data = sms_send(from_phone, destination_phone, message_body)
     except ConfigurationError as e:
-        current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
+        current_current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
         raise
     except ServiceProviderError as e:
-        current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
+        current_current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
         raise
 
     if crm_mssg_data:

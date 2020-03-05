@@ -87,15 +87,14 @@ class SmsSendSendToClient(Resource):
             return 'Bad request: the client ID was not given.', 400
         
         request_data = request.json
-        if not request_data['to_phone']:
-            return 'Bad request: the to Phone num was not given.', 400
-
-        to_phone = request_data['to_phone']
+        to_phone = None
+        if 'to_phone' in request_data and request_data['to_phone'] != None:
+            to_phone = request_data['to_phone']
         from_phone = request_data['from_phone']
         messg_body = request_data['message_body']
         
         try:
-            sms_message = send_message_to_client(client_public_id, from_phone, to_phone, messg_body)
+            sms_message = send_message_to_client(client_public_id, from_phone, messg_body, to_phone)
             return sms_message, 200
         except BadRequestError as e:
             api.abort(400, message='Error sending SMS to client, {}'.format(str(e)), success=False)
@@ -103,5 +102,3 @@ class SmsSendSendToClient(Resource):
             api.abort(404, message='Error sending SMS to client, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to send SMS messge to Client with ID {client_public_id}', success=False)
-
-        
