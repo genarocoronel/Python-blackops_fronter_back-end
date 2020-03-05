@@ -68,6 +68,12 @@ def parse_candidate_file(import_id):
                 sav15 = (debt3 * 12) - (debt15 * 12)
                 sav315 = (((debt3_2 * 0.03) - debt315) * 12) + 4
 
+                zipcode_string = None
+                if row[keys.index('ZIP4')] and len(row[keys.index('ZIP4')]) == 4:
+                    zipcode_string = '{}-{}'.format(row[keys.index('ZIP')], row[keys.index('ZIP4')])
+                else:
+                    zipcode_string = row[keys.index('ZIP')]
+
                 data = {
                     'suffix': row[keys.index('SUFFIX')],
                     'first_name': row[keys.index('FNAME')],
@@ -78,7 +84,7 @@ def parse_candidate_file(import_id):
                     'address': row[keys.index('ADDRESS')],
                     'city': row[keys.index('CITY')],
                     'state': row[keys.index('STATE')],
-                    'zip': f"{row[keys.index('ZIP')]}-{row[keys.index('ZIP4')]}",
+                    'zip': zipcode_string,
                     'estimated_debt': estimated_debt,
                     'debt3': debt3,
                     'debt15': debt15,
