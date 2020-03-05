@@ -1,20 +1,29 @@
 import uuid
 import datetime
 import re
+import enum
 from twilio.rest import Client as Twilio_Client
-from flask import current_app
 
 from app.main import db
 from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
 from app.main.model.client import Client, ClientContactNumber
 from app.main.model.contact_number import ContactNumber
 from app.main.service.client_service import get_client_by_phone, get_client_by_id, get_client_by_public_id
+from app.main.service.third_party.bandwidth_service import sms_send
+from app.main.core.errors import BadRequestError, NotFoundError, ConfigurationError, ServiceProviderError
+from flask import current_app
+
 
 account_sid = "AC27a28affdf746d9c7b06788016b35c8c"
 sms_auth_token = "a91db8822f78e7a928676140995290db"
 
 PROVIDER_BANDWIDTH = 'bandwidth'
 PROVIDER_JIVE = 'jive'
+
+
+class MessageDirection(enum.Enum):
+    IN = "in"
+    OUT = "out"
 
 
 def whois_webhook_token(webhook_token):
@@ -31,10 +40,13 @@ def whois_webhook_token(webhook_token):
 
 def get_convo(convo_public_id):
     """ Gets a SMS Conversation """
-    convo_with_mssgs = None
     convo = _get_sms_convo_by_pubid(convo_public_id)
-    if convo:
-        convo_with_mssgs = synth_messages_for_convo(convo)
+    if not convo:
+        raise NotFoundError(f"Conversation for  with ID {convo_public_id} not found.")
+        
+    convo_with_mssgs = synth_messages_for_convo(convo)
+    if not convo_with_mssgs:
+        raise NotFoundError(f"Messages for conversation with ID {convo_public_id} not found.")
     
     return convo_with_mssgs
 
@@ -43,10 +55,16 @@ def get_convo_for_client(client_public_id):
     """ Gets a SMS Conversation for a given Client """
     convo_with_mssgs = None
     client = get_client_by_public_id(client_public_id)  
-    if client:
-        convo = _get_sms_convo_by_client_id(client.id)
-        if convo:   
-            convo_with_mssgs = synth_messages_for_convo(convo, client)
+    if not client:
+        raise NotFoundError(f"Client with ID {client_public_id} not found.")
+        
+    convo = _get_sms_convo_by_client_id(client.id)
+    if not convo:
+        raise NotFoundError(f"Conversation for client with ID {client_public_id} not found.")
+        
+    convo_with_mssgs = synth_messages_for_convo(convo, client)
+    if not convo_with_mssgs:
+        raise NotFoundError(f"Messages for conversation with ID {convo.public_id} not found.")
     
     return convo_with_mssgs
 
@@ -99,20 +117,21 @@ def register_new_sms_mssg(mssg_data, provider_name):
     result = None
     if (provider_name == PROVIDER_BANDWIDTH):
         crm_mssg_data = _save_bandwidth_sms_message(mssg_data)
-        crm_mssg = process_new_sms_mssg(crm_mssg_data)
+        crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.IN)
 
         result = {
                 'success': True,
                 'message': "Successfully registered a Provider SMS message. Thank you.",
                 'our_message_id': crm_mssg.public_id
             }
+
     else:
-        raise Exception(f'Error: That SMS provider {provider_name} is unknown.')
+        raise Exception(f'That SMS provider {provider_name} is unknown.')
     
     return result
 
 
-def process_new_sms_mssg(mssg_data):
+def process_new_sms_mssg(mssg_data, direction: MessageDirection):
     """ Processes a new CRM SMS message """
     message_public_id = None
     from_phone = None
@@ -123,20 +142,27 @@ def process_new_sms_mssg(mssg_data):
         mssg_data['to_phone'] = clean_phone_to_tenchars(mssg_data['to_phone'])
 
         if mssg_data['from_phone'] is None:
-            raise Exception('Error: The FROM phone is None!')
+            raise BadRequestError('The FROM phone is None!')
         elif len(mssg_data['from_phone']) < 10:
-            raise Exception('Error: The FROM phone number has less than 10 characters!')
+            raise BadRequestError('The FROM phone number has less than 10 characters!')
         
         # TODO: Later add unmatched, incoming phone numbers to be "sent to a general convo"
-        client = get_client_by_phone(mssg_data['from_phone'])
+        client = None
+        if direction == MessageDirection.IN:
+            client = get_client_by_phone(mssg_data['from_phone'])
+        elif direction == MessageDirection.OUT:
+            client = get_client_by_phone(mssg_data['to_phone'])
 
+        if not client:
+            raise Exception('Could not find a Client by phone number when attempting to process SMS message and convo')
+        
         client_conversation = _get_sms_convo_by_client(client)
         if not client_conversation:
             client_conversation = _handle_new_sms_conversation(client)
 
         sms_mssg = _handle_new_sms_message(mssg_data, client_conversation)
         if not sms_mssg:
-            raise Exception('Error: could not create a SMS message for a conversation!')
+            raise Exception('Could not create a SMS message for a conversation!')
 
     return sms_mssg
 
@@ -159,6 +185,60 @@ def sms_send_raw(phone_target, sms_text, user_id):
     # finally:
     #     db.session.add(new_sms_message)
     #     db.session.commit()
+
+
+def send_message_to_client(client_public_id, from_phone, message_body, to_phone = None):
+    """ Sends a SMS message to a client on behalf of a Sales or Service person """
+    sms_message = None
+    destination_phone = None
+
+    if to_phone:
+        # Ensure phone belongs to client when given
+        client = get_client_by_phone(clean_phone_to_tenchars(to_phone))
+        if client.public_id != client_public_id:
+            raise BadRequestError('Client ID To phone number mismatch. Not sent.')
+
+        destination_phone = to_phone
+    else:
+        client = get_client_by_public_id(client_public_id)
+        if not client:
+            raise NotFoundError('could not find a known Client for that outbound SMS message. Not sent.')
+        
+        for number_item in client.contact_numbers:
+            print(number_item.contact_number)
+            if number_item.contact_number.preferred:
+                destination_phone = number_item.contact_number.phone_number
+                break
+    
+    if not destination_phone:
+        raise Exception(f'Could not determine phone number to send the SMS message to for Client with ID {client_public_id}')
+    
+    try:
+        crm_mssg_data = sms_send(from_phone, destination_phone, message_body)
+    except ConfigurationError as e:
+        current_current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
+        raise
+    except ServiceProviderError as e:
+        current_current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
+        raise
+
+    if crm_mssg_data:
+        crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.OUT)
+        sms_message = {
+            'public_id': crm_mssg.public_id,
+            'from_phone': crm_mssg.from_phone,
+            'to_phone': crm_mssg.to_phone,
+            'network_time': crm_mssg.network_time,
+            'direction': crm_mssg.direction,
+            'segment_count': crm_mssg.segment_count,
+            'body_text': crm_mssg.body_text,
+            'message_media': [],
+            'provider_message_id': crm_mssg.provider_message_id,
+            'provider_name': crm_mssg.provider_name,
+            'is_viewed': crm_mssg.is_viewed
+        }
+
+    return sms_message
 
 
 def clean_phone_to_tenchars(raw_phone):
@@ -187,6 +267,10 @@ def _handle_new_sms_conversation(client):
 
 def _handle_new_sms_message(message_data, conversation):
     """ Saves SMS Message for a Conversation """
+    is_viewed = False
+    if message_data['direction'] == MessageDirection.OUT:
+        is_viewed = True
+
     new_message = SMSMessage(
         public_id = str(uuid.uuid4()),
         from_phone = message_data['from_phone'],
@@ -197,14 +281,14 @@ def _handle_new_sms_message(message_data, conversation):
         body_text = message_data['body_text'],
         provider_message_id = message_data['provider_message_id'],
         provider_name = message_data['provider_name'],
-        is_viewed = False,
+        is_viewed = is_viewed,
         sms_convo_id = conversation.id,
         inserted_on = datetime.datetime.utcnow(),
     )
     db.session.add(new_message)
     save_changes()
 
-    if new_message and message_data['message_media']:
+    if new_message and message_data['message_media'] and message_data['message_media'] != None:
         media_records = _handle_new_media(message_data['message_media'], new_message)
 
     return new_message

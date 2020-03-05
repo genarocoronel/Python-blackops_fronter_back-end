@@ -24,6 +24,13 @@ class Config:
     DATAX_PASSWORD = os.environ.get('DATAX_PASSWORD')
     DATAX_CALL_TYPE = os.environ.get('DATAX_CALL_TYPE', 'dkwconsulting-bavnew')
 
+    # Bandwidth API configs
+    BANDWIDTH_API_ENDPOINT=os.environ.get('BANDWIDTH_API_ENDPOINT', None)
+    BANDWIDTH_APP_ID=os.environ.get('BANDWIDTH_APP_ID', None)
+    BANDWIDTH_USER_ID=os.environ.get('BANDWIDTH_USER_ID', None)
+    BANDWIDTH_API_TOKEN=os.environ.get('BANDWIDTH_API_TOKEN', None)
+    BANDWIDTH_API_SECRET=os.environ.get('BANDWIDTH_API_SECRET', None)
+
     # Our own tokens to identify which provider is calling our /sms/register-message webhook API
     # If we change them, we must change the webhook endpoint with corresponding SMS Providers
     SMS_WEBHOOK_IDENTITIES = os.environ.get('SMS_WEBHOOK_IDENTITIES', None)
