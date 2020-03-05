@@ -32,11 +32,6 @@ class CandidateDispositionType(enum.Enum):
     AUTO = 'auto'
 
 
-class CandidateDispositionType(enum.Enum):
-    MANUAL = 'manual'
-    AUTO = 'auto'
-
-
 class CandidateDisposition(db.Model):
     __tablename__ = "candidate_dispositions"
 
