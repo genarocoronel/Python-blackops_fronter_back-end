@@ -1,4 +1,5 @@
 import datetime
+from dateutil.parser import parse as dt_parse
 
 from app.main.model.client import ClientType
 from app.main.service.client_service import get_client
@@ -22,6 +23,22 @@ def _convert_payload_datetime_values(payload, *keys):
                 except TypeError:
                     payload[key] = None
 
+def _parse_datetime_values(payload, *keys):
+    if isinstance(payload, list):
+        for item in payload:
+            for key in keys:
+                if key in item.keys():
+                    try:
+                        item[key] = dt_parse(item.get(key))
+                    except Exception:
+                        raise ValueError("Invalid date format")
+    elif isinstance(payload, dict):
+        for key in keys:
+            if key in payload.keys():
+                try:
+                    payload[key] = dt_parse(payload.get(key))
+                except Exception:
+                    raise ValueError("Invalid date format")
 
 def _handle_get_client(public_id, client_type=ClientType.client):
     client = get_client(public_id, client_type=client_type)

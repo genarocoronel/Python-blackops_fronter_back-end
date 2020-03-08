@@ -388,6 +388,12 @@ class LeadDto:
         'zip': fields.String(),
         'email': fields.String(),
     })
+    notification_preference = api.model('notification_preferences', {
+        'service_call': fields.String(attribute='service_call.name'),
+        'appt_reminder': fields.String(attribute='appt_reminder.name'),
+        'doc_notification': fields.String(attribute='doc_notification.name'),
+        'payment_reminder': fields.String(attribute='payment_reminder.name'),
+    })
     lead = api.model('lead', {
         'public_id': fields.String(description='lead identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
@@ -416,7 +422,8 @@ class LeadDto:
         'team_manager': fields.String(attribute='team_manager.full_name'),
         'opener': fields.String(attribute='opener.full_name'),
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
-        'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber',attribute='contact_numbers')
+        'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber',attribute='contact_numbers'),
+        'notification_pref': fields.Nested(notification_preference),
     })
     lead_pagination=api.model('lead_pagination', {
         'page_number': fields.Integer(),
@@ -461,10 +468,12 @@ class LeadDto:
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
         'ssn': fields.String(), 
-        'language': fields.String(),
+        'estimated_debt': fields.Integer(description='client estimated_debt'),
+        'language': fields.String(required=True, enum=Language._member_names_),
         'employment_status': fields.String(),
         'contact_numbers': fields.List(fields.Nested(lead_phone)),
-        'addresses': fields.List(fields.Nested(lead_address))
+        'addresses': fields.List(fields.Nested(lead_address)),
+        'notification_pref': fields.Nested(notification_preference),
     })
 
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)

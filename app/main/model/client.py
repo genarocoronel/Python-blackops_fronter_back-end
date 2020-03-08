@@ -81,6 +81,7 @@ class Client(db.Model):
     account_manager = db.relationship('User', backref='client_accounts', foreign_keys=[account_manager_id])
     team_manager = db.relationship('User', backref='team_accounts', foreign_keys=[team_manager_id])
     opener = db.relationship('User', backref='opened_accounts', foreign_keys=[opener_id])
+    notification_pref = db.relationship('NotificationPreference', uselist=False, backref='client')
     
     # fields
     suffix = db.Column(db.String(25), nullable=True)
@@ -148,3 +149,15 @@ class ClientContactNumber(db.Model):
     client = db.relationship('Client', backref='contact_number_client_assoc')
     contact_number = db.relationship('ContactNumber', backref='client_contact_number_assoc')
 
+
+class ClientCheckList(db.Model):
+    __tablename__ = "client_checklist"
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    checklist_id = db.Column(db.Integer, db.ForeignKey('checklist.id'), primary_key=True)
+
+    # relationships
+    client = db.relationship('Client', backref='checklist')
+    checklist = db.relationship('CheckList', backref='client_checklist')
+
+     

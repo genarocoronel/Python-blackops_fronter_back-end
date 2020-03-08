@@ -4,7 +4,7 @@ import datetime
 from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
-from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, \
+from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientCheckList, \
                                   ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
@@ -12,6 +12,8 @@ from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 from app.main.model.address import Address, AddressType
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.contact_number import ContactNumber, ContactNumberType
+from app.main.model.checklist import CheckList
+from app.main.model.notification import NotificationPreference
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
@@ -58,6 +60,10 @@ def save_new_client(data, client_type=ClientType.lead):
     ccn = ClientContactNumber(client_id=new_client.id,
                               contact_number_id=cn.id)
     save_changes(ccn)
+
+    # notification preference
+    np = NotificationPreference(client_id=new_client.id)
+    save_changes(np) 
    
     return new_client, 201
 
@@ -108,6 +114,9 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         db.session.add(new_client_contact_number)
 
     new_client.credit_report_account = candidate.credit_report_account
+    # notification preference
+    np = NotificationPreference(client_id=new_client.id)
+    db.session.add(np) 
 
     for employment_item in candidate.employments:
         new_client_employment = ClientEmployment(
@@ -584,19 +593,19 @@ def get_co_client(client):
 
 def update_co_client(client, data):
 
-    # required fields
-    first_name = data.get('first_name')    
-    last_name  = data.get('last_name')
-    email  = data.get('email')
-    # optional fields
-    mi = data.get('middle_initial').strip()
-    dob = data.get('dob')
-    ssn = data.get('ssn')
-    language = data.get('language') 
-
 
     co_client = client.co_client
     if co_client is None:
+        # required fields
+        first_name = data.get('first_name')    
+        last_name  = data.get('last_name')
+        email  = data.get('email')
+        # optional fields
+        mi = data.get('middle_initial').strip()
+        dob = data.get('dob')
+        ssn = data.get('ssn')
+        language = data.get('language') 
+
         # insert
         co_client = Client(public_id=str(uuid.uuid4()),
                            first_name=first_name,
@@ -615,14 +624,64 @@ def update_co_client(client, data):
 
     else:
         #update
-        co_client.first_name = first_name
-        co_client.last_name = last_name
-        co_client.email = email
-        co_client.middle_initial = mi
-        co_client.dob = dob
-        co_client.ssn = ssn
-        co_client.language = language,
+        for attr in data:
+            if hasattr(co_client, attr):
+                setattr(co_client, attr, data.get(attr))
+
         db.session.commit()
 
     return co_client
     
+def get_client_checklist(client):
+    result = []
+    items = CheckList.query.all()
+    if len(items) == 0:
+        raise ValueError("No records in checklist table")
+    try:
+        client_items = [ccl.checklist_id for ccl in ClientCheckList.query.filter_by(client_id=client.id).all()]
+        for item in items:
+           cl = {
+               'id': item.id,
+               'title': item.title,
+               'checked': True if item.id in client_items else False,
+           }     
+           result.append(cl)
+    except Exception:
+        raise ValueError("Error in fetching client checklist")
+
+    return result
+
+def update_client_checklist(client, data):
+    item = data
+    # check the valid checklist item is valid or not
+    cl = CheckList.query.filter_by(id=item['id']).first()
+    if cl is None:
+        raise ValueError("Checklist item is not valid")
+
+    if item['checked']:
+       ccl = ClientCheckList(client_id=client.id, 
+                             checklist_id=item['id'])
+       save_changes(ccl)
+    else:
+       try:
+           ClientCheckList.query.filter_by(client_id=client.id, checklist_id=item['id']).delete() 
+           db.session.commit()
+       except Exception:
+           raise ValueError("Not a valid checklist item for the client")
+
+def update_notification_pref(client, data):
+    try:
+        pref = client.notification_pref 
+        if pref is None:
+            pref = NotificationPreference(client_id=client.id)
+            save_changes(pref)
+
+        pref.service_call = data.get('service_call')
+        pref.appt_reminder = data.get('appt_reminder')
+        pref.doc_notification = data.get('doc_notification')
+        pref.payment_reminder = data.get('payment_reminder')
+        db.session.commit()
+    except Exception as err:
+        raise ValueError("Update preferences error: Invalid parameter")
+                                   
+
