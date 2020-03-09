@@ -19,10 +19,10 @@ services:
       - '5000:5000'
     environment:
       BOILERPLATE_ENV: dev
+      POSTGRES_SERVICE: dbsvc
       POSTGRES_DB: dstar
       POSTGRES_USER: dstaruser
       POSTGRES_PASSWORD: password123
-      POSTGRES_SERVICE: dbsvc
       REDIS_URL: redis://redis
     env_file:
       - ./docker/api.env
@@ -46,6 +46,10 @@ services:
     tty: true
     environment:
       BOILERPLATE_ENV: dev
+      POSTGRES_SERVICE: dbsvc
+      POSTGRES_DB: dstar
+      POSTGRES_USER: dstaruser
+      POSTGRES_PASSWORD: password123
       REDIS_URL: redis://redis
       SCRAPYJS_URL: http://scrapyjs:8050
     working_dir: /app
