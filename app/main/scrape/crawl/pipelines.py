@@ -4,9 +4,9 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-import re
-
 import datetime
+import re
+import uuid
 
 from app.main import db
 from app.main.model.credit_report_account import CreditReportData
@@ -87,6 +87,7 @@ class CreditReportPipeline(object):
             return existing_debt_entry.__dict__
         else:
             new_credit_report_debt = CreditReportData(
+                public_id=str(uuid.uuid4()),
                 account_id=credit_account_id,
                 debt_name=debt_name,
                 creditor=debt_name,
