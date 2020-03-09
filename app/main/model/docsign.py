@@ -5,7 +5,7 @@ import enum
 from app.main.model.client import ClientDisposition
 from app.main import db
 
-class SignatureStatus(enum.Enum):
+class DocusignSessionStatus(enum.Enum):
     SENT = 'Sent'
     CREATED = 'Created'
     DELIVERED = 'Delivered'
@@ -14,15 +14,6 @@ class SignatureStatus(enum.Enum):
     SIGNED = 'Signed'
     VOIDED = 'Voided'
 
-class SessionState(enum.Enum):
-    PROGRESS = 'InProgress'
-    COMPLETED = 'Completed'
-    FAILED = 'Failed'
-
-class SessionType(enum.Enum):
-    NewContract = "NewContract"
-    ModifyDebts = "ModifyDebts"
-    
 class DocusignTemplate(db.Model):
     """
     Model for storing Docusign template information
@@ -35,8 +26,6 @@ class DocusignTemplate(db.Model):
     name = db.Column(db.String(200), nullable=False)
     # Docusign template id
     ds_key = db.Column(db.String(200), unique=True, nullable=False)
-    # relationships
-    sessions = db.relationship('DocusignSession', back_populates='template')
 
 # Session is created 
 # when a document is send for signatures
@@ -45,34 +34,19 @@ class DocusignSession(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
-    template_id = db.Column(db.Integer,  db.ForeignKey('docusign_template.id'), nullable=False) 
+    template_id  = db.Column(db.Integer,  db.ForeignKey('docusign_template.id'), nullable=False) 
     created_date = db.Column(db.DateTime, default=datetime.utcnow)
+    modified_date = db.Column(db.DateTime, default=datetime.utcnow)
 
-    state = db.Column(db.Enum(SessionState), nullable=False, default=SessionState.PROGRESS) 
-    # primary client id
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
-    cosign_required = db.Column(db.Boolean, default=False)
-    co_client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=True)
-    session_type = db.Column(db.Enum(SessionType), nullable=True, default=SessionType.NewContract)
-
-    # relationships
-    signature = db.relationship('DocusignSignature', uselist=False, back_populates='session')
-    template   = db.relationship('DocusignTemplate', back_populates='sessions')
-
-class DocusignSignature(db.Model):
-    """
-    Model for storing remote signature information
-    """
-    __tablename__ = "docusign_signature"
-
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     envelope_id = db.Column(db.String(200), unique=True, nullable=False)
-    status = db.Column(db.Enum(SignatureStatus), nullable=False, default=SignatureStatus.SENT)
-    modified = db.Column(db.DateTime, default=datetime.utcnow)
-    session_id = db.Column(db.Integer, db.ForeignKey('docusign_session.id'), nullable=True)
+    status = db.Column(db.Enum(DocusignSessionStatus), default=DocusignSessionStatus.SENT)
+
+    # primary client id
+    contract_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id'), nullable=True)
 
     # relationships
-    session = db.relationship('DocusignSession', back_populates='signature')
+    template   = db.relationship('DocusignTemplate', backref='sessions')
+    contract   = db.relationship('DebtPaymentContract', backref='docusign_sessions')
 
 
 # Model Helper function to pre-poulate the database tables related to docusign

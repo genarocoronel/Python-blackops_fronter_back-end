@@ -16,7 +16,7 @@ from app.main.model.notes import Note
 from app.main.model.rac import RACRole, RACResource, RACPolicy
 from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
 from app.main.model.campaign import Campaign
-from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
+from app.main.model.docsign import DocusignTemplate, DocusignSession
 from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction, DebtPaymentContract
 from app.main.model.checklist import CheckList
 from app.main.model.client import Client
