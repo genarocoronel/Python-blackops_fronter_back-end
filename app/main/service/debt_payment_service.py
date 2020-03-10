@@ -340,6 +340,22 @@ def fetch_plan_by_status(client, status):
         'num_term_paid': num_term_paid, 
     }
     
+def fetch_debt_payment_plans(status):
+    result = []
+
+    # plans
+    plans = DebtPaymentContract.query.filter_by(status=status).all()
+    for plan in plans:
+        tmp = {
+            'action' : plan.current_action.name if plan.current_action else "",
+            'client_id': plan.client.public_id,
+            'first_name': plan.client.first_name,
+            'last_name': plan.client.last_name,
+            'created_on': plan.inserted_on.strftime("%m/%d/%Y"),
+        }           
+        result.append(tmp)
+
+    return result
 
 def payment_contract_req4approve(client, data):
     action = data.get('action')
