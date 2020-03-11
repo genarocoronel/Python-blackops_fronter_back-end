@@ -13,7 +13,7 @@ from app.main.seed.admins import create_super_admin
 
 from app.main.background.worker import run_worker
 from app.main.model.notes import Note
-from app.main.model.sms import SMSMessage
+from app.main.model.rac import RACRole, RACResource, RACPolicy
 from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
 from app.main.model.campaign import Campaign
 from app.main.model.docsign import DocusignTemplate, DocusignSession, DocusignSignature
@@ -35,6 +35,8 @@ from app.main.seed.income_types import seed_income_types
 from app.main.seed.rsign import seed_rsign_records
 from app.main.seed.bank_account import seed_datax_validation_codes
 from app.main.seed.checklist import seed_client_main_checklist
+from app.main.seed.rac import seed_rac_roles
+from app.main.seed.users_roles import seed_users_with_roles
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -51,7 +53,9 @@ def worker(queue):
 
 @manager.command
 def seed():
-    create_super_admin()
+    seed_rac_roles()
+    create_super_admin()    
+    seed_users_with_roles()
     seed_candidate_disposition_values()
     seed_client_disposition_values()
     seed_contact_number_types()

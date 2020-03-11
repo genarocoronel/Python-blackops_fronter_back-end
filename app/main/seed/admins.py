@@ -1,3 +1,4 @@
+from app.main.core.rac import RACRoles
 from app.main.model.user import User
 from app.main.service.user_service import save_new_user
 
@@ -18,4 +19,4 @@ def create_super_admin():
             'personal_phone': '',
             'voip_route_number': ''
         }
-        save_new_user(super_admin, True)
+        save_new_user(super_admin, RACRoles.SUPER_ADMIN)

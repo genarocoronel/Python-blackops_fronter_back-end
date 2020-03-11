@@ -8,7 +8,7 @@ from app.main.config import upload_location
 from app.main.controller import _convert_payload_datetime_values
 from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
-from app.main.service.auth_helper import Auth
+from app.main.core.auth import Auth
 from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
     get_candidate, update_candidate, \
     get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \

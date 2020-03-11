@@ -3,8 +3,8 @@
 from flask_restplus import Api
 from flask import Blueprint
 
-from .main.controller.user_controller import api as user_ns
 from .main.controller.auth_controller import api as auth_ns
+from .main.controller.user_controller import api as user_ns
 from .main.controller.appointment_controller import api as appointment_ns
 from .main.controller.campaign_controller import api as campaign_ns
 from .main.controller.candidate_controller import api as candidate_ns
@@ -24,8 +24,8 @@ api = Api(blueprint,
           description='a definition of crm web service'
           )
 
-api.add_namespace(user_ns)
 api.add_namespace(auth_ns)
+api.add_namespace(user_ns)
 api.add_namespace(campaign_ns)
 api.add_namespace(candidate_ns)
 api.add_namespace(config_ns)

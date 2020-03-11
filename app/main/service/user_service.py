@@ -2,10 +2,21 @@ import uuid
 import datetime
 
 from app.main import db
+from app.main.core.auth import Auth
+from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.user import User
 
 
-def save_new_user(data, is_admin=False):
+def save_new_user(data, desired_role: RACRoles):
+    """ Saves a new User
+
+        Parameters
+        ----------
+        data : dict
+            the user data
+        desired_role : RACRoles
+            Optional role to assign during creation of new user
+    """
     user = User.query.filter_by(email=data['email']).first()
     if not user:
         new_user = User(
@@ -19,9 +30,12 @@ def save_new_user(data, is_admin=False):
             language=data.get('language'),
             personal_phone=data.get('personal_phone'),
             voip_route_number=data.get('voip_route_number'),
-            admin=is_admin,
             registered_on=datetime.datetime.utcnow()
         )
+
+        if desired_role:
+            new_user = RACMgr.assign_role_to_user(desired_role, new_user)
+
         save_changes(new_user)
         return generate_token(new_user)
     else:
@@ -32,15 +46,12 @@ def save_new_user(data, is_admin=False):
         return response_object, 409
 
 
-def update_user(public_id, data, is_admin=None):
+def update_user(public_id, data):
     user = User.query.filter_by(public_id=public_id).first()
     if user:
         for attr in data:
             if hasattr(user, attr):
                 setattr(user, attr, data.get(attr))
-
-        if is_admin is not None:
-            user.admin = is_admin
 
         save_changes(user)
 
@@ -73,7 +84,8 @@ def save_changes(*data):
 
 def generate_token(user):
     try:
-        auth_token = user.encode_auth_token(user.id)
+        auth_token = Auth.encode_auth_token(user.id)
+
         response_object = {
             'status': 'success',
             'message': 'Successfully registered.',

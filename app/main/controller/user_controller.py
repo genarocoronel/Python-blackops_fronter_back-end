@@ -1,7 +1,10 @@
 from flask import request
 from flask_restplus import Resource
 
+from ..util.decorator import token_required, enforce_rac_policy, enforce_rac_same_user_policy
 from ..util.dto import UserDto
+from ..core.auth import Auth
+from ..core.rac import RACMgr
 from ..service.user_service import save_new_user, get_all_users, get_a_user, update_user
 
 api = UserDto.api
@@ -12,37 +15,80 @@ _update_user = UserDto.update_user
 
 @api.route('/')
 class UserList(Resource):
-    @api.doc('list_of_registered_users')
-    @api.marshal_list_with(_user, envelope='data')
-    def get(self):
-        """List all registered users"""
-        return get_all_users()
-
     @api.response(201, 'User successfully created.')
     @api.doc('create a new user')
     @api.expect(_new_user, validate=True)
+    @token_required
+    @enforce_rac_policy(rac_resource='users.create')
     def post(self):
         """Creates a new User """
+        print("JAJ Creating a new User")
         data = request.json
         return save_new_user(data=data)
 
+    @api.doc('List all registered users')
+    @api.marshal_list_with(_user, envelope='data')
+    @token_required
+    @enforce_rac_policy(rac_resource='users.list')
+    def get(self):
+        """List all registered users"""
+        users = []
 
-@api.route('/<public_id>')
-@api.param('public_id', 'The User identifier')
+        user_records = get_all_users()
+        for user_record_item in user_records:
+            tmp_user = {
+                'public_id': user_record_item.public_id,
+                'username': user_record_item.username,
+                'password': None,
+                'email': user_record_item.email,
+                'first_name': user_record_item.first_name,
+                'last_name': user_record_item.last_name,
+                'title': user_record_item.title,
+                'language': user_record_item.language,
+                'phone_number': user_record_item.personal_phone,
+                'personal_phone': user_record_item.personal_phone,
+                'last_4_of_phone': user_record_item.personal_phone[-4:],
+                'voip_route_number': user_record_item.voip_route_number,
+                'rac_role': user_record_item.role.name
+            }
+            users.append(tmp_user)
+
+        return users
+
+@api.route('/<user_id>')
+@api.param('user_id', 'The User public identifier')
 @api.response(404, 'User not found.')
-class User(Resource):
-    @api.doc('update user')
-    @api.expect(_update_user, validate=True)
-    def put(self, public_id):
-        """Update User Account"""
-        return update_user(public_id, request.json)
-
+class UpdateUser(Resource):
     @api.doc('get a user')
     @api.marshal_with(_user)
-    def get(self, public_id):
+    @token_required
+    def get(self, user_id):
         """get a user given its identifier"""
-        user = get_a_user(public_id)
-        if not user:
-            api.abort(404)
-        else:
-            return user
+        user_record = get_a_user(user_id)
+        if not user_record:
+            api.abort(404, f'Could not find a User with ID {user_id}')
+        
+        user = {
+            'public_id': user_record.public_id,
+            'username': user_record.username,
+            'password': None,
+            'email': user_record.email,
+            'first_name': user_record.first_name,
+            'last_name': user_record.last_name,
+            'title': user_record.title,
+            'language': user_record.language,
+            'phone_number': user_record.personal_phone,
+            'personal_phone': user_record.personal_phone,
+            'last_4_of_phone': user_record.personal_phone[-4:],
+            'voip_route_number': user_record.voip_route_number,
+            'rac_role': user_record.role.name
+        }
+        return user
+    
+    @api.doc('update user')
+    @api.expect(_update_user, validate=True)
+    @token_required
+    @enforce_rac_same_user_policy
+    def put(self, user_id):
+        """Update User Account"""
+        return update_user(user_id, request.json)
