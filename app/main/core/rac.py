@@ -50,7 +50,22 @@ class RACMgr():
             return False
         else:
             return True
- 
+    
+    @classmethod
+    def enforce_policy_user_has_role(cls, roles_to_enforce):
+        """ Allows if user has one of the Roles specified """
+        if not roles_to_enforce:
+            raise Exception('Must provide at least one Role to enforce')
+
+        for role_item in roles_to_enforce:
+            if not RACRoles.is_valid_role(role_item.value):
+                raise Exception('A given role to enforce is not a known type')
+
+            if g.current_user['rac_role'] == role_item.value:
+                return True
+            else:
+                return False
+
     @classmethod
     def get_policy_for_role(cls, role):
         policy = None
@@ -119,6 +134,9 @@ class RACMgr():
     def get_all_roles(cls):
         roles = []
         role_records = cls._handle_get_roles()
+        if not role_records:
+            raise NotFoundError('Could not find any RAC Roles!')
+
         if role_records:
             for role_record_item in role_records:
                 role = {

@@ -1,10 +1,12 @@
 from flask import request
 from flask_restplus import Resource
 
-from ..util.decorator import token_required, enforce_rac_policy, enforce_rac_same_user_policy
+from ..core.errors import BadRequestError
+from ..util.decorator import (token_required, enforce_rac_policy, 
+        enforce_rac_same_user_policy, enforce_rac_required_roles)
 from ..util.dto import UserDto
 from ..core.auth import Auth
-from ..core.rac import RACMgr
+from ..core.rac import RACRoles
 from ..service.user_service import save_new_user, get_all_users, get_a_user, update_user
 
 api = UserDto.api
@@ -13,18 +15,25 @@ _new_user = UserDto.new_user
 _update_user = UserDto.update_user
 
 
-@api.route('/')
+@api.route('')
 class UserList(Resource):
     @api.response(201, 'User successfully created.')
     @api.doc('create a new user')
     @api.expect(_new_user, validate=True)
     @token_required
-    @enforce_rac_policy(rac_resource='users.create')
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def post(self):
         """Creates a new User """
-        print("JAJ Creating a new User")
         data = request.json
-        return save_new_user(data=data)
+        try:
+            new_user_response = save_new_user(data=data)
+            return sms_message, 200
+        except BadRequestError as e:
+            api.abort(400, message='Error creating new user, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to create new user. Please report this issue.', success=False)
+
+        return new_user_response
 
     @api.doc('List all registered users')
     @api.marshal_list_with(_user, envelope='data')

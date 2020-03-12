@@ -24,6 +24,7 @@ def enforce_rac_policy(rac_resource):
 
 
 def enforce_rac_same_user_policy(func_to_decorate):
+    """ Decorator to enforce policy ensuring same user as resource """
     @wraps(func_to_decorate)
     def decorated(*orig_args, **orig_kwargs):
         if 'user_id' in orig_kwargs and RACMgr.does_same_user_policy_deny(orig_kwargs.get('user_id')):
@@ -32,7 +33,23 @@ def enforce_rac_same_user_policy(func_to_decorate):
         return func_to_decorate(*orig_args, **orig_kwargs)
 
     return decorated
-        
+
+
+def enforce_rac_required_roles(roles_to_enforce: list):
+    """ Decorator to enforce current user has one of these RAC roles assigned """
+    def decorator(func_to_decorate):
+        @wraps(func_to_decorate)
+        def decorated(*orig_args, **orig_kwargs):
+            # TODO - implement business logic
+            if not RACMgr.enforce_policy_user_has_role(roles_to_enforce):
+                api.abort(403, 'You do not have permissions to access this resource or action', success=False)
+
+            return func_to_decorate(*orig_args, **orig_kwargs)
+
+        return decorated
+
+    return decorator
+
 
 def token_required(f):
     """ Decorator to enforce Authenticated session """

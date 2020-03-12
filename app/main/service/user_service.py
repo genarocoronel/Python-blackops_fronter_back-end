@@ -2,12 +2,13 @@ import uuid
 import datetime
 
 from app.main import db
+from app.main.core.errors import BadRequestError
 from app.main.core.auth import Auth
 from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.user import User
 
 
-def save_new_user(data, desired_role: RACRoles):
+def save_new_user(data, desired_role:RACRoles = None):
     """ Saves a new User
 
         Parameters
@@ -17,6 +18,13 @@ def save_new_user(data, desired_role: RACRoles):
         desired_role : RACRoles
             Optional role to assign during creation of new user
     """
+    if not data.get('email'):
+        raise BadRequestError('Cannot create a new User without providing an email')
+    elif not data.get('username'):
+        raise BadRequestError('Cannot create a new User without providing a desired username')
+    elif not data.get('password'):
+        raise BadRequestError('Cannot create a new User without providing a desired password')
+
     user = User.query.filter_by(email=data['email']).first()
     if not user:
         new_user = User(

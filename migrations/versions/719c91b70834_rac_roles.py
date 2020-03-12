@@ -1,7 +1,7 @@
 """rac roles
 
 Revision ID: 719c91b70834
-Revises: d918c317cb36
+Revises: 588c2762fed0
 Create Date: 2020-03-11 00:39:45.021832
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '719c91b70834'
-down_revision = 'd918c317cb36'
+down_revision = '588c2762fed0'
 branch_labels = None
 depends_on = None
 
