@@ -4,7 +4,7 @@ class NotFoundError(Exception):
         self.args = arg
         
 class BadRequestError(Exception):
-    """ App exception representing record not found """
+    """ App exception representing bad request """
     def __init(self, arg):
         self.args = arg
 

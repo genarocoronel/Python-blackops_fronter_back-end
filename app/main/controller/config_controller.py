@@ -1,9 +1,11 @@
 from flask_restplus import Resource
 
+from app.main.core.errors import NotFoundError
 from app.main.service.config_service import get_contact_number_types, get_income_types, get_expense_types, \
     get_all_candidates_dispositions, get_all_clients_dispositions
 
-from ..util.dto import ConfigDto, CandidateDto, ClientDto
+from ..util.dto import ConfigDto, CandidateDto, ClientDto, AuthDto
+from app.main.core.rac import RACMgr
 
 api = ConfigDto.api
 _income_types = ConfigDto.income_types
@@ -12,6 +14,23 @@ _contact_number_types = ConfigDto.contact_number_types
 _disposition = ConfigDto.disposition
 _candidate_dispositions = CandidateDto.candidate_dispositions
 _client_dispositions = ClientDto.client_dispositions
+_rac_roles = AuthDto.rac_roles
+
+@api.route('/rac-roles')
+class RacRoles(Resource):
+    @api.doc('Get RAC roles')
+    @api.marshal_list_with(_rac_roles, envelope='data')
+    def get(self):
+        """ Get all Contact Number Types """
+        try:
+            roles = RACMgr.get_all_roles()
+        except NotFoundError as e:
+            api.abort(404, message='Error getting RAC Roles, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed get RAC Roles. Please report this issue.', success=False)    
+        
+        return roles, 200
+            
 
 @api.route('/contact-number-types')
 class ContactNumberTypesList(Resource):

@@ -1,33 +1,29 @@
+import enum
 import datetime
+import jwt
 import random
 import uuid
 
-from app.main.model.user import User, UserPasswordReset
-from app.main.service.sms_service import sms_send_raw
-from app.main.service.user_service import save_changes
-from app.main.util.validate import is_email
-from flask import current_app as app
+from app.main import db
+from app.main.config import key
 
 from ..service.blacklist_service import save_token
+from app.main.service.sms_service import sms_send_raw
+from app.main.model.user import User, UserPasswordReset
+from app.main.util.validate import is_email
+from app.main.model.blacklist import BlacklistToken
+from flask import current_app as app
 
-
-def generate_code():
-    return str(random.randrange(100000, 999999))
-
-
-class Auth:
-
-    @staticmethod
-    def generate_password(password_length=16):
-        s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ@3_*"
-        return ''.join(random.sample(s, password_length))
+class Auth():
 
     @staticmethod
     def login_user(data):
+        """ Logs in a User for a given credential pair """
         try:
             user = User.query.filter_by(username=data.get('username')).first()
             if user and user.check_password(data.get('password')):
-                auth_token = user.encode_auth_token(user.id)
+                auth_token = Auth.encode_auth_token(user.id)
+
                 if auth_token:
                     # TODO: Implement 2-factor auth at a later time (per Keith & David on 2020-02-28)
                     # if user.require_2fa:
@@ -41,13 +37,19 @@ class Auth:
                         'status': 'success',
                         'message': 'Successfully logged in.',
                         'user': {
+                            'public_id': user.public_id,
+                            'username': user.username,
+                            'password': None,
+                            'email': user.email,
                             'first_name': user.first_name,
                             'last_name': user.last_name,
-                            'public_id': user.public_id,
-                            'phone_number': user.personal_phone,
-                            'email': user.email,
                             'title': user.title,
+                            'phone_number': user.personal_phone,
+                            'language': user.language,
+                            'personal_phone': user.personal_phone,                            
                             'last_4_of_phone': user.personal_phone[-4:],
+                            'voip_route_number': user.voip_route_number,
+                            'rac_role': user.role.name,
                             'require_2fa': user.require_2fa,
                             'token': auth_token.decode()
                         }
@@ -70,12 +72,16 @@ class Auth:
 
     @staticmethod
     def logout_user(data):
-        if data:
+        """ Logs out an Authenticated User by invalidating current Auth Token """
+        if data and ' ' in data:
             auth_token = data.split(" ")[1]
+        elif data:
+            auth_token = data
         else:
             auth_token = ''
         if auth_token:
-            resp = User.decode_auth_token(auth_token)
+            resp = Auth.decode_auth_token(auth_token)
+
             if not isinstance(resp, str):
                 # mark the token as blacklisted
                 return save_token(token=auth_token)
@@ -96,17 +102,19 @@ class Auth:
     def get_logged_in_user(new_request):
         # get the auth token
         auth_token = new_request.headers.get('Authorization')
-        if auth_token:
-            resp = User.decode_auth_token(auth_token)
+        if auth_token and len(auth_token) > 0:
+            resp = Auth.decode_auth_token(auth_token)
+
             if not isinstance(resp, str):
                 user = User.query.filter_by(id=resp).first()
                 response_object = {
                     'status': 'success',
                     'data': {
+                        'public_id': user.public_id,
                         'user_id': user.id,
                         'username': user.username,
                         'email': user.email,
-                        'admin': user.admin,
+                        'rac_role': user.role.name,
                         'registered_on': str(user.registered_on)
                     }
                 }
@@ -235,3 +243,57 @@ class Auth:
                 'message': 'Invalid password reset request'
             }
             return response_object, 404
+    
+    @staticmethod
+    def encode_auth_token(user_id):
+        """
+        Generates an Auth Token for a Authenticated User
+        :return: string
+        """
+        app.logger.info('Attempting encoding auth token')
+
+        try:
+            payload = {
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1, seconds=5),
+                'iat': datetime.datetime.utcnow(),
+                'sub': user_id
+            }
+            return jwt.encode(
+                payload,
+                key,
+                algorithm='HS256'
+            )
+        except Exception as e:
+            return e
+
+    @staticmethod
+    def decode_auth_token(auth_token):
+        """
+        Decodes an Auth Token
+        :param auth_token:
+        :return: integer|string
+        """
+        try:
+            payload = jwt.decode(auth_token, key)
+            is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
+            if is_blacklisted_token:
+                return 'Token blacklisted. Please log in again.'
+            else:
+                return payload['sub']
+        except jwt.ExpiredSignatureError:
+            return 'Signature expired. Please log in again.'
+        except jwt.InvalidTokenError:
+            return 'Invalid token. Please log in again.'
+
+    
+    @staticmethod
+    def generate_password(password_length=16):
+        """ Generates a random Password """
+        s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ@3_*"
+        return ''.join(random.sample(s, password_length))
+
+    def save_changes(*data):
+        for entry in data:
+            db.session.add(entry)
+        db.session.commit()
+    

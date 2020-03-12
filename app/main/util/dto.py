@@ -8,7 +8,7 @@ from app.main.model.employment import FrequencyStatus
 from app.main.model.client import ClientType, EmploymentStatus, ClientDispositionType
 from app.main.model.address import AddressType
 from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportDataAccountType
-from app.main.service.auth_helper import Auth
+from app.main.core.auth import Auth
 from app.main.util import parsers
 
 
@@ -104,7 +104,7 @@ class UserDto:
         'password': fields.String(required=True, description='user password', example=Auth.generate_password()),
         'first_name': fields.String(required=True, description='user first name'),
         'last_name': fields.String(required=True, description='user last name'),
-        'title': fields.String(required=True, description='user title', example='Administrator'),
+        'title': fields.String(required=True, description='user title', example='Opener Rep'),
         'language': fields.String(required=True, description='user language preference', example='en'),
         'personal_phone': fields.String(required=True, description='user personal phone number'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number')
@@ -114,23 +114,26 @@ class UserDto:
         'email': fields.String(required=False, description='user email address'),
         'first_name': fields.String(required=False, description='user first name'),
         'last_name': fields.String(required=False, description='user last name'),
-        'title': fields.String(required=False, description='user title', example='Administrator'),
+        'title': fields.String(required=False, description='user title', example='Opener Rep'),
         'language': fields.String(required=False, description='user language preference', example='en'),
         'personal_phone': fields.String(required=False, description='user personal phone number'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number')
 
     })
     user = api.model('user', {
-        'email': fields.String(required=True, description='user email address'),
+        'public_id': fields.String(description='user identifier'),
         'username': fields.String(required=True, description='user username'),
         'password': fields.String(required=True, description='user password'),
-        'public_id': fields.String(description='user identifier'),
+        'email': fields.String(required=True, description='user email address'),
         'first_name': fields.String(required=True, description='user first name'),
         'last_name': fields.String(required=True, description='user last name'),
         'title': fields.String(required=True, description='user title'),
         'language': fields.String(required=True, description='user language preference'),
+        'phone_number': fields.String(required=True, description='user phone number'),
         'personal_phone': fields.String(required=True, description='user personal phone number'),
-        'voip_route_number': fields.String(required=False, description='user VOIP routing number')
+        'last_4_of_phone': fields.String(required=True, description='Last 4 of user personal phone number'),
+        'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
+        'rac_role': fields.String(required=False, description='RAC Role')
     })
 
 
@@ -148,6 +151,14 @@ class AuthDto:
     })
     password_reset = api.model('password_reset', {
         'password': fields.String(required=True, description='new password for password reset request')
+    })
+    rac_roles = api.model('rac_role', {
+        'id': fields.String(required=False),
+        'name': fields.String(required=True, example='opener_rep'),
+        'name_friendly': fields.String(required=False, example='Opener Rep'),
+        'description': fields.String(required=True, example='Opener Rep Role'),
+        'inserted_on': fields.DateTime(required=False),
+        'updated_on': fields.DateTime(required=False),
     })
 
 

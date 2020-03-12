@@ -4,6 +4,7 @@ import jwt
 from pytz import utc
 
 from app.main.config import key
+from app.main.model.rac import RACRole
 from app.main.model.blacklist import BlacklistToken
 from .. import db, flask_bcrypt
 
@@ -16,12 +17,13 @@ class User(db.Model):
     registered_on = db.Column(db.DateTime, nullable=False)
 
     # relationships
+    rac_role_id = db.Column(db.Integer, db.ForeignKey('rac_role.id', name='fk_user_rac_role_id'))
+    role = db.relationship(RACRole, uselist=False)
 
     # fields
     first_name = db.Column(db.String(25), nullable=False)
     last_name = db.Column(db.String(25), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
-    admin = db.Column(db.Boolean, nullable=False, default=False)
     require_2fa = db.Column(db.Boolean, default=True)
     title = db.Column(db.String(100), nullable=True)
     language = db.Column(db.String(25), nullable=False)
@@ -30,6 +32,7 @@ class User(db.Model):
     public_id = db.Column(db.String(100), unique=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(100))
+    
 
     @property
     def password(self):
@@ -48,45 +51,6 @@ class User(db.Model):
 
     def __repr__(self):
         return "<User '{}'>".format(self.username)
-
-    @staticmethod
-    def encode_auth_token(user_id):
-        """
-        Generates the Auth Token
-        :return: string
-        """
-        try:
-            payload = {
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1, seconds=5),
-                'iat': datetime.datetime.utcnow(),
-                'sub': user_id
-            }
-            return jwt.encode(
-                payload,
-                key,
-                algorithm='HS256'
-            )
-        except Exception as e:
-            return e
-
-    @staticmethod
-    def decode_auth_token(auth_token):
-        """
-        Decodes the auth token
-        :param auth_token:
-        :return: integer|string
-        """
-        try:
-            payload = jwt.decode(auth_token, key)
-            is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
-            if is_blacklisted_token:
-                return 'Token blacklisted. Please log in again.'
-            else:
-                return payload['sub']
-        except jwt.ExpiredSignatureError:
-            return 'Signature expired. Please log in again.'
-        except jwt.InvalidTokenError:
-            return 'Invalid token. Please log in again.'
 
 
 class UserPasswordReset(db.Model):

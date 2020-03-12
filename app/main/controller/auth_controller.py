@@ -1,7 +1,8 @@
 from flask import request
 from flask_restplus import Resource
 
-from app.main.service.auth_helper import Auth
+from app.main.core.rac import RACMgr
+from app.main.core.auth import Auth
 from ..util.dto import AuthDto
 
 api = AuthDto.api
@@ -62,3 +63,9 @@ class PasswordReset(Resource):
         post_data = request.json
         post_data.update(dict(reset_key=reset_token))
         return Auth.reset_password(data=post_data)
+
+@api.route('/policies')
+class AccessPolicies(Resource):
+    @api.doc('Get access policies')
+    def get(self):
+        return RACMgr.get_access_policies()
