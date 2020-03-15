@@ -195,7 +195,7 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
     if to_phone:
         # Ensure phone belongs to client when given
         client = get_client_by_phone(clean_phone_to_tenchars(to_phone))
-        if client.public_id != client_public_id:
+        if not client or client.public_id != client_public_id:
             raise BadRequestError('Client ID To phone number mismatch. Not sent.')
 
         destination_phone = to_phone
