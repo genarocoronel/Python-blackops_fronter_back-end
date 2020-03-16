@@ -144,7 +144,7 @@ def process_new_sms_mssg(mssg_data, direction: MessageDirection):
         if mssg_data['from_phone'] is None:
             raise BadRequestError('The FROM phone is None!')
         elif len(mssg_data['from_phone']) < 10:
-            raise BadRequestError('The FROM phone number has less than 10 characters!')
+            raise BadRequestError(f'The FROM phone number has less than 10 characters {mssg_data["from_phone"]}!')
         
         # TODO: Later add unmatched, incoming phone numbers to be "sent to a general convo"
         client = None
@@ -242,7 +242,9 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
 
 
 def clean_phone_to_tenchars(raw_phone):
-    return re.sub('[^0-9]','',raw_phone.strip())[1:]
+    raw_phone = re.sub('[^0-9]','',raw_phone)
+    raw_phone = raw_phone.strip()
+    return raw_phone[-10:]
 
 
 def save_changes(*data):
