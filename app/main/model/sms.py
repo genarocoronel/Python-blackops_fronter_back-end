@@ -1,4 +1,12 @@
+import enum
 from .. import db
+
+
+class SMSMessageStatus(enum.Enum):
+    PENDING = 'pending'
+    FAILED = 'failed'
+    SUCCESS = 'success'
+
 
 class SMSConvo(db.Model):
     """ Represents a SMS Client Conversation """
@@ -31,6 +39,7 @@ class SMSMessage(db.Model):
     provider_message_id = db.Column(db.String(100))
     provider_name = db.Column(db.String(25))
     is_viewed = db.Column(db.Boolean, default=False)
+    delivery_status = db.Column(db.String(10))
 
     # Relationships
     sms_convo_id = db.Column(db.Integer, db.ForeignKey('sms_convos.id', name='fk_sms_messages_sms_convo_id'))

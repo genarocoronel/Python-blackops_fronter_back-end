@@ -5,7 +5,7 @@ from ..util.dto import SmsDto
 from app.main.service.sms_service import register_new_sms_mssg, get_convo, whois_webhook_token, \
     get_convo_for_client, send_message_to_client
 from app.main.core.errors import BadRequestError, NotFoundError
-
+from flask import current_app
 
 api = SmsDto.api
 _new_sms_mssg_registration = SmsDto.new_sms_mssg_registration
@@ -29,6 +29,7 @@ class SmsRegistration(Resource):
 
         # Bandwidth always must expect 200 HTTP code, except for when not using our webhook token
         try:
+            current_app.logger.info('Received request to register an SMS message by service provider.')
             response = register_new_sms_mssg(mssg_data, provider_name)
             return response, 200 
 
@@ -46,6 +47,7 @@ class SmsConversation(Resource):
     @api.doc('Get a SMS/MMS Conversation')
     def get(self, convo_public_id):
         try:
+            current_app.logger.info(f"Received request to get SMS Conversation by its publid ID {convo_public_id}")
             convo_mssgs = get_convo(convo_public_id)
 
         except NotFoundError as e:
@@ -65,6 +67,7 @@ class SmsClientConversation(Resource):
     @api.doc('Get a SMS/MMS Conversation for a Client')
     def get(self, client_public_id):
         try:
+            current_app.logger.info(f"Received request to get SMS Conversation by client public ID {client_public_id}")
             convo_mssgs = get_convo_for_client(client_public_id)
 
         except NotFoundError as e:
@@ -94,6 +97,7 @@ class SmsSendSendToClient(Resource):
         messg_body = request_data['message_body']
         
         try:
+            current_app.logger.info(f'Received request to send SMS message to client with ID {client_public_id}')
             sms_message = send_message_to_client(client_public_id, from_phone, messg_body, to_phone)
             return sms_message, 200
         except BadRequestError as e:
