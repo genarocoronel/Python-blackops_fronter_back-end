@@ -5,7 +5,7 @@ import enum
 from twilio.rest import Client as Twilio_Client
 
 from app.main import db
-from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
+from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth, SMSMessageStatus
 from app.main.model.client import Client, ClientContactNumber
 from app.main.model.contact_number import ContactNumber
 from app.main.service.client_service import get_client_by_phone, get_client_by_id, get_client_by_public_id
@@ -40,6 +40,7 @@ def whois_webhook_token(webhook_token):
 
 def get_convo(convo_public_id):
     """ Gets a SMS Conversation """
+    current_app.logger.info(f'Fetching the client SMS conversation with ID {convo_public_id}')
     convo = _get_sms_convo_by_pubid(convo_public_id)
     if not convo:
         raise NotFoundError(f"Conversation for  with ID {convo_public_id} not found.")
@@ -83,6 +84,7 @@ def synth_messages_for_convo(convo, client=None):
         }
 
         messages = SMSMessage.query.filter_by(sms_convo_id=convo.id).order_by(db.desc(SMSMessage.id)).all()
+        current_app.logger.info('Synthesizing SMS conversation with all inbound and outbound messages for this client.')
         for mssg_item in messages:
             tmp_mssg = {
                 'public_id': mssg_item.public_id,
@@ -95,7 +97,8 @@ def synth_messages_for_convo(convo, client=None):
                 'message_media': [],
                 'provider_message_id': mssg_item.provider_message_id,
                 'provider_name': mssg_item.provider_name,
-                'is_viewed': mssg_item.is_viewed
+                'is_viewed': mssg_item.is_viewed,
+                'delivery_status': mssg_item.delivery_status
             }
 
             tmp_media_records = _handle_get_media_for_messg(mssg_item)
@@ -117,7 +120,29 @@ def register_new_sms_mssg(mssg_data, provider_name):
     result = None
     if (provider_name == PROVIDER_BANDWIDTH):
         crm_mssg_data = _save_bandwidth_sms_message(mssg_data)
-        crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.IN)
+        if crm_mssg_data['direction'] == 'in':
+            current_app.logger.info('Registering inbound SMS message with success delivery status.')
+            mssg_data['delivery_status'] = SMSMessageStatus.SUCCESS.value
+            crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.IN)
+            
+        else:
+            # This case means that CRM already sent a message and saved with status PENDING and 
+            # now it is being confirmed as DELIVERED or FAILED. We need to update existing message.
+            crm_mssg = SMSMessage.query.filter_by(provider_message_id=mssg_data['message']['id']).first()
+            if not crm_mssg_data:
+                raise Exception('Could not find a matching internal message for that outbound registration with provider ID {}.'.format(mssg_data['provider_message_id']))
+
+            if mssg_data['description'] == 'ok':
+                current_app.logger.info('Registering outbound SMS message with success delivery status.')
+                crm_mssg.delivery_status = SMSMessageStatus.SUCCESS.value
+                crm_mssg.updated_on = datetime.datetime.utcnow()
+                save_changes(crm_mssg)
+
+            else:
+                current_app.logger.warning('WARNING: Webhook registered outbound SMS as Failed. User may need to resend.')
+                crm_mssg.delivery_status = SMSMessageStatus.FAILED.value
+                crm_mssg.updated_on = datetime.datetime.utcnow()
+                save_changes(crm_mssg)
 
         result = {
                 'success': True,
@@ -136,6 +161,7 @@ def process_new_sms_mssg(mssg_data, direction: MessageDirection):
     message_public_id = None
     from_phone = None
     
+    current_app.logger.info("Processing new SMS message and will attempt to attach to a Client SMS conversation")
     sms_mssg = SMSMessage.query.filter_by(provider_message_id=mssg_data['provider_message_id']).first()
     if not sms_mssg:
         mssg_data['from_phone'] = clean_phone_to_tenchars(mssg_data['from_phone'])
@@ -189,6 +215,7 @@ def sms_send_raw(phone_target, sms_text, user_id):
 
 def send_message_to_client(client_public_id, from_phone, message_body, to_phone = None):
     """ Sends a SMS message to a client on behalf of a Sales or Service person """
+    current_app.logger.info(f'Attempting to send SMS message to {to_phone} frm {from_phone}.')
     sms_message = None
     destination_phone = None
 
@@ -223,6 +250,8 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
         raise
 
     if crm_mssg_data:
+        current_app.logger.info('Send SMS message carried out. Marking as PENDING status until webhook confirms success or failure.')
+        crm_mssg_data['delivery_status'] = SMSMessageStatus.PENDING.value
         crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.OUT)
         sms_message = {
             'public_id': crm_mssg.public_id,
@@ -235,7 +264,8 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
             'message_media': [],
             'provider_message_id': crm_mssg.provider_message_id,
             'provider_name': crm_mssg.provider_name,
-            'is_viewed': crm_mssg.is_viewed
+            'is_viewed': crm_mssg.is_viewed,
+            'delivery_status': crm_mssg.delivery_status
         }
 
     return sms_message
@@ -286,6 +316,7 @@ def _handle_new_sms_message(message_data, conversation):
         is_viewed = is_viewed,
         sms_convo_id = conversation.id,
         inserted_on = datetime.datetime.utcnow(),
+        delivery_status = message_data['delivery_status']
     )
     db.session.add(new_message)
     save_changes()
