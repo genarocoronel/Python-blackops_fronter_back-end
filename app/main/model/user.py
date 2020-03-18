@@ -84,3 +84,14 @@ class UserPasswordReset(db.Model):
         if self.has_activated or duration.days >= 1:
             return True
         return False
+
+
+class UserPBXNumber(db.Model):
+    __tablename__ = "user_pbx_numbers"
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    pbx_number_id = db.Column(db.Integer, db.ForeignKey('pbx_numbers.id'), primary_key=True)
+
+    # relationships
+    user = db.relationship('User', backref='pbx_number_user_assoc')
+    pbx_number = db.relationship('PBXNumber', backref='user_pbx_number_assoc')
