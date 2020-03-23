@@ -367,7 +367,7 @@ def _save_bandwidth_sms_message(messg_data):
     message_media = None
 
     if not bw_mssg:
-        if messg_data['message']['media']:
+        if 'media' in messg_data['message']:
             message_media = messg_data['message']['media']
 
         bw_mssg=SMSBandwidth(
