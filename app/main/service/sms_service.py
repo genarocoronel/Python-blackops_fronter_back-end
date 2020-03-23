@@ -122,7 +122,7 @@ def register_new_sms_mssg(mssg_data, provider_name):
         crm_mssg_data = _save_bandwidth_sms_message(mssg_data)
         if crm_mssg_data['direction'] == 'in':
             current_app.logger.info('Registering inbound SMS message with success delivery status.')
-            mssg_data['delivery_status'] = SMSMessageStatus.SUCCESS.value
+            crm_mssg_data['delivery_status'] = SMSMessageStatus.SUCCESS.value
             crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.IN)
             
         else:
