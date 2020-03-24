@@ -1,6 +1,11 @@
 from flask import request
 from flask_restplus import Resource
 
+from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAllowed, 
+    ServiceProviderError, ServiceProviderLockedError)
+from app.main.core.types import CustomerType
+from ..util.dto import LeadDto, ClientDto
+from ..util.parsers import filter_request_parse
 from app.main.controller import _handle_get_client, _handle_get_credit_report, _convert_payload_datetime_values, _parse_datetime_values
 from app.main.model.client import ClientType
 from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_CODES_SALES_OVERRIDABLE
@@ -13,8 +18,9 @@ from app.main.service.client_service import get_all_clients, save_new_client, ge
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract
-from ..util.dto import LeadDto, ClientDto
-from ..util.parsers import filter_request_parse
+from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
+    get_verification_questions, answer_verification_questions, get_security_questions, complete_signup, pull_credit_report)
+from flask import current_app as app
 
 api = LeadDto.api
 _lead = LeadDto.lead
@@ -34,6 +40,9 @@ _update_contact_number = ClientDto.update_contact_number
 _lead_address = ClientDto.client_address
 _update_lead_address = ClientDto.update_client_address
 _co_client = LeadDto.co_client
+_new_credit_report_account = LeadDto.new_credit_report_account
+_update_credit_report_account = LeadDto.update_credit_report_account
+_credit_account_verification_answers = LeadDto.account_verification_answers
 
 LEAD = ClientType.lead
 
@@ -185,7 +194,7 @@ class LeadAddresses(Resource):
             api.abort(404, **error_response)
         return update_client_addresses(lead, addresses)
 
-    @api.doc('get candidate addresses')
+    @api.doc('get Lead addresses')
     @api.marshal_list_with(_lead_address)
     def get(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
@@ -263,16 +272,6 @@ class LeadEmployments(Resource):
                 return dict(success=True, **result), 200
 
 
-def _get_codes_for_current_user():
-    # TODO: accept a query param for 'override' which will persist the banking information regardless of failure
-    # TODO: from the datax service. This 'override' should only be allowed by an ADMIN though
-    is_admin = True
-    if is_admin:
-        return DATAX_ERROR_CODES_MANAGER_OVERRIDABLE
-    else:
-        return DATAX_ERROR_CODES_SALES_OVERRIDABLE
-
-
 @api.route('/<public_id>/credit-report/debts')
 @api.param('public_id', 'The lead Identifier')
 @api.response(404, 'lead or credit report account does not exist')
@@ -333,11 +332,345 @@ class LeadCreditReportDebts(Resource):
         delete_debts(request_data.get('ids'))
         return dict(success=True), 200
 
+@api.route('/<public_id>/credit-report/account')
+@api.param('public_id', 'The Lead public ID')
+class CreateCreditReportAccount(Resource):
+    @api.doc('Create credit report account for Lead. This is Step #1 in process.')
+    @api.expect(_new_credit_report_account, validate=True)
+    def post(self, public_id):
+        request_data = request.json
+        print(request_data)
+
+        lead, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        try:
+            app.logger.info('Received request to signup Lead for a Credit Report Account.')
+            creport_acc = creport_account_signup(request_data, lead, CustomerType.LEAD)
+
+        except BadRequestError as e:
+            response_object = {
+                'success': False,
+                'message': f'There was an issue with data in your request, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot sign up for new Credit Account due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot sign up for new Credit Account due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        response_object = {
+            'success': True,
+            'message': f'Successfully created credit report account with {creport_acc.provider}',
+            'public_id': creport_acc.public_id
+        }        
+        return response_object, 201
+
+    
+@api.route('/<lead_public_id>/credit-report/account/<public_id>')
+@api.param('lead_public_id', 'The Lead Identifier')
+@api.param('public_id', 'The Credit Report Account Identifier')
+class UpdateCreditReportAccount(Resource):
+    @api.doc('update credit report account. This is step #2, and #4 in the process.')
+    @api.expect(_update_credit_report_account, validate=True)
+    def put(self, lead_public_id, public_id):
+        """ Update Credit Report Account """
+        lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(lead)
+        if not account:
+            return error_response
+        
+        request_data = request.json        
+        relevant_data = None
+        
+        if 'security_question_id' in request_data:
+            relevant_data = {
+                'security_question_id': request_data['security_question_id'],
+                'security_question_answer': request_data['security_question_answer'],
+                'ssn': request_data['ssn']
+            }
+        else:
+            relevant_data = request_data
+            
+        relevant_data['ip_address'] = request.remote_addr
+        relevant_data['terms_confirmed'] = True
+        
+        try:
+            app.logger.info(f"Received request to update Credit Report account for Lead with ID: {lead_public_id}")
+            update_credit_report_account(account, relevant_data)
+
+        except BadRequestError as e:
+            response_object = {
+                'success': False,
+                'message': f'There was an issue with data in your request to update Lead Credit Report Account, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot update Lead Credit Report Account due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot update Lead Credit Report Account due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+        
+
+        response_object = {
+            'success': True,
+            'message': 'Successfully updated credit report account for this Lead'
+        }
+        return response_object, 200
+
+@api.route('/<lead_public_id>/credit-report/account/<credit_account_public_id>/security-questions')
+@api.param('lead_public_id', 'The Lead pubic ID')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CreditReportAccountSecurityQuestions(Resource):
+    @api.doc('get credit report account security questions. This is step #3 in process.')
+    def get(self, lead_public_id, credit_account_public_id):
+        """ Get Available Security Questions"""
+        lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(lead)
+        if not account:
+            return error_response
+
+        try:
+            app.logger.info('Received request to get Credit Account Security Questions for a Lead.')
+            questions = get_security_questions(account)
+        
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get Lead credit account security questions due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get Lead credit account security questions due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        return questions, 200
+
+
+@api.route('/<lead_public_id>/credit-report/account/<public_id>/verification-questions')
+@api.param('lead_public_id', 'The Lead Identifier')
+@api.param('public_id', 'The Credit Report Account Identifier')
+class CreditReporAccounttVerification(Resource):
+    @api.doc('get verification questions. Step #5 in process.')
+    def get(self, lead_public_id, public_id):
+        """ Get Account Verification Questions """
+        lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(lead)
+        if not account:
+            return error_response
+
+        try:
+            app.logger.info('Received request to get Lead Credit Account ID Verification Questions.')
+            questions = get_verification_questions(account)
+        
+        except BadRequestError as e:
+            response_object = {
+                'success': False,
+                'message': f'There was an issue with data in your request to get Lead verification questions, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get Lead verification questions due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get Lead verification questions due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        return questions, 200
+
+    @api.doc('Submit answers to verification questions. Step #6 in process.')
+    @api.expect(_credit_account_verification_answers, validate=False)
+    def put(self, lead_public_id, public_id):
+        """ Submit Account Verification Answers """
+        lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(lead)
+        if not account:
+            return error_response
+
+        data = request.json
+
+        try:
+            app.logger.info('Received request to answer Lead Credit Account Verification Questions.')
+            answer_verification_questions(account, data)
+
+        except BadRequestError as e:
+            response_object = {
+                'success': False,
+                'message': f'There was an issue with data in your request to submit verification questions, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot submit Lead verification questions due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot submit Lead verification questions due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        response_object = {
+            'success': True,
+            'message': 'Successfully submitted verification answers for this Lead'
+        }
+        return response_object, 200
+
+
+@api.route('/<lead_public_id>/credit-report/account/<credit_account_public_id>/complete')
+@api.param('lead_public_id', 'The Lead public ID')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CompleteCreditReportAccount(Resource):
+    @api.doc('Complete credit report account signup. Step #7 and final step in process.')
+    def put(self, lead_public_id, credit_account_public_id):
+        """ Complete Credit Report Account Sign Up"""
+        lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(lead)
+        if not account:
+            return error_response
+
+        try:
+            app.logger.info('Received request to complete Lead Credit Report account signup.')
+            complete_signup(account)
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot complete Lead credit account signup due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot complete Lead credit account signup due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        response_object = {
+            'success': True,
+            'message': 'Successfully completed credit account signup for this Lead'
+        }
+        return response_object, 200
+
+@api.route('/<lead_public_id>/credit-report/account/pull')
+@api.param('lead_public_id', 'Lead public ID')
+@api.response(404, 'Lead not found')
+class CandidateToLead(Resource):
+    @api.doc('Pull Credit Report for a Lead')
+    def get(self, lead_public_id):
+        """ Pull Credit Report for Lead and Import Debts """
+        lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        credit_report_account = lead.credit_report_account
+        if not credit_report_account:
+            api.abort(404, "No credit report account associated with Lead. Create Credit Report Account first.")
+
+        app.logger.info("Received request to pull Credit Report for Lead")
+        pull_credit_report(credit_report_account)
+
+        return {"success": True, "message": "Successfully created job to pull Credit Report and import Debts. Check for new Debts in a few minutes."}, 200
+
 @api.route('/<public_id>/credit-report/push-debts')
 @api.param('public_id', 'The lead Identifier')
 @api.response(404, 'lead or credit report account does not exist')
 class LeadCreditReportPushDebts(Resource):
-    @api.doc('fetch credit report data')
+    @api.doc('Update credit report data')
     def put(self, public_id):
         """Push Debts"""
         request_data = request.json
@@ -497,3 +830,12 @@ class LeadNotificationPrefs(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
+
+def _get_codes_for_current_user():
+    # TODO: accept a query param for 'override' which will persist the banking information regardless of failure
+    # TODO: from the datax service. This 'override' should only be allowed by an ADMIN though
+    is_admin = True
+    if is_admin:
+        return DATAX_ERROR_CODES_MANAGER_OVERRIDABLE
+    else:
+        return DATAX_ERROR_CODES_SALES_OVERRIDABLE
