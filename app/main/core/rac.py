@@ -63,8 +63,8 @@ class RACMgr():
 
             if g.current_user['rac_role'] == role_item.value:
                 return True
-            else:
-                return False
+
+        return False
 
     @classmethod
     def get_policy_for_role(cls, role):
