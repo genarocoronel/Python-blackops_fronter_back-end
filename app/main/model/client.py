@@ -70,7 +70,6 @@ class Client(db.Model):
     disposition = db.relationship('ClientDisposition', back_populates='clients')
     bank_account = db.relationship('BankAccount', uselist=False, backref='client')
     credit_report_account = db.relationship('CreditReportAccount', uselist=False, backref='client')
-    payment_contract = db.relationship('DebtPaymentContract', uselist=False, backref='client')
     co_client = db.relationship('Client', uselist=False, remote_side=[client_id])
     employments = db.relationship('ClientEmployment')
     income_sources = db.relationship('ClientIncome')
@@ -104,6 +103,10 @@ class Client(db.Model):
     lead_source = db.Column(db.String(100), nullable=True)
     # date on which application is processed
     application_date = db.Column(db.DateTime, nullable=True)   
+
+    @property
+    def full_name(self):
+        return "{} {}".format(self.first_name, self.last_name)
 
 
 class ClientIncome(db.Model):

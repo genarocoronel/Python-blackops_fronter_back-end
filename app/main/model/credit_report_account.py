@@ -46,11 +46,6 @@ class CreditReportAccount(db.Model):
     # move this to appropriate table, if needed
     # FICO score
     fico = db.Column(db.Integer, nullable=True)
-    # debt payment
-    # temp: will be moved to payment contract
-    term = db.Column(db.Integer, nullable=True, default=24)
-    payment_start_date = db.Column(db.DateTime, nullable=True)
-    payment_recurring_begin_date = db.Column(db.DateTime, nullable=True)
 
     # relationship
     records = db.relationship("CreditReportData", backref="credit_report_accounts") 

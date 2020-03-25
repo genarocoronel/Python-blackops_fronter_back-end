@@ -42,7 +42,7 @@ def enforce_rac_required_roles(roles_to_enforce: list):
         def decorated(*orig_args, **orig_kwargs):
             # TODO - implement business logic
             if not RACMgr.enforce_policy_user_has_role(roles_to_enforce):
-                api.abort(403, 'You do not have permissions to access this resource or action', success=False)
+                return 'You do not have permissions to access this resource or action', 403
 
             return func_to_decorate(*orig_args, **orig_kwargs)
 
@@ -60,6 +60,7 @@ def token_required(f):
 
         if not curr_user:
             api.abort(status, data.get('message'))
+  
 
         g.current_user = curr_user
         return f(*args, **kwargs)

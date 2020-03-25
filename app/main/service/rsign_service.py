@@ -1,4 +1,4 @@
-from ..model.docsign import DocusignSession, DocusignTemplate, SessionState, SignatureStatus
+from ..model.docsign import DocusignSession, DocusignTemplate
 from ..model.client import Client
 from app.main import db
 from sqlalchemy import desc
@@ -20,7 +20,7 @@ def create_session(data):
         raise ValueError("Client not found, client id is Invalid")
 
     # check if session is already in Progress
-    sessions = DocusignSession.query.filter_by(client_id=client.id, state=SessionState.PROGRESS).all()
+    sessions = DocusignSession.query.filter_by(client_id=client.id).all()
     if len(sessions) > 0:
         raise ValueError("Create session is not allowed when session is already in progress")
 
@@ -61,31 +61,6 @@ def fetch_session_status(key):
         if session is None:
             raise ValueError("Session not found.")
 
-        if session.state == SessionState.COMPLETED:
-            result['status'] = "Completed"
-        else:
-            signature = session.signature
-            if signature is None:
-                result['status'] = 'Failed' 
-                result['reason'] = 'Internal Server Error'
-                return result
- 
-            status = signature.status
-            if session.state == SessionState.PROGRESS:
-                result['status'] = "Progress"
-                if (status == SignatureStatus.COMPLETED):
-                    result['status'] = 'Completed'
-                elif (status == SignatureStatus.DELIVERED):
-                    result['status'] = 'Delivered'
-                elif (status == SignatureStatus.SIGNED):
-                    result['status'] = 'Signed'
-            elif session.state == SessionState.FAILED:
-                result['status'] = "Failed"
-                if (status == SignatureStatus.DECLINED):
-                    result['status'] = 'Declined'
-                elif (status == SignatureStatus.VOIDED):
-                    result['status'] = 'Voided'
-            
         return result
 
     except Exception as err:
@@ -101,33 +76,6 @@ def fetch_client_status(client_id):
         session = DocusignSession.query.filter_by(client_id=client.id).order_by(desc(DocusignSession.created_date)).first()
         if session is None:
             raise ValueError("rsign session not found") 
-
-        if session.state == SessionState.COMPLETED:
-            result['status'] = "Completed"
-        else:
-            signature = session.signature
-            if signature is None:
-                result['status'] = 'Failed'
-                result['reason'] = 'Internal Server Error'
-            else:
-                status = signature.status
-                if session.state == SessionState.PROGRESS:
-                    result['status'] = "Progress"
-                    if (status == SignatureStatus.COMPLETED):
-                        result['status'] = 'Completed'
-                    elif (status == SignatureStatus.DELIVERED):
-                        result['status'] = 'Delivered'
-                    elif (status == SignatureStatus.SIGNED):
-                        result['status'] = 'Signed'
-                elif session.state == SessionState.FAILED:
-                    result['status'] = "Failed"
-                    if (status == SignatureStatus.DECLINED):
-                        result['status'] = 'Declined'
-                    elif (status == SignatureStatus.VOIDED):
-                        result['status'] = 'Voided'
-
-        result['created_at'] = session.created_date.strftime('%m/%d/%Y')
-        result['document'] = session.session_type.value
 
         return result
 
