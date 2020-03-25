@@ -104,6 +104,10 @@ class Client(db.Model):
     # date on which application is processed
     application_date = db.Column(db.DateTime, nullable=True)   
 
+    @property
+    def full_name(self):
+        return "{} {}".format(self.first_name, self.last_name)
+
 
 class ClientIncome(db.Model):
     __tablename__ = "client_income_sources"

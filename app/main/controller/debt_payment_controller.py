@@ -2,7 +2,7 @@ from flask import Flask, request
 from flask_restplus import Resource, Api
 
 from ..util.dto import DebtPaymentDto
-from ..service.debt_payment_service import fetch_debt_payment_stats, fetch_debt_payment_plans
+from ..service.debt_payment_service import fetch_debt_payment_stats
 
 api = DebtPaymentDto.api 
 
@@ -20,14 +20,3 @@ class DebtPaymentStats(Resource):
         except Exception as err:
             return {'message': 'Internal Server error - {}'.format(str(err))}, 400
 
-@api.route('/<status>/plans')
-class DebtPaymentPlanByStatus(Resource):
-    @api.doc('fetch plans by status')
-    def get(self, status):
-        try:
-             """ Fetch payment plans by status """
-             data = fetch_debt_payment_plans(status) 
-             return data
-
-        except Exception as err:
-            api.abort(500, "{}".format(str(err)))

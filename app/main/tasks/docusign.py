@@ -48,7 +48,8 @@ def check_sessions():
         _docusign.authorize()
 
         # fetch all docsuign session in progress
-        sessions = DocusignSession.query.filter(or_(DocusignSession.status==DocusignSessionStatus.SENT, DocusignSession.status==DocusignSessionStatus.DELIVERED)).all()
+        sessions = DocusignSession.query.filter(or_(DocusignSession.status==DocusignSessionStatus.SENT, 
+                                                    DocusignSession.status==DocusignSessionStatus.DELIVERED)).all()
         for session in sessions:
             contract = session.contract
             # fetch all in-progress sessions 
@@ -79,7 +80,7 @@ def check_sessions():
                 elif new_status == DocusignSessionStatus.VOIDED:
                     contract.status = ContractStatus.VOID
                 elif new_status == DocusignSessionStatus.COMPLETED:
-                    contract.status = ContractStatus.SIGNED
+                    contract.ON_SIGNED()
 
                 session.status = new_status
                 db.session.commit()
@@ -596,7 +597,6 @@ def send_removal_debts_for_signature(client_id):
             start = start + relativedelta(months=1)
 
         monthly_fee = payment_contract.monthly_fee
-        print(pymt_term)
        
         for i in range(0, (pymt_term - active_contract.num_inst_completed)):
             index = index + 1
@@ -630,7 +630,7 @@ def send_removal_debts_for_signature(client_id):
                                        template_params=t_params,
                                        co_sign=True,
                                        cosigner_name=co_client_fname,
-                                       cosigner_email=cc.email)
+                                       cosigner_email=co_client.email)
         # create signature
         session = DocusignSession(template_id=ds_template.id,
                                   envelope_id=key,
@@ -638,213 +638,263 @@ def send_removal_debts_for_signature(client_id):
         db.session.add(session)
         db.session.commit()
 
-
     except Exception as err:
         print("Error in sending add debts contract {}".format(str(err)))
 
-#def send_modify_debts_for_signature(session_id):
-#    try:
-#        app.logger.info('Send Modify Debts  for signature')
-#
-#        t_params = {}
-#
-#        session = DocusignSession.query.filter_by(id=session_id).first()
-#        if session is None:
-#            raise ValueError("Session is not present, session id is not valid")
-#        client_id = session.client_id
-#        ds_tmpl_id = session.template.ds_key
-#
-#        # fetch the client from db
-#        client = Client.query.filter_by(id=client_id).first()
-#        # check if client has co-client associated with it
-#        co_sign = False
-#        if client.client_id is not None:
-#            co_sign = True
-#            cc_id = client.client_id
-#
-#        # Get the APPROVED contract for the client.
-#        approved_contract = DebtPaymentContract.query.filter_by(client_id=client_id,
-#                                                                status=ContractStatus.APPROVED).first()
-#        if approved_contract is None:
-#            raise ValueError("Modified debt contract not found") 
-#
-#        # Get the APPROVED contract for the client.
-#        active_contract = DebtPaymentContract.query.filter_by(client_id=client_id,
-#                                                              status=ContractStatus.ACTIVE).first()
-#        if active_contract is None:
-#            raise ValueError("Active debt contract not found") 
-#
-#        client_full_name = '{} {}'.format(client.first_name, client.last_name)
-#        t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
-#        t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
-#        t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
-#        t_params['ClientFullName'] = client_full_name
-#        t_params['ClientFullName1'] = client_full_name
-#
-#
-#        modified_debts = []
-#        approved_debts = approved_contract.enrolled_debt_lines
-#        for debt in approved_debts:
-#            active_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=active_contract.id, debt_id=debt.debt_id).first()
-#            # find the debt in active 
-#            if active_debt.balance_original != debt.balance_original:
-#                modified_debts.append(debt)
-#
-#        n = 0
-#        total = 0
-#        for record in modify_debts:
-#            n = n + 1
-#            total = total + float(record.balance_original)
-#
-#            t_params['Creditor{}'.format(n)] = record.creditor
-#            t_params['AccountNumber{}'.format(n)] = record.account_number
-#            t_params['BalanceOriginal{}'.format(n)] = record.balance_original
-#        # total
-#        t_params['PushTotal'] = "${:.2f}".format(total)
-#
-#        # Repayment calculations
-#        pymt_term = approved_contract.term
-#        enrolled_debt = approved_contract.enrolled_debt
-#        credit_monitoring_fee = approved_contract.credit_monitoring_fee
-#        monthly_fee   = approved_contract.monthly_fee
-#        total_fee = (monthly_fee * pymt_term)
-#        # monthly_bank_fee = credit_plan.monthly_bank_fee
-#        # min_allowed_fee = credit_plan.minimum_fee  
-#        savings_amount = monthly_fee
-#        t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
-#        pymt_start = approved_contract.payment_start_date
-#        start = pymt_start
-#
-#        n = 0
-#        for i in range(0, active_contract.num_inst_completed):
-#            index = i + 1
-#            n = i
-#            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(active_contract.monthly_fee)
-#            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y") 
-#            start = start + relativedelta(months=1)
-#
-#        for i in range(n, (pymt_term - active_contract.num_inst_completed)):
-#            index = i + 1
-#            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(savings_amount)
-#            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y") 
-#            start = start + relativedelta(months=1)
-#            
-#        t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
-#        t_params['BankFee1'] = credit_monitoring_fee
-#        # co client informaton
-#        if co_sign is True:
-#            cc = Client.query.filter_by(id=cc_id).first()
-#            co_client_fname = '{} {}'.format(cc.first_name, cc.last_name)
-#            t_params['CoClientFullName'] = co_client_fname
-#            t_params['CoClientFullName1'] = co_client_fname
-#        
-#        ds = DocuSign()
-#        ds.authorize()
-#
-#        if co_sign is False:
-#            key = ds.request_signature(template_id=ds_tmpl_id,
-#                                       signer_name=client_full_name,
-#                                       signer_email=client.email,
-#                                       template_params=t_params,
-#                                       co_sign=False)
-#        else:
-#            key = ds.request_signature(template_id=ds_tmpl_id,
-#                                       signer_name=client_full_name,
-#                                       signer_email=client.email,
-#                                       template_params=t_params,
-#                                       co_sign=True,
-#                                       cosigner_name=co_client_fname,
-#                                       cosigner_email=cc.email)
-#
-#
-#        # create signature
-#        signature = DocusignSignature(envelope_id=key,
-#                                      status=DocusignSessionStatus.SENT,
-#                                      modified=datetime.utcnow(),
-#                                      session_id=session.id)
-#
-#        db.session.add(signature)
-#        db.session.commit()
-#
-#        # add client disposition
-#
-#    except Exception:
-#        print("Error in send modify debts")
-#
-#def send_term_change_for_signature(client_id):
-#
-#    t_params = {}
-#
-#    # fetch the client from db
-#    client = Client.query.filter_by(id=client_id).first()
-#    co_sign = False
-#    if client.client_id is not None:
-#        co_sign = True
-#        cc_id = client.client_id
-#
-#    # Get the APPROVED contract for the client.
-#    payment_contract = DebtPaymentContract.query.filter_by(client_id=client_id,
-#                                                           status=ContractStatus.APPROVED).first()
-#    if payment_contract is None:
-#        raise ValueError("Debt contract for client not found")
-#
-#    t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
-#    t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
-#    t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
-#    
-#    client_full_name = '{} {}'.format(client.first_name, client.last_name)
-#    t_params['ClientFullName'] = client_full_name
-#    t_params['ClientFullName1'] = client_full_name
-#    
-#    # Repayment calculations
-#    pymt_term = payment_contract.term
-#    enrolled_debt = payment_contract.enrolled_debt
-#    monthly_fee   = payment_contract.monthly_fee
-#    credit_monitoring_fee = contract.credit_monitoring_fee
-#    total_fee = (monthly_fee * pymt_term)
-#
-#    savings_amount = payment_contract.monthly_fee
-#    t_params['SavingsAmount'] = "${:.2f}".format(savings_amount)
-#
-#    pymt_start = payment_contract.payment_start_date
-#    # First payment
-#    t_params['paymentNumber1'] = 1
-#    t_params['SavingsAmount1'] = "${:.2f}".format(savings_amount)
-#    t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
-#
-#    start = payment_contract.payment_recurring_begin_date
-#    for i in range(1, pymt_term):
-#        index = i + 1
-#        t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(savings_amount)
-#        t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y") 
-#        start = start + relativedelta(months=1)
-#        
-#    t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
-#    t_params['BankFee1'] = "${:.2f}".format(credit_monitoring_fee)
-#    if co_sign is True:
-#        cc = Client.query.filter_by(id=cc_id).first()
-#        t_params['CoClientFullName'] = "{} {}".format(cc.first_name, cc.last_name)
-#        t_params['CoClientFullName1'] = "{} {}".format(cc.first_name, cc.last_name)
-#    
-#    #Docusign interface
-#    ds = DocuSign()
-#    ds.authorize()
-#
-#    if co_sign is False:
-#        key = ds.request_signature(template_id=ds_tmpl_id,
-#                                   signer_name=client_full_name,
-#                                   signer_email=client.email,
-#                                   template_params=t_params,
-#                                   co_sign=False)
-#    else:
-#        key = ds.request_signature(template_id=ds_tmpl_id,
-#                                   signer_name=client_full_name,
-#                                   signer_email=client.email,
-#                                   template_params=t_params,
-#                                   co_sign=True,
-#                                   cosigner_name=co_client_fname,
-#                                   cosigner_email=cc.email)
+def send_modify_debts_for_signature(client_id):
+    try:
+        app.logger.info('Send Modify Debts  for signature')
 
+        t_params = {}
+
+        cpp = CreditPaymentPlan.query.filter_by(name='Universal').first()
+        if cpp is None:
+            raise ValueError("Credit payment plan not present")
+
+        credit_monitoring_fee = cpp.monitoring_fee_1signer
+        bank_fee = cpp.monthly_bank_fee
+        # fetch the lead object from the db
+        client = Client.query.filter_by(id=client_id).first()
+        # if client is not valid after session is created
+        if client is None:
+            raise ValueError("Client record not found")
+
+        # check if client has co-client associated with it
+        co_client = client.co_client
+        if co_client:
+            credit_monitoring_fee = cpp.monitoring_fee_2signer
+
+        tmpl_name = 'Modify Debts'
+        if co_client:
+            tmpl_name = 'Removal Debts 2Signer'
+
+        ds_template = DocusignTemplate.query.filter_by(name=tmpl_name).first()
+        if ds_template is None:
+            raise ValueError("Docusign template not found")
+        ds_tmpl_id = ds_template.ds_key
+
+        # Get the APPROVED contract for the client.
+        approved_contract = DebtPaymentContract.query.filter_by(client_id=client_id,
+                                                                status=ContractStatus.APPROVED).first()
+        if approved_contract is None:
+            raise ValueError("Modified debt plan not found") 
+
+        # Get the APPROVED contract for the client.
+        active_contract = DebtPaymentContract.query.filter_by(client_id=client_id,
+                                                              status=ContractStatus.ACTIVE).first()
+        if active_contract is None:
+            raise ValueError("Active debt contract not found") 
+        # client information 
+        client_full_name = '{} {}'.format(client.first_name, client.last_name)
+        t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
+        t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
+        t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
+        t_params['ClientFullName'] = client_full_name
+        t_params['ClientFullName1'] = client_full_name
+
+        modified_debts = []
+        approved_debts = approved_contract.enrolled_debt_lines
+        for debt in approved_debts:
+            active_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=active_contract.id, debt_id=debt.debt_id).first()
+            # find the debt in active 
+            if active_debt.balance_original != debt.balance_original:
+                modified_debts.append(debt)
+
+        n = 0
+        total = 0
+        for record in modify_debts:
+            n = n + 1
+            total = total + float(record.balance_original)
+            t_params['Item{}'.format(n)] = str(n)
+            t_params['Creditor{}'.format(n)] = record.creditor
+            t_params['AccountNumber{}'.format(n)] = record.account_number
+            t_params['BalanceOriginal{}'.format(n)] = record.balance_original
+        # total
+        t_params['PushTotal'] = "${:.2f}".format(total)
+
+        # Repayment calculations
+        pymt_term = approved_contract.term
+        total_fee = active_contract.total_paid + ((approved_contract.term - active_contract.num_inst_completed) * approved_contract.monthly_fee)
+        monthly_fee = approved_contract.monthly_fee
+        if active_contract.num_inst_completed > 0:
+            monthly_fee = active_contract.monthly_fee 
+        # first payment
+        pymt_start = approved_contract.payment_start_date
+        t_params['paymentNumber1'] = 1
+        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
+        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
+        # recurring 
+        start = approved_contract.payment_recurring_begin_date
+        n = 0
+        index = 1
+        for i in range(1, active_contract.num_inst_completed):
+            index = index + 1
+            t_params['paymentNumber{}'.format(index)] = str(index)
+            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
+            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
+            start = start + relativedelta(months=1)
+        monthly_fee = approved_contract.monthly_fee
+        # remaining months
+        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
+            index = index + 1
+            t_params['paymentNumber{}'.format(index)] = str(index)
+            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
+            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
+            start = start + relativedelta(months=1) 
+
+
+        t_params['SavingsAmount'] = "${:.2f}".format(monthly_fee)
+        t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
+        t_params['BankFee1'] = credit_monitoring_fee
+        # co client informaton
+        if co_client:
+            co_client_fname = '{} {}'.format(co_client.first_name, co_client.last_name)
+            t_params['CoClientFullName'] = co_client_fname
+            t_params['CoClientFullName1'] = co_client_fname
+        
+        #Docusign interface
+        ds = DocuSign()
+        ds.authorize()
+
+        if co_client is None:
+            key = ds.request_signature(template_id=ds_tmpl_id,
+                                       signer_name=client_full_name,
+                                       signer_email=client.email,
+                                       template_params=t_params,
+                                       co_sign=False)
+        else:
+            key = ds.request_signature(template_id=ds_tmpl_id,
+                                       signer_name=client_full_name,
+                                       signer_email=client.email,
+                                       template_params=t_params,
+                                       co_sign=True,
+                                       cosigner_name=co_client_fname,
+                                       cosigner_email=co_client.email)
+
+
+        # create signature
+        session = DocusignSession(template_id=ds_template.id,
+                                  envelope_id=key,
+                                  contract_id=approved_contract.id)
+        db.session.add(session)
+        db.session.commit()
+
+        # add client disposition
+
+    except Exception as err:
+        print("Error in send modify debtsi {}".format(str(err)))
+
+def send_term_change_for_signature(client_id):
+    try:
+        t_params = {}
+        
+        cpp = CreditPaymentPlan.query.filter_by(name='Universal').first()
+        if cpp is None:
+            raise ValueError("Credit payment plan not present")
+        credit_monitoring_fee = cpp.monitoring_fee_1signer
+        bank_fee = cpp.monthly_bank_fee
+        # fetch the lead object from the db
+        client = Client.query.filter_by(id=client_id).first()
+        # if client is not valid after session is created
+        if client is None:
+            raise ValueError("Client record not found")
+        # check if client has co-client associated with it
+        co_client = client.co_client
+        if co_client:
+            credit_monitoring_fee = cpp.monitoring_fee_2signer
+  
+        tmpl_name = 'New Term'
+        if co_client:
+            tmpl_name = 'New Term 2Signer'
+        # template
+        ds_template = DocusignTemplate.query.filter_by(name=tmpl_name).first()
+        if ds_template is None:
+            raise ValueError("Docusign template not found")
+        ds_tmpl_id = ds_template.ds_key
+
+        # Get the APPROVED contract for the client.
+        payment_contract = DebtPaymentContract.query.filter_by(client_id=client_id,
+                                                               status=ContractStatus.APPROVED).first()
+        if payment_contract is None:
+            raise ValueError("Debt contract for client not found")
+        # active contract
+        active_contract = DebtPaymentContract.query.filter_by(client_id=client_id,
+                                                              status=ContractStatus.ACTIVE).first()
+        if active_contract is None:
+            raise ValueError("Active payment contract not found")
+
+        t_params['CurrentDate'] = datetime.now().strftime("%m/%d/%Y")  
+        t_params['CurrentDate100'] = datetime.now().strftime("%m/%d/%Y")  
+        t_params['CurrentDate101'] = datetime.now().strftime("%m/%d/%Y")  
+        client_full_name = '{} {}'.format(client.first_name, client.last_name)
+        t_params['ClientFullName'] = client_full_name
+        t_params['ClientFullName1'] = client_full_name
+        
+        # Repayment calculations
+        pymt_term     = payment_contract.term
+        monthly_fee   = payment_contract.monthly_fee
+        if active_contract.num_inst_completed > 0:
+            monthly_fee = active_contract.monthly_fee
+
+        pymt_start = payment_contract.payment_start_date
+        # First payment
+        t_params['paymentNumber1'] = 1
+        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
+        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
+
+        start = payment_contract.payment_recurring_begin_date
+        index = 1
+        for i in range(1, active_contract.num_inst_completed):
+            index = i + 1
+            t_params['paymentNumber{}'.format(index)] = str(index)
+            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
+            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y") 
+            start = start + relativedelta(months=1)
+
+        monthly_fee = payment_contract.monthly_fee
+        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
+            index = index + 1
+            t_params['paymentNumber{}'.format(index)] = str(index)
+            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
+            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
+            start = start + relativedelta(months=1)
+            
+        t_params['SavingsAmount'] = "${:.2f}".format(monthly_fee)
+        t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
+        t_params['BankFee1'] = "${:.2f}".format(credit_monitoring_fee)
+        if co_client:
+            co_client_fullname = '{} {}'.format(co_client.first_name, co_client.last_name)
+            t_params['CoClientFullName'] = "{}".format(co_client_fullname)
+            t_params['CoClientFullName1'] = "{}".format(co_client_fullname)
+        
+        #Docusign interface
+        ds = DocuSign()
+        ds.authorize()
+
+        if co_client is None:
+            key = ds.request_signature(template_id=ds_tmpl_id,
+                                       signer_name=client_full_name,
+                                       signer_email=client.email,
+                                       template_params=t_params,
+                                       co_sign=False)
+        else:
+            key = ds.request_signature(template_id=ds_tmpl_id,
+                                       signer_name=client_full_name,
+                                       signer_email=client.email,
+                                       template_params=t_params,
+                                       co_sign=True,
+                                       cosigner_name=co_client_fullname,
+                                       cosigner_email=co_client.email)
+
+        session = DocusignSession(template_id=ds_template.id,
+                                  envelope_id=key,
+                                  contract_id=payment_contract.id)
+        db.session.add(session)
+        db.session.commit()
+
+    except Exception as err:
+        print("Error in send modify debtsi {}".format(str(err)))
+        
 
 #
 #def send_receive_summon_for_signature(client_id,

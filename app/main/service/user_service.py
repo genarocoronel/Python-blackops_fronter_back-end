@@ -1,12 +1,17 @@
 import uuid
 import datetime
-
+from flask import g
 from app.main import db
 from app.main.core.errors import BadRequestError
 from app.main.core.auth import Auth
 from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.user import User
 
+def get_request_user():
+    req_user = g.current_user
+    user = User.query.filter_by(id=req_user['user_id']).first()
+    return user
+    
 
 def save_new_user(data, desired_role:RACRoles = None):
     """ Saves a new User

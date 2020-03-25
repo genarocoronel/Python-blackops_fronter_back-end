@@ -27,6 +27,7 @@ from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.notification import NotificationPreference
+from app.main.model.usertask import UserTask
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
 from app.main.seed.client_dispositions import seed_client_disposition_values
 from app.main.seed.contact_number_types import seed_contact_number_types

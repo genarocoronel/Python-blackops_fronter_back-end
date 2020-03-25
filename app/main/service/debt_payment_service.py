@@ -4,85 +4,50 @@ from app.main.model.credit_report_account import CreditReportData, CreditPayment
 from app.main.model.client import Client
 from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus, DebtPaymentContract,\
                                          ContractStatus, DebtPaymentContractCreditData, ContractAction
+from app.main.model.user import User
+from app.main.model.rac import RACRole
+from app.main.model.team import TeamRequestType, TeamRequest
+from app.main.util.decorator import enforce_rac_required_roles
+from app.main.core.rac import RACRoles
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import and_
-
+from sqlalchemy import func, and_, desc, asc
 import logging
+import uuid
 
 from flask import current_app as app
 
 """
 Calculate contract values
 """
-def calc_contract_vals(term, total_debt, planned_debts_count, active_contract=None, co_sign=False): 
+def calc_contract_vals(term, total_debt, co_sign=False): 
 
-    new_term = term
     cpp = CreditPaymentPlan.query.filter_by(name='Universal').first() 
     if cpp is None: 
         raise ValueError("Credit payment plan not present")
 
-    total_paid = 0
-    num_inst_paid = 0
-    active_debts_count = 0
-    amend = False
-    amend_reason = ""
-    current_monthly_fee = 0
-    current_enrolled_debt = 0
-    if active_contract is not None:
-        total_paid = active_contract.total_paid
-        num_inst_paid = active_contract.num_inst_completed
-        active_debts_count = len(active_contract.enrolled_debt_lines)
-        current_monthly_fee = active_contract.monthly_fee
-        current_enrolled_debt = active_contract.enrolled_debt
-
-        # amend or not
-        if planned_debts_count > active_debts_count:
-            amend = True
-            amend_reason = 'Debt Added'
-        elif planned_debts_count < active_debts_count:
-            amend = True
-            amend_reason = 'Debt Removed'
-        else:
-            if active_contract.total_debt != total_debt:
-                amend = True
-                amend_reason = 'Debt Modified'
-            elif active_contract.term != term:
-                amend = True
-                amend_reason = 'Term Change'
-
-    enrolled_debt = (total_debt * (cpp.enrolled_percent/100))
-    
-
+    new_term = term
     credit_monitoring_fee = cpp.monitoring_fee_1signer
-    if co_sign is True:
-        credit_monitoring_fee = cpp.monitoring_fee_2signer
     monthly_bank_fee = cpp.monthly_bank_fee
     min_allowed_fee = cpp.minimum_fee
-
-    total_fee = enrolled_debt + (credit_monitoring_fee * new_term) + (monthly_bank_fee * new_term)
+    if co_sign is True:
+        credit_monitoring_fee = cpp.monitoring_fee_2signer
+    enrolled_debt = (total_debt * (cpp.enrolled_percent/100))
+    total_fee = enrolled_debt + (credit_monitoring_fee * term) + (monthly_bank_fee * term)
     total_fee = round(total_fee, 2)
     if total_fee < min_allowed_fee:
         total_fee = min_allowed_fee
-
-    ## remaining to be paid 
-    total_fee = total_fee - total_paid
-    term = new_term - num_inst_paid
     # monthly fee
     monthly_fee = round((total_fee / term), 2)
 
     result = {
-        "term": new_term,
-        "num_term_paid": num_inst_paid,
+        "term": term,
+        "total_debt" : total_debt,
         "enrolled_debt": enrolled_debt,
-        "current_enrolled_debt": current_enrolled_debt,
-        "total_paid": total_paid,
         "bank_fee": monthly_bank_fee,
         "min_fee": min_allowed_fee,
         "credit_monitoring_fee": credit_monitoring_fee,
-        "current_monthly_fee": current_monthly_fee,
         "monthly_fee": monthly_fee,
-        "amend": amend,
-        "amend_reason": amend_reason,
+        "active": False,
     }
 
     return result
@@ -90,6 +55,7 @@ def calc_contract_vals(term, total_debt, planned_debts_count, active_contract=No
 """
 Fetch PLANNED Contract for a given client
 """
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def fetch_payment_contract(client):
     # check if client has co-client associated with it
     co_sign = False
@@ -97,20 +63,33 @@ def fetch_payment_contract(client):
         co_sign = True
 
     total_debt = 0
-    planned_count = 0
-    # check PLANNED contract exists or not
-    pymt_plan = DebtPaymentContract.query.filter_by(client_id=client.id, 
-                                                    status=ContractStatus.PLANNED).first()
-    # payment contract (doesn't exist)
-    if pymt_plan is not None:
-        enrolled_debts = pymt_plan.enrolled_debt_lines
-        planned_count  = len(enrolled_debts)
-        if planned_count == 0:
-            raise ValueError("No debts present for the contract")
 
-        for record in enrolled_debts:
-            total_debt = total_debt + float(record.balance_original)
+    # active contract
+    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                          status=ContractStatus.ACTIVE).first()
+    if active_contract is not None:
+        term = active_contract.term
+        pymt_start = active_contract.payment_start_date
+        pymt_rec_begin_date = active_contract.payment_recurring_begin_date
+
+        result = {
+            "term": term,
+            "total_debt" : active_contract.total_debt,
+            "enrolled_debt": active_contract.enrolled_debt,
+            "bank_fee": 0,
+            "min_fee": 0,
+            "credit_monitoring_fee": 0,
+            "monthly_fee": active_contract.monthly_fee,
+            "active": True,
+            "payment_1st_date": pymt_start.strftime('%m-%d-%Y'),
+            "payment_2nd_date": pymt_rec_begin_date.strftime('%m-%d-%Y'),
+        }
+
     else:
+        term = 24
+        pymt_start = datetime.utcnow()
+        pymt_rec_begin_date = datetime.utcnow()
+
         # credit report
         credit_report = client.credit_report_account
         if credit_report is None:
@@ -119,69 +98,26 @@ def fetch_payment_contract(client):
         credit_records = credit_report.records
         if credit_records is None or len(credit_records) == 0:
             raise ValueError("Credit records are empty")
-
         # calculate the debt
         for record in credit_records:
             if record.push is True:
                 total_debt = total_debt + float(record.balance_original)
-                planned_count = planned_count + 1
 
-    # active contract
-    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                          status=ContractStatus.ACTIVE).first()
-    if pymt_plan is not None:
-        term = pymt_plan.term
-        pymt_start = pymt_plan.payment_start_date
-        pymt_start = datetime.now() if pymt_start is None else pymt_start
-        pymt_rec_begin_date = pymt_plan.payment_recurring_begin_date
-        pymt_rec_begin_date = datetime.now() if pymt_rec_begin_date is None else pymt_rec_begin_date
-    elif active_contract is not None:
-        term = active_contract.term
-        pymt_start = active_contract.payment_start_date
-        pymt_rec_begin_date = active_contract.payment_recurring_begin_date
-    else:
-        term = 24
-        pymt_start = datetime.utcnow()
-        pymt_rec_begin_date = datetime.utcnow()
 
-    ## calcualte contract values
-    result = calc_contract_vals(term, 
-                                total_debt, 
-                                planned_count,
-                                active_contract, 
-                                co_sign) 
+        ## calcualte contract values
+        result = calc_contract_vals(term, 
+                                    total_debt, 
+                                    co_sign) 
 
-    result['payment_1st_date'] = pymt_start.strftime('%m-%d-%Y')
-    result['payment_2nd_date'] = pymt_rec_begin_date.strftime('%m-%d-%Y')
+        result['payment_1st_date'] = pymt_start.strftime('%m-%d-%Y')
+        result['payment_2nd_date'] = pymt_rec_begin_date.strftime('%m-%d-%Y')
 
     return result
-
-def fetch_active_contract(client):
-    # check ACTIVE contract exists or not
-    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                          status=ContractStatus.PLANNED).first()
-    if active_contract is None:
-        raise ValueError("valid contract not found")
-
-    active_term = active_contract.term
-    total_debt  = active_contract.total_debt
-    enrolled_debt = active_contract.enrolled_debt
-    monthly_fee = active_contract.monthly_fee
-    total_paid = 0
-    num_instalments = 0
-
-    result = {
-        'term': active_term,
-        'total_debt': total_debt,
-        'enrolled_debt': enrolled_debt,
-        'monthly_fee': monthly_fee,
-        'total_paid': total_paid,
-        'num_paid_instalments': num_instalments,
-    }
 
 """
 Update Payment contract for a given client
 """
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def update_payment_contract(client, data):
     # add all pushed debt items to this contract
     credit_report = client.credit_report_account
@@ -198,22 +134,14 @@ def update_payment_contract(client, data):
         co_sign = True
 
     term = data.get('term')
-    term = int(term)
-    #if active contract exists
-    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                          status=ContractStatus.ACTIVE).first()
     total_debt = 0
-    planned_count = 0
+    term = int(term)
 
-    if active_contract is None:
-        payment_1st_date = data.get('payment_1st_date') 
-        payment_2nd_date = data.get('payment_2nd_date')
+    payment_1st_date = data.get('payment_1st_date') 
+    payment_2nd_date = data.get('payment_2nd_date')
 
-        pymt_start = datetime.strptime(payment_1st_date, '%m-%d-%Y')
-        pymt_rec_begin_date = datetime.strptime(payment_2nd_date, '%m-%d-%Y')
-    else:
-        pymt_start = active_contract.payment_start_date
-        pymt_rec_begin_date = active_contract.payment_recurring_begin_date
+    pymt_start = datetime.strptime(payment_1st_date, '%m-%d-%Y')
+    pymt_rec_begin_date = datetime.strptime(payment_2nd_date, '%m-%d-%Y')
 
     # planned contract 
     planned_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
@@ -222,6 +150,7 @@ def update_payment_contract(client, data):
         # create a payment contract
         planned_contract = DebtPaymentContract(client_id=client.id,
                                                term=term,
+                                               current_action=ContractAction.NEW_CONTRACT,
                                                payment_start_date=pymt_start,
                                                payment_recurring_begin_date=pymt_rec_begin_date,
                                                inserted_on=datetime.now()) 
@@ -236,7 +165,6 @@ def update_payment_contract(client, data):
     for record in credit_records:
         if record.push is True:
             total_debt = total_debt + float(record.balance_original) 
-            planned_count = planned_count + 1
             enrolled = DebtPaymentContractCreditData.query.filter_by(contract_id=planned_contract.id, 
                                                                      debt_id=record.id).first()       
             if enrolled is None:
@@ -252,8 +180,6 @@ def update_payment_contract(client, data):
     ## calcualte contract values
     result = calc_contract_vals(term,
                                 total_debt,
-                                planned_count,
-                                active_contract,
                                 co_sign)
 
     planned_contract.total_debt = total_debt
@@ -270,41 +196,29 @@ def update_payment_contract(client, data):
     return result
 
 
-
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def payment_contract_action(client):
     # fetch the approved contract 
     # if not approve it
     contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                   status=ContractStatus.APPROVED).first()
+                                                   status=ContractStatus.PLANNED).first()
     if contract is None:
-        approve_payment_contract(client)
+        raise ValueError('Contract Not Found')
         
+    contract.status = ContractStatus.APPROVED
+    db.session.commit()
     action = contract.current_action
 
     ## fetch the action
     func = ''
     if action == ContractAction.NEW_CONTRACT:
         func = 'send_contract_for_signature'
-    else:
-        active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                              status=ContractStatus.ACTIVE).first() 
-        if active_contract is None:
-            raise ValueError("Active contract not found")
-        
-        if action == ContractAction.TERM_CHANGE:
-            func = 'send_term_change_for_signature'
-        elif action == ContractAction.ADD_DEBTS:
-            func = 'send_additional_debts_for_signature'
-        elif action == ContractAction.REMOVE_DEBTS:
-            func = 'send_removal_debts_for_signature'
-        elif action == ContractAction.MODIFY_DEBTS:
-            func = 'send_modify_debts_for_signature'
-        else:
-            raise ValueError("Action not valid")
+        app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), client.id)
 
-    app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), client.id)
     return "Success"
         
+
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def fetch_plan_by_status(client, status):
     # contract
     contract = DebtPaymentContract.query.filter_by(client_id=client.id,
@@ -312,53 +226,159 @@ def fetch_plan_by_status(client, status):
     if contract is None:
         raise ValueError("Requested plan not found")
 
-    current_term = 0
-    current_monthly_fee = 0
-    current_enrolled_debt = 0
-    total_paid = 0
-    num_term_paid  = 0
-
-    active = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                 status = ContractStatus.ACTIVE).first()  
-    if active:
-        current_term = active.term
-        current_monthly_fee = active.monthly_fee
-        current_enrolled_debt = active.enrolled_debt
-        total_paid = active.total_paid
-        num_term_paid = active.num_inst_completed 
-
-    return {
-        'action': contract.current_action.name, 
-        'created_on': contract.inserted_on.strftime("%m/%d/%Y"),
-        'term': contract.term,
-        'current_term': current_term,
-        'monthly_fee': contract.monthly_fee,
-        'current_monthly_fee': current_monthly_fee,
-        'enrolled_debt': contract.enrolled_debt,
-        'current_enrolled_debt': current_enrolled_debt,
-        'total_paid': total_paid,
-        'num_term_paid': num_term_paid, 
-    }
-    
-def fetch_debt_payment_plans(status):
-    result = []
-
-    # plans
-    plans = DebtPaymentContract.query.filter_by(status=status).all()
-    for plan in plans:
-        tmp = {
-            'action' : plan.current_action.name if plan.current_action else "",
-            'client_id': plan.client.public_id,
-            'first_name': plan.client.first_name,
-            'last_name': plan.client.last_name,
-            'created_on': plan.inserted_on.strftime("%m/%d/%Y"),
-        }           
-        result.append(tmp)
-
+    result = fetch_amendment_plan(client, contract.id)
     return result
 
-def payment_contract_req4approve(client, data):
-    action = data.get('action')
+
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+def fetch_amendment_plan(client, plan_id=None):
+    cpp = CreditPaymentPlan.query.filter_by(name='Universal').first()
+    if cpp is None:
+        raise ValueError("Payment Config not present")
+    # active contract
+    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                          status=ContractStatus.ACTIVE).first()
+    if active_contract is None:
+        raise ValueError('Amendment plan failed: Active contract not found')
+
+    if plan_id is not None:
+        planned_contract = DebtPaymentContract.query.filter_by(id=plan_id).first()
+    else:
+        # planned contract
+        planned_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                               status=ContractStatus.PLANNED).first()
+    if planned_contract is None:
+        raise ValueError('Amendment plan failed: Active contract not found')
+    
+    credit_monitoring_fee = cpp.monitoring_fee_1signer
+    if client.co_client:
+        credit_monitoring_fee = cpp.monitoring_fee_2signer
+    bank_fee = cpp.monthly_bank_fee
+
+    n_enrolled_debt = (planned_contract.total_debt * (cpp.enrolled_percent/100))
+    n_total_fee   = n_enrolled_debt + (credit_monitoring_fee * planned_contract.term) + (bank_fee * planned_contract.term) 
+    total_paid    = active_contract.total_paid
+    n_monthly_fee = (n_total_fee - total_paid)/(planned_contract.term - active_contract.num_inst_completed)
+
+    o_enrolled_debt = active_contract.enrolled_debt 
+    o_total_fee = o_enrolled_debt + (credit_monitoring_fee * active_contract.term) + (bank_fee * active_contract.term)
+    o_monthly_fee = active_contract.monthly_fee
+
+    result = {
+        'action': planned_contract.current_action.name,
+        'new_term': planned_contract.term,
+        'new_total_debt': planned_contract.total_debt,
+        'new_enrolled_debt': n_enrolled_debt,
+        'new_total_fee': n_total_fee,
+        'new_monthly_fee': n_monthly_fee,
+        'current_term': active_contract.term,
+        'current_total_debt': active_contract.total_debt,
+        'current_enrolled_debt': active_contract.enrolled_debt,
+        'current_total_fee': o_total_fee,
+        'current_monthly_fee': active_contract.monthly_fee, 
+        'num_term_paid': active_contract.num_inst_completed,
+        'total_paid': active_contract.total_paid,
+        'service_fee': credit_monitoring_fee, #credit monitoring fee
+        'bank_fee': bank_fee, 
+    }
+    return result
+
+"""
+Update debts in contract
+"""
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+def update_amendment_plan(client, data):
+    term = data.get('term')
+    action = data.get('action') 
+    enrolled_debts = data.get('debts')
+
+    # add all pushed debt items to this contract
+    credit_report = client.credit_report_account
+    if credit_report is None:
+        raise ValueError("Amendment update failed: Credit report not found")
+
+    # check if client has co-client associated with it
+    co_sign = False
+    if client.client_id is not None:
+        co_sign = True
+
+    #if active contract exists
+    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                          status=ContractStatus.ACTIVE).first()
+
+    if active_contract is None:
+        raise ValueError('Active contract not present')
+    # Not a term change
+    if term is None:
+        term = active_contract.term 
+
+    pymt_start = active_contract.payment_start_date
+    pymt_rec_begin_date = active_contract.payment_recurring_begin_date
+
+    # if planned contract exists, reuse it 
+    planned_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                           status=ContractStatus.PLANNED).first()
+    if planned_contract is None:
+        # create a payment contract
+        planned_contract = DebtPaymentContract(client_id=client.id,
+                                               term=term,
+                                               current_action=action,
+                                               payment_start_date=pymt_start,
+                                               payment_recurring_begin_date=pymt_rec_begin_date,
+                                               inserted_on=datetime.now()) 
+        db.session.add(planned_contract)
+        db.session.commit()
+    else:
+        planned_contract.term = term
+
+    # add the debts 
+    total_debt = planned_contract.total_debt
+    if enrolled_debts is not None:
+      total_debt = 0
+      for item in enrolled_debts:
+          debt_line = CreditReportData.query.filter_by(account_id=credit_report.id,
+                                                       public_id=item['public_id']).first()
+          if debt_line is None:
+              raise ValueError('Not avalid debt line')
+
+          # check if change in the balance, MODIFY DEBT 
+          balance_original = debt_line.balance_original
+          if debt_line.balance_original != balance_original:
+              balance_original = item['balance_original'] 
+
+          planned_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=planned_contract.id,
+                                                                       debt_id=debt_line.id).first()                                      
+          if planned_debt is None:
+              planned_debt = DebtPaymentContractCreditData(contract_id=planned_contract.id,
+                                                           debt_id=debt_line.id,
+                                                           creditor=debt_line.creditor,                                                     
+                                                           account_number=debt_line.account_number,
+                                                           balance_original=float(balance_original),
+                                                           )
+              db.session.add(planned_debt)
+              total_debt = total_debt + float(balance_original)
+
+    planned_contract.total_debt = total_debt
+    db.session.commit()
+
+    result = fetch_amendment_plan(client) 
+    planned_contract.enrolled_debt = result['new_enrolled_debt']
+    planned_contract.monthly_fee = result['new_monthly_fee']
+    # commit the changes
+    db.session.commit()
+    return result
+
+
+
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+def payment_contract_req4approve(user, client, data):
+    action_title = data.get('action')
+    action = ContractAction[action_title]
+    requestor = user
+    #team_manager = requestor.team_manager
+     
+    # update the payment contract
+    update_amendment_plan(client, data)
 
     #  fetch the planned plan and change the status
     contract = DebtPaymentContract.query.filter_by(client_id=client.id,
@@ -366,59 +386,42 @@ def payment_contract_req4approve(client, data):
     if contract is None:
         raise ValueError("Saved plan not found")
 
+    # fetch the request type based on the action
+    req_type = TeamRequestType.query.filter(func.lower(TeamRequestType.title) == action.value).first()
+    if req_type is None:
+        raise ValueError("Request Type not found")
+
+    svc_mgr = User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()
+    if svc_mgr is None:
+        raise ValueError("Team Manager not found")
+
+    ## create a Team Request
+    team_request = TeamRequest(public_id=str(uuid.uuid4()),
+                               requester_id=requestor.id,
+                               team_manager_id=svc_mgr.id,
+                               request_type_id=req_type.id,
+                               description=req_type.description,
+                               contract_id=contract.id)
+    db.session.add(team_request)
+                            
+    ## send realtime notification to user
+    #notification = Notification(user_id=team_manager.id,
+    #                            type=NotificationType.USER,
+    #                            title='New Team Request',
+    #                            description='Team request for contact amendment')
+     
+    #TODO
+    # send the notification on real time
+
+    contract.agent_id = requestor.id
     contract.status = ContractStatus.REQ4APPROVAL
     contract.current_action = action
     db.session.commit()
-
-    ## send realtime notification to user
-    ## goes here
 
     return {
         'success': True,
         'message': 'Approval request submitted'
     }
-
-def payment_contract_approve(client):
-
-    payment_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                           status=ContractStatus.REQ4APPROVAL).first()       
-    if payment_contract is None:
-        raise ValueError("Requested Contract Not found")
-
-    # change the status to approved
-    payment_contract.status = ContractStatus.APPROVED
-    db.session.commit()
-
-    ## check if we can send docusign document from here
-    
-    return {
-        'success': True,
-        'message': 'Plan approved'
-    }
-
-def payment_contract_activate(client):
-
-    payment_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                           status=ContractStatus.SIGNED).first()
-    if payment_contract is None:
-        raise ValueError("Signed Contract Not found")
-
-    # change the status to ACTIVE
-    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                          status=ContractStatus.ACTIVE).first()
-    if active_contract:
-        active_contract.status = ContractStatus.REPLACED
-    payment_contract.status = ContractStatus.ACTIVE
-    db.session.commit()
-
-    # create an EPPS account, if not present
-    update_debt_payment_account(client, payment_contract, active_contract)
-
-    return {
-        'success': True,
-        'message': 'Plan activated'
-    }
-
 
 """
 Generate Debt Payment schedule for the client
@@ -521,3 +524,118 @@ def fetch_debt_payment_stats(client_id, start_date=None, end_date=None):
         raise ValueError("Internal Error")        
     
     return result
+
+
+def fetch_payment_schedule(client):
+    result = []
+
+    # fetch the active contract
+    active_contract = DebtPaymentContract.query.filter_by(status=ContractStatus.ACTIVE).first()
+    if active_contract is None:
+        raise ValueError('Active Payment Contract not fond')
+
+    initial_contract = DebtPaymentContract.query.filter_by(status=ContractStatus.REPLACED)\
+                                                .order_by(desc(DebtPaymentContract.inserted_on)).first()
+    if initial_contract is None:
+        initial_contract = active_contract
+
+    total_fee = initial_contract.monthly_fee * initial_contract.term
+    tmp = {
+        'description': 'Invoice Amount',
+        'type': 'Initial Balance',
+        'status': '',
+        'plus': total_fee,
+        'minus': '',
+        'balance': total_fee,
+        'trans_date': '',
+        'trans_id': '',
+        'proj_date': '',
+        'proj_amount': '',
+        'proj_balance': total_fee,
+        'commission': '',
+        'earned_fee': '', 
+    }
+    result.append(tmp)
+
+    records = DebtPaymentSchedule.query.outerjoin(DebtPaymentContract)\
+                                       .filter(DebtPaymentContract.client_id==client.id)\
+                                       .order_by(asc(DebtPaymentSchedule.due_date)).all()
+    # error ?
+    if len(records) == 0:
+        raise ValueError('Payment Schecule not found')
+
+    index = 0
+    balance = total_fee
+    current_contract = initial_contract
+    for record in records:
+        if current_contract != record.contract:
+            # there is a change in contract 
+            # create a change record 
+            item = _get_contract_description(record.contract, current_contract, balance)
+            result.append(item)
+            balance = item['balance']
+            current_contract = record.contract 
+
+        index = index + 1
+        balance = round(balance - record.amount, 2)
+        status = 'Scheduled'
+        if record.status == DebtEftStatus.Settled:
+            status = 'Cleared'
+
+        item = {
+            'description': 'Payment {}'.format(index),
+            'type': 'Payment',
+            'status': status,
+            'plus' : '',
+            'minus': record.amount, 
+            'balance': balance,
+            'trans_date': '',
+            'trans_id': '',
+            'proj_date': record.due_date.strftime("%m/%d/%Y"),
+            'proj_amount': record.amount,
+            'proj_balance': balance,
+            'commission': '',
+            'earned_fee': '', 
+        }
+        result.append(item)
+
+
+    return result
+
+def _get_contract_description(new_contract, old_contract, balance):
+    balance = round(balance, 2)
+    new_balance = (new_contract.term - new_contract.num_inst_completed) * new_contract.monthly_fee
+    new_balance = round(new_balance, 2)
+    new_total_fee = new_contract.term * new_contract.monthly_fee
+    
+    type = ""
+    status = ""
+    minus = ""
+    if new_contract.current_action == ContractAction.REMOVE_DEBTS:
+        reduced = round(balance - new_balance, 2)
+        desc = "Remove Debt"
+        desc = desc + "New Term: \n".format(new_contract.term)
+        desc = desc + "New Invoice Amount: ${}\n".format(new_total_fee)
+        desc = desc + "Reduce Amount: ${}\n".format(reduced)
+
+        type = "Remove Debt"
+        status = "Approved"
+        minus = reduced
+        
+    item = {
+        'description': desc,
+        'type': type,
+        'status': status,
+        'plus' : '',
+        'minus': minus,
+        'balance': new_balance,
+        'trans_date': '',
+        'trans_id': '',
+        'proj_date': '',
+        'proj_amount': '',
+        'proj_balance': new_balance,
+        'commission': '',
+        'earned_fee': '',
+    }
+
+    return item

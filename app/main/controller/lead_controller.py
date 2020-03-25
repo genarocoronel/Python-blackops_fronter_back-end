@@ -1,8 +1,11 @@
 from flask import request
 from flask_restplus import Resource
 
-from app.main.controller import _handle_get_client, _handle_get_credit_report, _convert_payload_datetime_values, _parse_datetime_values
 from app.main.model.client import ClientType
+from app.main.model.debt_payment import ContractStatus
+from app.main.model.user import User
+
+from app.main.controller import _handle_get_client, _handle_get_credit_report, _convert_payload_datetime_values, _parse_datetime_values
 from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_CODES_SALES_OVERRIDABLE
 from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
@@ -12,10 +15,11 @@ from app.main.service.client_service import get_all_clients, save_new_client, ge
     update_notification_pref
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
-from app.main.model.debt_payment import ContractStatus
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract, payment_contract_action, \
-                                                  payment_contract_req4approve, fetch_plan_by_status, payment_contract_approve, \
-                                                  payment_contract_activate
+                                                  payment_contract_req4approve, fetch_amendment_plan, update_amendment_plan,\
+                                                  fetch_payment_schedule
+from app.main.service.user_service import get_request_user
+from app.main.util.decorator import token_required
 from ..util.dto import LeadDto, ClientDto
 from ..util.parsers import filter_request_parse
 
@@ -383,40 +387,6 @@ class LeadBankAccount(Resource):
             else:
                 return result, 200
 
-
-@api.route('/<lead_id>/payment/plan')
-@api.param('lead_id', 'Lead public identifier')
-@api.response(404, 'Client not found')
-class LeadPaymentPlan(Resource):
-    @api.doc('fetch payment plan')
-    def get(self, lead_id):
-        """ Fetch payment plan for the client """
-        client = get_client(public_id=lead_id, client_type=ClientType.lead)
-        if not client:
-            api.abort(404)
-        else:
-            try:
-                contract = fetch_payment_contract(client) 
-                return contract
-            except Exception as err:
-                api.abort(500, "{}".format(str(err)))
-
-    @api.doc('save payment plan')
-    def post(self, lead_id):
-        """ Save payment plan for the client """
-        client = get_client(public_id=lead_id, client_type=ClientType.lead)
-        if not client:
-            api.abort(404, 'Client not found')
-        else:
-            try:
-                # update and fetch the latest contract
-                update_payment_contract(client, request.json)
-                contract = fetch_payment_contract(client)
-                return contract
-
-            except Exception as err:
-                api.abort(500, "{}".format(str(err)))
-
 @api.route('/<lead_id>/coclient')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Client not found')
@@ -500,11 +470,12 @@ class LeadNotificationPrefs(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
-@api.route('/<lead_id>/payment/plan/req4approve')
+@api.route('/<lead_id>/payment/plan')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Client not found')
-class LeadApprovePlanRequest(Resource):
-    @api.doc('fetch payment plans in req4approve state')
+class LeadPaymentPlan(Resource):
+    @token_required
+    @api.doc('fetch payment plan')
     def get(self, lead_id):
         """ Fetch payment plan for the client """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -512,11 +483,72 @@ class LeadApprovePlanRequest(Resource):
             api.abort(404)
         else:
             try:
-                contract = fetch_plan_by_status(client, ContractStatus.REQ4APPROVAL)
+                contract = fetch_payment_contract(client) 
                 return contract
             except Exception as err:
-                api.abort(500, "{}".format(str(err)))    
+                api.abort(500, "{}".format(str(err)))
 
+    @token_required
+    @api.doc('save payment plan')
+    def post(self, lead_id):
+        """ Save payment plan for the client """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, 'Client not found')
+        else:
+            try:
+                # update and fetch the latest contract
+                update_payment_contract(client, request.json)
+                contract = fetch_payment_contract(client)
+                return contract
+
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+@api.route('/<lead_id>/amendment/<plan_id>')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Client not found')
+class LeadAmendmentPlanById(Resource):
+    @token_required
+    @api.doc('fetch amendment plan')
+    def get(self, lead_id, plan_id):
+        """ Fetch amended contract for the client """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, 'Client not found')
+        else:
+            try:
+                contract = fetch_amendment_plan(client, plan_id)
+                return contract
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+@api.route('/<lead_id>/amendment/plan')
+@api.response(404, 'Client not found')
+class LeadAmendmentPlan(Resource):
+    @token_required
+    @api.doc('save amendment plan')
+    def put(self, lead_id):
+        """ Save amendment plan for the client """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, 'Client not found')
+        else:
+            try:
+                # update and fetch the latest contract
+                update_amendment_plan(client, request.json)
+                plan = fetch_amendment_plan(client)
+                return plan
+
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+
+@api.route('/<lead_id>/payment/plan/req4approve')
+@api.param('lead_id', 'Lead public identifier')
+@api.response(404, 'Client not found')
+class LeadApprovePlanRequest(Resource):
+    @token_required
     @api.doc('request for approval')
     def post(self, lead_id):
         """ Request for approval"""
@@ -525,34 +557,22 @@ class LeadApprovePlanRequest(Resource):
             api.abort(404, "Client not found")
         else:
             try:
-                return payment_contract_req4approve(client, request.json)
+                user = get_request_user()
+                if user is None:
+                    api.abort(404, "User not found")
+                return payment_contract_req4approve(user, 
+                                                    client, 
+                                                    request.json)
 
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
-
-
-@api.route('/<lead_id>/payment/plan/approve')
-@api.param('lead_id', 'Lead public identifier')
-@api.response(404, 'Client not found')
-class LeadApprovePlan(Resource):
-    @api.doc('new contract')
-    def post(self, lead_id):
-        """ Send New Contract """
-        client = get_client(public_id=lead_id, client_type=ClientType.lead)
-        if not client:
-            api.abort(404, "Client not found")
-        else:
-            try:
-                return payment_contract_approve(client)
-
-            except Exception as err:
-                api.abort(500, "{}".format(str(err))) 
 
 
 @api.route('/<lead_id>/payment/plan/action')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Client not found')
 class LeadActionPlan(Resource):
+    @token_required
     @api.doc('sends docusign document')
     def post(self, lead_id):
         """ Sends a docusign document """
@@ -566,19 +586,20 @@ class LeadActionPlan(Resource):
                 api.abort(500, "{}".format(str(err)))
 
 
-@api.route('/<lead_id>/payment/plan/activate')
+@api.route('/<lead_id>/payment/schedule')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Client not found')
-class LeadActivatePlan(Resource):
-    @api.doc('Activate a plan')
-    def post(self, lead_id):
-        """ Activate a plan """
+class LeadPaymentSchedule(Resource):
+
+    @api.doc('fetches payment schedule')
+    def get(self, lead_id):
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
             api.abort(404, "Client not found")
         else:
             try:
-                return payment_contract_activate(client)
+                schedule = fetch_payment_schedule(client)
+                return schedule
+
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
-
