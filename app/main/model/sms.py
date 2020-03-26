@@ -19,7 +19,8 @@ class SMSConvo(db.Model):
     
     # relationships
     sms_messages = db.relationship('SMSMessage', backref='sms_convo')
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_sms_convos_client_id'))
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_sms_convos_client_id'), nullable=True)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id', name='fk_sms_convos_candidate_id'), nullable=True)
     
     
 class SMSMessage(db.Model):
