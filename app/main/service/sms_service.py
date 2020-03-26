@@ -224,8 +224,7 @@ def process_new_sms_mssg(mssg_data, direction: MessageDirection):
                 sms_mssg_record = _process_with_client_context(person, mssg_data)
                 
             else:
-                #app.logger.error(f'Could not find a Client/Lead for that SMS message from {mssg_data["from_phone"]}')
-                app.logger.error(f'Inbound SMS message not from Client/Lead. Checking if Candidate')
+                app.logger.info(f'Inbound SMS message not from Client/Lead. Checking if Candidate')
                 person = get_candidate_by_phone(mssg_data['from_phone'])
                 if person:
                     app.logger.info('Inbound SMS is from a Candidate.')
@@ -242,8 +241,7 @@ def process_new_sms_mssg(mssg_data, direction: MessageDirection):
                 sms_mssg_record = _process_with_client_context(person, mssg_data)
 
             else:
-                #app.logger.error(f'Could not find a Client/Lead for that SMS message to {mssg_data["from_phone"]}')
-                app.logger.error(f'Oubound SMS message not to Client/Lead. Checking if Candidate')
+                app.logger.info(f'Oubound SMS message not to Client/Lead. Checking if Candidate')
                 person = get_candidate_by_phone(mssg_data['to_phone'])
                 if person:
                     app.logger.info('Outbound SMS is to a Candidate.')
