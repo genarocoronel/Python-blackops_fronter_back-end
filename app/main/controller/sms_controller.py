@@ -62,6 +62,9 @@ class SmsClientConversation(Resource):
         except Exception as e:
            api.abort(500, message=f'Failed to get a SMS Conversation for Client ID {client_public_id}', success=False)
 
+        if not convo_mssgs:
+            api.abort(404, message=f"Conversation for client with ID {client_public_id} does not exist", success=False, )
+
         return convo_mssgs, 200
 
 
@@ -107,7 +110,10 @@ class SmsCandidateConversation(Resource):
         except NotFoundError as e:
             api.abort(404, message='Error getting SMS conversation, {}'.format(str(e)), success=False)
         except Exception as e:
-            api.abort(500, message=f'Failed to get a SMS Conversation for Candidate ID {candidate_public_id}', success=False)
+           api.abort(500, message=f'Failed to get a SMS Conversation for Candidate ID {candidate_public_id}', success=False)
+
+        if not convo_mssgs:
+            api.abort(404, message=f"Conversation for Candidate with ID {candidate_public_id} does not exist", success=False, )
 
         return convo_mssgs, 200
 
