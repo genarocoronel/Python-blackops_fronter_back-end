@@ -8,10 +8,11 @@ from app.main import db
 from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth, SMSMessageStatus
 from app.main.model.client import Client, ClientContactNumber
 from app.main.model.contact_number import ContactNumber
+from app.main.service.candidate_service import get_candidate_by_phone, get_candidate_by_id, get_candidate_by_public_id
 from app.main.service.client_service import get_client_by_phone, get_client_by_id, get_client_by_public_id
 from app.main.service.third_party.bandwidth_service import sms_send
 from app.main.core.errors import BadRequestError, NotFoundError, ConfigurationError, ServiceProviderError
-from flask import current_app
+from flask import current_app as app
 
 
 account_sid = "AC27a28affdf746d9c7b06788016b35c8c"
@@ -30,7 +31,7 @@ def whois_webhook_token(webhook_token):
     """ Checks if a Webhook token for SMS message registration is valid """
     provider_name = None
     
-    for whtoken, provider in current_app.sms_webhook_identities.items():
+    for whtoken, provider in app.sms_webhook_identities.items():
         if webhook_token == whtoken:
             provider_name = provider
             break
@@ -38,16 +39,20 @@ def whois_webhook_token(webhook_token):
     return provider_name
 
 
-def get_convo(convo_public_id):
-    """ Gets a SMS Conversation """
-    current_app.logger.info(f'Fetching the client SMS conversation with ID {convo_public_id}')
-    convo = _get_sms_convo_by_pubid(convo_public_id)
-    if not convo:
-        raise NotFoundError(f"Conversation for  with ID {convo_public_id} not found.")
+def get_convo_for_candidate(candidate_public_id):
+    """ Gets a SMS Conversation for a given Client """
+    convo_with_mssgs = None
+    candidate = get_candidate_by_public_id(candidate_public_id)  
+    if not candidate:
+        raise NotFoundError(f"Candidate with ID {candidate_public_id} not found.")
         
-    convo_with_mssgs = synth_messages_for_convo(convo)
+    convo = _get_sms_convo_by_candidate_id(candidate.id)
+    if not convo:
+        raise NotFoundError(f"Conversation for Candidate with ID {candidate_public_id} not found.")
+        
+    convo_with_mssgs = synth_messages_for_candidate_convo(convo, candidate)
     if not convo_with_mssgs:
-        raise NotFoundError(f"Messages for conversation with ID {convo_public_id} not found.")
+        raise NotFoundError(f"Messages for Candidate conversation with ID {convo.public_id} not found.")
     
     return convo_with_mssgs
 
@@ -63,14 +68,14 @@ def get_convo_for_client(client_public_id):
     if not convo:
         raise NotFoundError(f"Conversation for client with ID {client_public_id} not found.")
         
-    convo_with_mssgs = synth_messages_for_convo(convo, client)
+    convo_with_mssgs = synth_messages_for_client_convo(convo, client)
     if not convo_with_mssgs:
         raise NotFoundError(f"Messages for conversation with ID {convo.public_id} not found.")
     
     return convo_with_mssgs
 
 
-def synth_messages_for_convo(convo, client=None):
+def synth_messages_for_client_convo(convo, client=None):
     convo_with_mssgs = None
 
     if convo:
@@ -84,7 +89,52 @@ def synth_messages_for_convo(convo, client=None):
         }
 
         messages = SMSMessage.query.filter_by(sms_convo_id=convo.id).order_by(db.desc(SMSMessage.id)).all()
-        current_app.logger.info('Synthesizing SMS conversation with all inbound and outbound messages for this client.')
+        app.logger.info('Synthesizing SMS conversation with all inbound and outbound messages for this client.')
+        for mssg_item in messages:
+            tmp_mssg = {
+                'public_id': mssg_item.public_id,
+                'from_phone': mssg_item.from_phone,
+                'to_phone': mssg_item.to_phone,
+                'network_time': mssg_item.network_time,
+                'direction': mssg_item.direction,
+                'segment_count': mssg_item.segment_count,
+                'body_text': mssg_item.body_text,
+                'message_media': [],
+                'provider_message_id': mssg_item.provider_message_id,
+                'provider_name': mssg_item.provider_name,
+                'is_viewed': mssg_item.is_viewed,
+                'delivery_status': mssg_item.delivery_status
+            }
+
+            tmp_media_records = _handle_get_media_for_messg(mssg_item)
+            if tmp_media_records:
+                for media_item in tmp_media_records:
+                    tmp_media = {
+                        'public_id': media_item.public_id,
+                        'file_uri': media_item.file_uri
+                    }
+                    tmp_mssg['message_media'].append(tmp_media)
+
+            convo_with_mssgs['items'].append(tmp_mssg)
+    
+    return convo_with_mssgs
+
+
+def synth_messages_for_candidate_convo(convo, candidate=None):
+    convo_with_mssgs = None
+
+    if convo:
+        if not candidate:
+            candidate = get_candidate_by_id(convo.candidate_id)       
+
+        convo_with_mssgs = {
+            'public_id': convo.public_id,
+            'candidate_public_id':candidate.public_id,
+            'items':[]
+        }
+
+        messages = SMSMessage.query.filter_by(sms_convo_id=convo.id).order_by(db.desc(SMSMessage.id)).all()
+        app.logger.info('Synthesizing SMS conversation with all inbound and outbound messages for this Candidate.')
         for mssg_item in messages:
             tmp_mssg = {
                 'public_id': mssg_item.public_id,
@@ -118,52 +168,44 @@ def synth_messages_for_convo(convo, client=None):
 def register_new_sms_mssg(mssg_data, provider_name):
     """ Registers a new SMS message and tries to associate it with a Conversation """
     result = None
-    if (provider_name == PROVIDER_BANDWIDTH):
-        crm_mssg_data = _save_bandwidth_sms_message(mssg_data)
-        if crm_mssg_data['direction'] == 'in':
-            current_app.logger.info('Registering inbound SMS message with success delivery status.')
-            crm_mssg_data['delivery_status'] = SMSMessageStatus.SUCCESS.value
-            crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.IN)
-            
-        else:
-            # This case means that CRM already sent a message and saved with status PENDING and 
-            # now it is being confirmed as DELIVERED or FAILED. We need to update existing message.
-            crm_mssg = SMSMessage.query.filter_by(provider_message_id=mssg_data['message']['id']).first()
-            if not crm_mssg_data:
-                raise Exception('Could not find a matching internal message for that outbound registration with provider ID {}.'.format(mssg_data['provider_message_id']))
-
-            if mssg_data['description'] == 'ok':
-                current_app.logger.info('Registering outbound SMS message with success delivery status.')
-                crm_mssg.delivery_status = SMSMessageStatus.SUCCESS.value
-                crm_mssg.updated_on = datetime.datetime.utcnow()
-                save_changes(crm_mssg)
-
-            else:
-                current_app.logger.warning('WARNING: Webhook registered outbound SMS as Failed. User may need to resend.')
-                crm_mssg.delivery_status = SMSMessageStatus.FAILED.value
-                crm_mssg.updated_on = datetime.datetime.utcnow()
-                save_changes(crm_mssg)
-
-        result = {
-                'success': True,
-                'message': "Successfully registered a Provider SMS message. Thank you.",
-                'our_message_id': crm_mssg.public_id
-            }
-
-    else:
+    if not provider_name == PROVIDER_BANDWIDTH:
         raise Exception(f'That SMS provider {provider_name} is unknown.')
+
+    crm_mssg_data = _save_bandwidth_sms_message(mssg_data)
+    if crm_mssg_data['direction'] == 'in':
+        app.logger.info('Registering inbound SMS message with success delivery status.')
+        crm_mssg_data['delivery_status'] = SMSMessageStatus.SUCCESS.value
+        crm_mssg_record = process_new_sms_mssg(crm_mssg_data, MessageDirection.IN)
+        
+    else:
+        # This case means that CRM already sent a message and saved with status PENDING and 
+        # now it is being confirmed as DELIVERED or FAILED. We need to update existing message.
+        crm_mssg_record = SMSMessage.query.filter_by(provider_message_id=mssg_data['message']['id']).first()
+        if not crm_mssg_record:
+            raise Exception('Could not find a matching internal message for that outbound registration with provider ID {}.'.format(mssg_data['provider_message_id']))
+
+        if mssg_data['description'] == 'ok':
+            app.logger.info('Registering outbound SMS message with success delivery status.')
+            crm_mssg_record.delivery_status = SMSMessageStatus.SUCCESS.value
+            crm_mssg_record.updated_on = datetime.datetime.utcnow()
+            save_changes(crm_mssg_record)
+
+        else:
+            app.logger.warning('WARNING: Webhook registered outbound SMS as Failed. User may need to resend.')
+            crm_mssg_record.delivery_status = SMSMessageStatus.FAILED.value
+            crm_mssg_record.updated_on = datetime.datetime.utcnow()
+            save_changes(crm_mssg_record)
     
-    return result
+    return crm_mssg_record
 
 
 def process_new_sms_mssg(mssg_data, direction: MessageDirection):
     """ Processes a new CRM SMS message """
-    message_public_id = None
-    from_phone = None
+    sms_mssg_record = None
     
-    current_app.logger.info("Processing new SMS message and will attempt to attach to a Client SMS conversation")
-    sms_mssg = SMSMessage.query.filter_by(provider_message_id=mssg_data['provider_message_id']).first()
-    if not sms_mssg:
+    app.logger.info("Processing new SMS message and will attempt to attach to a Client SMS conversation")
+    sms_mssg_record = SMSMessage.query.filter_by(provider_message_id=mssg_data['provider_message_id']).first()
+    if not sms_mssg_record:
         mssg_data['from_phone'] = clean_phone_to_tenchars(mssg_data['from_phone'])
         mssg_data['to_phone'] = clean_phone_to_tenchars(mssg_data['to_phone'])
 
@@ -173,25 +215,71 @@ def process_new_sms_mssg(mssg_data, direction: MessageDirection):
             raise BadRequestError(f'The FROM phone number has less than 10 characters {mssg_data["from_phone"]}!')
         
         # TODO: Later add unmatched, incoming phone numbers to be "sent to a general convo"
-        client = None
+        person = None
         if direction == MessageDirection.IN:
-            client = get_client_by_phone(mssg_data['from_phone'])
-        elif direction == MessageDirection.OUT:
-            client = get_client_by_phone(mssg_data['to_phone'])
-
-        if not client:
-            raise Exception('Could not find a Client by phone number when attempting to process SMS message and convo')
+            app.logger.info('Handling inbound SMS message from either a Client/Lead or a Candidate')
+            person = get_client_by_phone(mssg_data['from_phone'])
+            if person:
+                app.logger.info('Inbound SMS is from Client/Lead.')
+                sms_mssg_record = _process_with_client_context(person, mssg_data)
+                
+            else:
+                app.logger.info(f'Inbound SMS message not from Client/Lead. Checking if Candidate')
+                person = get_candidate_by_phone(mssg_data['from_phone'])
+                if person:
+                    app.logger.info('Inbound SMS is from a Candidate.')
+                    sms_mssg_record = _process_with_candidate_context(person, mssg_data)
+            
+                else:
+                    app.logger.error(f'Could not match a Client/Lead nor a Candidate for inbound SMS message from {mssg_data["from_phone"]}')
+                    raise NotFoundError(f'Could not match a Client/Lead nor a Candidate for inbound SMS message from {mssg_data["from_phone"]}')
         
-        client_conversation = _get_sms_convo_by_client(client)
-        if not client_conversation:
-            client_conversation = _handle_new_sms_conversation(client)
+        elif direction == MessageDirection.OUT:
+            person = get_client_by_phone(mssg_data['to_phone'])
+            if person:
+                app.logger.info('Oubound SMS is to a Client/Lead.')
+                sms_mssg_record = _process_with_client_context(person, mssg_data)
 
-        sms_mssg = _handle_new_sms_message(mssg_data, client_conversation)
-        if not sms_mssg:
-            raise Exception('Could not create a SMS message for a conversation!')
+            else:
+                app.logger.info(f'Oubound SMS message not to Client/Lead. Checking if Candidate')
+                person = get_candidate_by_phone(mssg_data['to_phone'])
+                if person:
+                    app.logger.info('Outbound SMS is to a Candidate.')
+                    sms_mssg_record = _process_with_candidate_context(person, mssg_data)
 
-    return sms_mssg
+                else:
+                    app.logger.error(f'Could not match a Client/Lead nor a Candidate for outbound SMS message to {mssg_data["to_phone"]}')
+                    raise NotFoundError(f'Could not match a Client/Lead nor a Candidate for outbound SMS message to {mssg_data["to_phone"]}')
 
+    return sms_mssg_record
+
+
+def _process_with_client_context(client, mssg_data):
+    """ Processes a new SMS message with Client/Lead context """
+    app.logger.info("Processing SMS message with Client/Lead context")
+    client_conversation = _get_sms_convo_by_client(client)
+    if not client_conversation:
+        client_conversation = _handle_new_client_sms_conversation(client)
+
+    sms_mssg_record = _handle_new_sms_message(mssg_data, client_conversation)
+    if not sms_mssg_record:
+        raise Exception('Could not create a SMS message for a Client/Lead conversation!')
+
+    return sms_mssg_record
+
+
+def _process_with_candidate_context(candidate, mssg_data):
+    """ Processes a new SMS message with Candidate context """
+    app.logger.info("Processing SMS message with Candidate context")
+    candidate_conversation = _get_sms_convo_by_candidate(candidate)
+    if not candidate_conversation:
+        candidate_conversation = _handle_new_candidate_sms_conversation(candidate)
+
+    sms_mssg_record = _handle_new_sms_message(mssg_data, candidate_conversation)
+    if not sms_mssg_record:
+        raise Exception('Could not create a SMS message for a Candidate conversation!')
+
+    return sms_mssg_record
 
 def sms_send_raw(phone_target, sms_text, user_id):
     return None
@@ -215,7 +303,7 @@ def sms_send_raw(phone_target, sms_text, user_id):
 
 def send_message_to_client(client_public_id, from_phone, message_body, to_phone = None):
     """ Sends a SMS message to a client on behalf of a Sales or Service person """
-    current_app.logger.info(f'Attempting to send SMS message to {to_phone} frm {from_phone}.')
+    app.logger.info(f'Attempting to send SMS message to {to_phone} frm {from_phone}.')
     sms_message = None
     destination_phone = None
 
@@ -232,7 +320,6 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
             raise NotFoundError('could not find a known Client for that outbound SMS message. Not sent.')
         
         for number_item in client.contact_numbers:
-            print(number_item.contact_number)
             if number_item.contact_number.preferred:
                 destination_phone = number_item.contact_number.phone_number
                 break
@@ -243,14 +330,70 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
     try:
         crm_mssg_data = sms_send(from_phone, destination_phone, message_body)
     except ConfigurationError as e:
-        current_current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
+        current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
         raise
     except ServiceProviderError as e:
-        current_current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
+        current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
         raise
 
     if crm_mssg_data:
-        current_app.logger.info('Send SMS message carried out. Marking as PENDING status until webhook confirms success or failure.')
+        app.logger.info('Send SMS message carried out. Marking as PENDING status until webhook confirms success or failure.')
+        crm_mssg_data['delivery_status'] = SMSMessageStatus.PENDING.value
+        crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.OUT)
+        sms_message = {
+            'public_id': crm_mssg.public_id,
+            'from_phone': crm_mssg.from_phone,
+            'to_phone': crm_mssg.to_phone,
+            'network_time': crm_mssg.network_time,
+            'direction': crm_mssg.direction,
+            'segment_count': crm_mssg.segment_count,
+            'body_text': crm_mssg.body_text,
+            'message_media': [],
+            'provider_message_id': crm_mssg.provider_message_id,
+            'provider_name': crm_mssg.provider_name,
+            'is_viewed': crm_mssg.is_viewed,
+            'delivery_status': crm_mssg.delivery_status
+        }
+
+    return sms_message
+
+
+def send_message_to_candidate(candidate_public_id, from_phone, message_body, to_phone = None):
+    """ Sends a SMS message to a Candidate on behalf of a Sales or Service person """
+    app.logger.info(f'Attempting to send SMS message to Candidate {to_phone} frm {from_phone}.')
+    sms_message = None
+    destination_phone = None
+
+    if to_phone:
+        candidate = get_candidate_by_phone(clean_phone_to_tenchars(to_phone))
+        if not candidate or candidate.public_id != candidate_public_id:
+            raise BadRequestError('Candidate ID To phone number mismatch. Not sent.')
+
+        destination_phone = to_phone
+    else:
+        candidate = get_candidate_by_public_id(candidate_public_id)
+        if not candidate:
+            raise NotFoundError('could not find a known Candidate for that outbound SMS message. Not sent.')
+        
+        for number_item in candidate.contact_numbers:
+            if number_item.contact_number.preferred:
+                destination_phone = number_item.contact_number.phone_number
+                break
+    
+    if not destination_phone:
+        raise Exception(f'Could not determine phone number to send the SMS message to for Candidate with ID {candidate_public_id}')
+    
+    try:
+        crm_mssg_data = sms_send(from_phone, destination_phone, message_body)
+    except ConfigurationError as e:
+        current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
+        raise
+    except ServiceProviderError as e:
+        current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
+        raise
+
+    if crm_mssg_data:
+        app.logger.info('Send SMS message carried out. Marking as PENDING status until webhook confirms success or failure.')
         crm_mssg_data['delivery_status'] = SMSMessageStatus.PENDING.value
         crm_mssg = process_new_sms_mssg(crm_mssg_data, MessageDirection.OUT)
         sms_message = {
@@ -283,11 +426,24 @@ def save_changes(*data):
     db.session.commit()
 
 
-def _handle_new_sms_conversation(client):
+def _handle_new_client_sms_conversation(client):
     """ Saves a new Client SMS Conversation """
     new_convo = SMSConvo(
         public_id = str(uuid.uuid4()),
         client_id = client.id,
+        inserted_on = datetime.datetime.utcnow(),
+        updated_on = datetime.datetime.utcnow()
+    )
+    db.session.add(new_convo)
+    save_changes()
+
+    return new_convo
+
+def _handle_new_candidate_sms_conversation(candidate):
+    """ Saves a new Candidate SMS Conversation """
+    new_convo = SMSConvo(
+        public_id = str(uuid.uuid4()),
+        candidate_id = candidate.id,
         inserted_on = datetime.datetime.utcnow(),
         updated_on = datetime.datetime.utcnow()
     )
@@ -345,16 +501,24 @@ def _handle_new_media(media_data, message):
     return media_records
 
 
-def _get_sms_convo_by_client(client):
-    return SMSConvo.query.filter(SMSConvo.client_id == client.id).first()
-
-
 def _get_sms_convo_by_pubid(public_id):
     return SMSConvo.query.filter(SMSConvo.public_id == public_id).first()
 
 
+def _get_sms_convo_by_client(client):
+    return SMSConvo.query.filter(SMSConvo.client_id == client.id).first()
+
+
 def _get_sms_convo_by_client_id(client_id):
     return SMSConvo.query.filter(SMSConvo.client_id == client_id).first()
+
+
+def _get_sms_convo_by_candidate(candidate):
+    return SMSConvo.query.filter(SMSConvo.candidate_id == candidate.id).first()
+
+
+def _get_sms_convo_by_candidate_id(candidate_id):
+    return SMSConvo.query.filter(SMSConvo.candidate_id == candidate_id).first()
 
 
 def _handle_get_bandwidth_message(bandwidth_message_id):

@@ -125,6 +125,25 @@ def update_candidate(public_id, data):
         return response_object, 404
 
 
+def get_candidate_by_phone(phone_number):
+    """ Gets a Candidate record by phone number """
+    candidate = None
+    contactnum_assoc = CandidateContactNumber.query.join(ContactNumber).filter(ContactNumber.phone_number == phone_number).first()
+    if contactnum_assoc:
+        candidate = contactnum_assoc.candidate
+    return candidate
+
+
+def get_candidate_by_public_id(id):
+    """ Gets a Candidate by public ID """
+    return Candidate.query.filter_by(public_id=id).first()
+
+
+def get_candidate_by_id(id):
+    """ Gets a Candidate by (internal) ID """
+    return Candidate.query.filter_by(id=id).first()
+
+
 def get_candidate_employments(candidate):
     employment_assoc = CandidateEmployment.query.join(Candidate).filter(Candidate.id == candidate.id).all()
     employments = [candidate_employment.employment for candidate_employment in employment_assoc]
