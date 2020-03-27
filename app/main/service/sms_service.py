@@ -47,12 +47,10 @@ def get_convo_for_candidate(candidate_public_id):
         raise NotFoundError(f"Candidate with ID {candidate_public_id} not found.")
         
     convo = _get_sms_convo_by_candidate_id(candidate.id)
-    if not convo:
-        raise NotFoundError(f"Conversation for Candidate with ID {candidate_public_id} not found.")
-        
-    convo_with_mssgs = synth_messages_for_candidate_convo(convo, candidate)
+    if convo:
+        convo_with_mssgs = synth_messages_for_candidate_convo(convo, candidate)
     if not convo_with_mssgs:
-        raise NotFoundError(f"Messages for Candidate conversation with ID {convo.public_id} not found.")
+        convo_with_mssgs = []
     
     return convo_with_mssgs
 
@@ -65,12 +63,10 @@ def get_convo_for_client(client_public_id):
         raise NotFoundError(f"Client with ID {client_public_id} not found.")
         
     convo = _get_sms_convo_by_client_id(client.id)
-    if not convo:
-        raise NotFoundError(f"Conversation for client with ID {client_public_id} not found.")
-        
-    convo_with_mssgs = synth_messages_for_client_convo(convo, client)
+    if convo:
+        convo_with_mssgs = synth_messages_for_client_convo(convo, client)
     if not convo_with_mssgs:
-        raise NotFoundError(f"Messages for conversation with ID {convo.public_id} not found.")
+        convo_with_mssgs = []
     
     return convo_with_mssgs
 

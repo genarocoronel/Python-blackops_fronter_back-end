@@ -62,9 +62,6 @@ class SmsClientConversation(Resource):
         except Exception as e:
            api.abort(500, message=f'Failed to get a SMS Conversation for Client ID {client_public_id}', success=False)
 
-        if not convo_mssgs:
-            api.abort(404, message=f"Conversation for client with ID {client_public_id} does not exist", success=False, )
-
         return convo_mssgs, 200
 
 
@@ -78,6 +75,7 @@ class SmsSendSendToClient(Resource):
             return 'Bad request: the client ID was not given.', 400
         
         request_data = request.json
+        # TODO - Refactor the from phone to reflect integration of PBX and user-assigned numbers
         to_phone = None
         if 'to_phone' in request_data and request_data['to_phone'] != None:
             to_phone = request_data['to_phone']
@@ -109,10 +107,7 @@ class SmsCandidateConversation(Resource):
         except NotFoundError as e:
             api.abort(404, message='Error getting SMS conversation, {}'.format(str(e)), success=False)
         except Exception as e:
-           api.abort(500, message=f'Failed to get a SMS Conversation for Candidate ID {candidate_public_id}', success=False)
-
-        if not convo_mssgs:
-            api.abort(404, message=f"Conversation for Candidate with ID {candidate_public_id} does not exist", success=False, )
+            api.abort(500, message=f'Failed to get a SMS Conversation for Candidate ID {candidate_public_id}', success=False)
 
         return convo_mssgs, 200
 
@@ -126,6 +121,7 @@ class SmsSendSendToCandidate(Resource):
             return 'Bad request: the Candidate ID was not given.', 400
         
         request_data = request.json
+        # TODO - Refactor the from phone to reflect integration of PBX and user-assigned numbers
         to_phone = None
         if 'to_phone' in request_data and request_data['to_phone'] != None:
             to_phone = request_data['to_phone']

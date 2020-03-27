@@ -348,7 +348,6 @@ class CreateCreditReportAccount(Resource):
     @api.expect(_new_credit_report_account, validate=True)
     def post(self, public_id):
         request_data = request.json
-        print(request_data)
 
         lead, error_response = _handle_get_client(public_id, ClientType.lead)
         if not lead:
