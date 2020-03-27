@@ -201,7 +201,6 @@ class ClientAddresses(Resource):
     @api.expect([_update_client_address], validate=True)
     def put(self, client_id):
         """ Creates new Address """
-        print(client_id)
         addresses = request.json
         client, error_response = _handle_get_client(client_id, client_type=CLIENT)
         if not client:
@@ -267,7 +266,6 @@ class CreateCreditReportAccount(Resource):
     @api.expect(_new_credit_report_account, validate=True)
     def post(self, public_id):
         request_data = request.json
-        print(request_data)
 
         coclient, error_response = _handle_get_client(public_id, ClientType.coclient)
         if not coclient:
