@@ -205,22 +205,7 @@ class ClientDispositionTypeField(fields.String):
         if isinstance(value, ClientDispositionType):
             return value.name
         else:
-            return 'UNKNOWN' 
-
-class CandidateDispositionTypeField(fields.String):
-    def format(self, value):
-        if isinstance(value, CandidateDispositionType):
-            return value.name
-        else:
-            return 'UNKNOWN' 
-
-class ClientDispositionTypeField(fields.String):
-    def format(self, value):
-        if isinstance(value, ClientDispositionType):
-            return value.name
-        else:
             return 'UNKNOWN'
-
 
 class CandidateDispositionTypeField(fields.String):
     def format(self, value):
@@ -371,6 +356,35 @@ class ClientDto:
         'phone_number': fields.String(required=True),
         'preferred': fields.Boolean(required=True, default=False)
     })
+    new_credit_report_account = api.model('coclient_create_request', {
+        'first_name': fields.String(required=True, example='Charlie'),
+        'last_name': fields.String(required=True, example='Test-PJNDL'),
+        'zip': fields.String(required=True, example='01001'),
+        'phone': fields.String(required=True, example='555-555-5555')
+    })
+    update_credit_report_account = api.model('coclient_update_request', {
+        'first_name': fields.String(required=True, example='Charlie'),
+        'last_name': fields.String(required=True, example='Test-PJNDL'),
+        'street': fields.String(required=True, example='111 Donkey Lane'),
+        'street2': fields.String(required=False),
+        'city': fields.String(required=False, example='Boston'),
+        'state': fields.String(required=False, example='MA'),
+        'zip': fields.String(required=True, example='01001'),
+        'phone': fields.String(required=True, example='555-555-5555'),
+        'dob': fields.String(required=True, example='01/01/1990'),
+        'ssn': fields.String(required=False),
+        'ssn4': fields.String(required=False),
+        'security_question_id': fields.String(required=False),
+        'security_question_answer': fields.String(required=False),
+    })
+    account_verification_answers = api.model('verification_question_answers', {
+        'reference_number': fields.String(required=True),
+        'answers': fields.Nested(api.model('answers_list', {
+            'answer1': fields.String(required=True),
+            'answer2': fields.String(required=True),
+            'answer3': fields.String(required=True)
+        }), required=True, skip_none=True)
+    })
 
 class CreditReportAccountStatusField(fields.String):
     def format(self, value):
@@ -497,6 +511,35 @@ class LeadDto:
     })
 
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
+    new_credit_report_account = api.model('lead_create_request', {
+        'first_name': fields.String(required=True, example='Charlie'),
+        'last_name': fields.String(required=True, example='Test-PJNDL'),
+        'zip': fields.String(required=True, example='01001'),
+        'phone': fields.String(required=True, example='555-555-5555')
+    })
+    update_credit_report_account = api.model('lead_update_request', {
+        'first_name': fields.String(required=True, example='Charlie'),
+        'last_name': fields.String(required=True, example='Test-PJNDL'),
+        'street': fields.String(required=True, example='111 Donkey Lane'),
+        'street2': fields.String(required=False),
+        'city': fields.String(required=False, example='Boston'),
+        'state': fields.String(required=False, example='MA'),
+        'zip': fields.String(required=True, example='01001'),
+        'phone': fields.String(required=True, example='555-555-5555'),
+        'dob': fields.String(required=True, example='01/01/1990'),
+        'ssn': fields.String(required=False),
+        'ssn4': fields.String(required=False),
+        'security_question_id': fields.String(required=False),
+        'security_question_answer': fields.String(required=False),
+    })
+    account_verification_answers = api.model('verification_question_answers', {
+        'reference_number': fields.String(required=True),
+        'answers': fields.Nested(api.model('answers_list', {
+            'answer1': fields.String(required=True),
+            'answer2': fields.String(required=True),
+            'answer3': fields.String(required=True)
+        }), required=True, skip_none=True)
+    })
 
     debt_payment_contract = api.model('debt_payment_contract', {
         'monthly_fee': fields.Float(),

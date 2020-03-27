@@ -4,23 +4,26 @@ from flask import request, current_app
 from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
+from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAllowed, 
+    ServiceProviderError, ServiceProviderLockedError)
+from app.main.core.types import CustomerType
+from app.main.util.dto import CandidateDto
+from app.main.util.parsers import filter_request_parse
 from app.main.config import upload_location
 from app.main.controller import _convert_payload_datetime_values
 from app.main.model.candidate import CandidateImport
 from app.main.model.credit_report_account import CreditReportSignupStatus
-from app.main.core.auth import Auth
-from app.main.service.candidate_service import save_new_candidate_import, save_changes, get_all_candidate_imports, \
-    get_candidate, update_candidate, \
-    get_candidate_employments, update_candidate_employments, update_candidate_contact_numbers, get_candidate_contact_numbers, \
-    get_candidate_income_sources, update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, \
-    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, candidate_filter
-from app.main.service.credit_report_account_service import save_new_credit_report_account, update_credit_report_account
+from app.main.service.candidate_service import (save_new_candidate_import, save_changes, get_all_candidate_imports,
+    get_candidate, update_candidate, get_candidate_employments, update_candidate_employments, 
+    update_candidate_contact_numbers, get_candidate_contact_numbers, get_candidate_income_sources, 
+    update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, 
+    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, 
+    candidate_filter)
 from app.main.service.debt_service import scrape_credit_report
-from app.main.service.smartcredit_service import start_signup, LockedException, create_customer, \
-    get_id_verification_question, answer_id_verification_questions, update_customer, complete_credit_account_signup, \
-    activate_smart_credit_insurance, get_security_questions
-from ..util.dto import CandidateDto
-from ..util.parsers import filter_request_parse
+from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
+    get_verification_questions, answer_verification_questions, complete_signup, get_security_questions, 
+    register_fraud_insurance, get_account_password, pull_credit_report)
+from flask import current_app as app
 
 api = CandidateDto.api
 _candidate_upload = CandidateDto.candidate_upload
@@ -284,8 +287,8 @@ def _handle_get_candidate(candidate_public_id):
             'message': 'Candidate does not exist'
         }
         return None, response_object
-    else:
-        return candidate, None
+        
+    return candidate, None
 
 
 def _handle_get_credit_report(candidate):
@@ -303,61 +306,40 @@ def _handle_get_credit_report(candidate):
 @api.route('/<candidate_public_id>/credit-report/account')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 class CreateCreditReportAccount(Resource):
-    @api.doc('create credit report account')
+    @api.doc('Create credit report account for Candidate. This is Step #1 in process.')
     @api.expect(_new_credit_report_account, validate=True)
     def post(self, candidate_public_id):
-        """ Create Credit Report Account """
         request_data = request.json
 
-        # TODO: retrieve campaign information for candidate
-        campaign_data = {'ad_id': 5000, 'affiliate_id': 1662780, 'campaign_id': 'ABR:DBL_OD_WOULDYOULIKETOADD_041615'}
-        campaign_data.update({'channel': 'paid'})
+        candidate, error_response = _handle_get_candidate(candidate_public_id)
+        if not candidate:
+            api.abort(404, **error_response)
 
         try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
+            app.logger.info('Received request to signup Candidate for a Credit Report Account.')
+            creport_acc = creport_account_signup(request_data, candidate, CustomerType.CANDIDATE)
 
-            # look for existing credit report account
-            credit_report_account = candidate.credit_report_account
-            if not credit_report_account:
-                signup_data = start_signup(campaign_data)
-                credit_report_account = save_new_credit_report_account(signup_data, candidate,
-                                                                       CreditReportSignupStatus.INITIATING_SIGNUP)
-
-            if credit_report_account.status == CreditReportSignupStatus.ACCOUNT_CREATED:
-                response_object = {
-                    'success': False,
-                    'message': 'Credit Report account already exists'
-                }
-                return response_object, 409
-
-            password = Auth.generate_password()
-            request_data.update(dict(password=password))
-            request_data['email'] = credit_report_account.email
-            new_customer = create_customer(request_data, credit_report_account.tracking_token,
-                                           sponsor_code=current_app.smart_credit_sponsor_code)
-
-            credit_report_account.password = password
-            credit_report_account.customer_token = new_customer.get('customerToken')
-            credit_report_account.financial_obligation_met = new_customer.get('isFinancialObligationMet')
-            credit_report_account.plan_type = new_customer.get('planType')
-            credit_report_account.status = CreditReportSignupStatus.ACCOUNT_CREATED
-            update_credit_report_account(credit_report_account)
-
-            response_object = {
-                'success': True,
-                'message': f'Successfully created credit report account with {credit_report_account.provider}',
-                'public_id': credit_report_account.public_id
-            }
-            return response_object, 201
-
-        except LockedException as e:
+        except BadRequestError as e:
             response_object = {
                 'success': False,
-                'message': str(e)
+                'message': f'There was an issue with data in your request, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot sign up for new Credit Account due to a service provider Locked issue, {str(e)}'
             }
             return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot sign up for new Credit Account due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
         except Exception as e:
             response_object = {
                 'success': False,
@@ -365,6 +347,310 @@ class CreateCreditReportAccount(Resource):
             }
             return response_object, 500
 
+        response_object = {
+            'success': True,
+            'message': f'Successfully created credit report account with {creport_acc.provider}',
+            'public_id': creport_acc.public_id
+        }        
+        return response_object, 201
+
+@api.route('/<candidate_public_id>/credit-report/account/<public_id>')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('public_id', 'The Credit Report Account Identifier')
+class UpdateCreditReportAccount(Resource):
+    @api.doc('update credit report account. This is step #2, and #4 in the process.')
+    @api.expect(_update_credit_report_account, validate=True)
+    def put(self, candidate_public_id, public_id):
+        """ Update Credit Report Account """
+        candidate, error_response = _handle_get_candidate(candidate_public_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(candidate)
+        if not account:
+            return error_response
+        
+        request_data = request.json        
+        relevant_data = None
+        
+        if 'security_question_id' in request_data:
+            relevant_data = {
+                'security_question_id': request_data['security_question_id'],
+                'security_question_answer': request_data['security_question_answer'],
+                'ssn': request_data['ssn']
+            }
+        else:
+            relevant_data = request_data
+            
+        relevant_data['ip_address'] = request.remote_addr
+        relevant_data['terms_confirmed'] = True
+        
+        try:
+            app.logger.info(f"Received request to update Credit Report account for Candidate with ID: {candidate_public_id}")
+            update_credit_report_account(account, relevant_data)
+
+        except BadRequestError as e:
+            response_object = {
+                'success': False,
+                'message': f'There was an issue with data in your request to update Credit Account, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot update Credit Account due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot update Credit Account due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+        
+
+        response_object = {
+            'success': True,
+            'message': 'Successfully updated credit report account'
+        }
+        return response_object, 200
+
+@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/security-questions')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CreditReportAccountSecurityQuestions(Resource):
+    @api.doc('get credit report account security questions. This is step #3 in process.')
+    def get(self, candidate_public_id, credit_account_public_id):
+        """ Get Available Security Questions"""
+        candidate, error_response = _handle_get_candidate(candidate_public_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(candidate)
+        if not account:
+            return error_response
+
+        try:
+            app.logger.info('Received request to get Credit Account Security Questions.')
+            questions = get_security_questions(account)
+        
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get credit account security questions due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get credit account security questions due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        return questions, 200
+
+@api.route('/<candidate_public_id>/credit-report/account/<public_id>/verification-questions')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('public_id', 'The Credit Report Account Identifier')
+class CreditReporAccounttVerification(Resource):
+    @api.doc('get verification questions. Step #5 in process.')
+    def get(self, candidate_public_id, public_id):
+        """ Get Account Verification Questions """
+        candidate, error_response = _handle_get_candidate(candidate_public_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(candidate)
+        if not account:
+            return error_response
+
+        try:
+            app.logger.info('Received request to get Credit Account ID Verification Questions.')
+            questions = get_verification_questions(account)
+        
+        except BadRequestError as e:
+            response_object = {
+                'success': False,
+                'message': f'There was an issue with data in your request to get verification questions, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get verification questions due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot get verification questions due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        return questions, 200
+
+    @api.doc('submit answers to verification questions. Step #6 in process.')
+    @api.expect(_credit_account_verification_answers, validate=False)
+    def put(self, candidate_public_id, public_id):
+        """ Submit Account Verification Answers """
+        candidate, error_response = _handle_get_candidate(candidate_public_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(candidate)
+        if not account:
+            return error_response
+
+        data = request.json
+
+        try:
+            app.logger.info('Received request to answer Credit Account Verification Questions.')
+            answer_verification_questions(account, data)
+
+        except BadRequestError as e:
+            response_object = {
+                'success': False,
+                'message': f'There was an issue with data in your request to submit verification questions, {str(e)}'
+            }
+            return response_object, 400
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot submit verification questions due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot submit verification questions due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        response_object = {
+            'success': True,
+            'message': 'Successfully submitted verification answers'
+        }
+        return response_object, 200
+
+# TODO: consider removing the `credit_account_public_id` from URI since it is only 1-to-1 relationship in data model
+@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/complete')
+@api.param('candidate_public_id', 'The Candidate Identifier')
+@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
+class CompleteCreditReportAccount(Resource):
+    @api.doc('complete credit report account signup. Step #7 and final step in process.')
+    def put(self, candidate_public_id, credit_account_public_id):
+        """ Complete Credit Report Account Sign Up"""
+        candidate, error_response = _handle_get_candidate(candidate_public_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        account, error_response = _handle_get_credit_report(candidate)
+        if not account:
+            return error_response
+
+        try:
+            app.logger.info('Received request to complete Credit Report account signup.')
+            complete_signup(account)
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot complete credit account signup due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot complete credit account signup due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
+        except Exception as e:
+            response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        response_object = {
+            'success': True,
+            'message': 'Successfully completed credit account signup'
+        }
+        return response_object, 200
+
+
+    # @api.doc('submit answer to security question')
+    # @api.expect(_update_credit_report_account, validate=True)
+    # def put(self, candidate_public_id, credit_account_public_id):
+    #     """ Submit Answer to Security Question """
+    #     try:
+    #         candidate, error_response = _handle_get_candidate(candidate_public_id)
+    #         if not candidate:
+    #             api.abort(404, **error_response)
+
+    #         account, error_response = _handle_get_credit_report(candidate)
+    #         if not account:
+    #             return error_response
+
+    #         data = request.json
+    #         update_customer(account.customer_token, data, account.tracking_token)
+    #         account.status = CreditReportSignupStatus.FULL_MEMBER_LOGIN
+    #         update_credit_report_account(account)
+
+    #         response_object = {
+    #             'success': True,
+    #             'message': 'Successfully submitted security question answer'
+    #         }
+    #         return response_object, 200
+
+    #     except ServiceProviderLockedError as e:
+    #         response_object = {
+    #             'success': False,
+    #             'message': 'Cannot sign up for new Credit Account due to a service provider Locked issue, {str(e)}'
+    #         }
+    #         return response_object, 409
+    #     except Exception as e:
+    #         response_object = {
+    #             'success': False,
+    #             'message': str(e)
+    #         }
+    #         return response_object, 500
 
 @api.route('/<candidate_public_id>/credit-report/account/password')
 @api.param('candidate_public_id', 'The Candidate Identifier')
@@ -385,245 +671,20 @@ class CreditReportAccountPassword(Resource):
                 }
                 return response_object, 404
 
+            pwd = get_account_password(credit_report_account)
+
+        except Exception as e:
             response_object = {
+                'success': False,
+                'message': str(e)
+            }
+            return response_object, 500
+
+        response_object = {
                 'success': True,
-                'password': current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
+                'password': pwd
             }
-            return response_object, 200
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-
-@api.route('/<candidate_public_id>/credit-report/account/<public_id>')
-@api.param('candidate_public_id', 'The Candidate Identifier')
-@api.param('public_id', 'The Credit Report Account Identifier')
-class UpdateCreditReportAccount(Resource):
-    @api.doc('update credit report account')
-    @api.expect(_update_credit_report_account, validate=True)
-    def put(self, candidate_public_id, public_id):
-        """ Update Credit Report Account """
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            account, error_response = _handle_get_credit_report(candidate)
-            if not account:
-                return error_response
-
-            data = request.json
-            data['ip_address'] = request.remote_addr
-            data['terms_confirmed'] = True
-            update_customer(account.customer_token, data, account.tracking_token)
-            account.status = CreditReportSignupStatus.ACCOUNT_VALIDATING
-            update_credit_report_account(account)
-
-            response_object = {
-                'success': True,
-                'message': 'Successfully updated credit report account'
-            }
-            return response_object, 200
-
-        except LockedException as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 409
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-
-@api.route('/<candidate_public_id>/credit-report/account/<public_id>/verification-questions')
-@api.param('candidate_public_id', 'The Candidate Identifier')
-@api.param('public_id', 'The Credit Report Account Identifier')
-class CreditReporAccounttVerification(Resource):
-    @api.doc('get verification questions')
-    def get(self, candidate_public_id, public_id):
-        """ Get Account Verification Questions """
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            account, error_response = _handle_get_credit_report(candidate)
-            if not account:
-                return error_response
-
-            questions = get_id_verification_question(account.customer_token, account.tracking_token)
-            account.status = CreditReportSignupStatus.ACCOUNT_VALIDATING
-            update_credit_report_account(account)
-
-            return questions, 200
-
-        except LockedException as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 409
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-    @api.doc('submit answers to verification questions')
-    @api.expect(_credit_account_verification_answers, validate=False)
-    def put(self, candidate_public_id, public_id):
-        """ Submit Account Verification Answers """
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            account, error_response = _handle_get_credit_report(candidate)
-            if not account:
-                return error_response
-
-            data = request.json
-            answer_id_verification_questions(account.customer_token, data, account.tracking_token)
-            account.status = CreditReportSignupStatus.ACCOUNT_VALIDATED
-            update_credit_report_account(account)
-
-            response_object = {
-                'success': True,
-                'message': 'Successfully submitted verification answers'
-            }
-            return response_object, 200
-
-        except LockedException as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 409
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-# TODO: consider removing the `credit_account_public_id` from URI since it is only 1-to-1 relationship in data model
-@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/complete')
-@api.param('candidate_public_id', 'The Candidate Identifier')
-@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
-class CompleteCreditReportAccount(Resource):
-    @api.doc('complete credit report account signup')
-    def put(self, candidate_public_id, credit_account_public_id):
-        """ Complete Credit Report Account Sign Up"""
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            account, error_response = _handle_get_credit_report(candidate)
-            if not account:
-                return error_response
-
-            complete_credit_account_signup(account.customer_token, account.tracking_token)
-            account.status = CreditReportSignupStatus.FULL_MEMBER
-            update_credit_report_account(account)
-
-            response_object = {
-                'success': True,
-                'message': 'Successfully completed credit account signup'
-            }
-            return response_object, 200
-
-        except LockedException as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 409
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-
-@api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/security-questions')
-@api.param('candidate_public_id', 'The Candidate Identifier')
-@api.param('credit_account_public_id', 'The Credit Report Account Identifier')
-class CreditReportAccountSecurityQuestions(Resource):
-    @api.doc('get credit report account security questions')
-    def get(self, candidate_public_id, credit_account_public_id):
-        """ Get Available Security Questions"""
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            account, error_response = _handle_get_credit_report(candidate)
-            if not account:
-                return error_response
-
-            questions = get_security_questions(account.tracking_token)
-            return questions, 200
-
-        except LockedException as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 409
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-    @api.doc('submit answer to security question')
-    @api.expect(_update_credit_report_account, validate=True)
-    def put(self, candidate_public_id, credit_account_public_id):
-        """ Submit Answer to Security Question """
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            account, error_response = _handle_get_credit_report(candidate)
-            if not account:
-                return error_response
-
-            data = request.json
-            update_customer(account.customer_token, data, account.tracking_token)
-            account.status = CreditReportSignupStatus.FULL_MEMBER_LOGIN
-            update_credit_report_account(account)
-
-            response_object = {
-                'success': True,
-                'message': 'Successfully submitted security question answer'
-            }
-            return response_object, 200
-
-        except LockedException as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 409
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
+        return response_object, 200
 
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/fraud-insurance/register')
 @api.param('candidate_public_id', 'The Candidate Identifier')
@@ -631,38 +692,50 @@ class CreditReportAccountSecurityQuestions(Resource):
 class CandidateFraudInsurance(Resource):
     @api.doc('register candidate for fraud insurance')
     def post(self, candidate_public_id, credit_account_public_id):
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
+        candidate, error_response = _handle_get_candidate(candidate_public_id)
+        if not candidate:
+            api.abort(404, **error_response)
 
-            credit_report_account, error_response = _handle_get_credit_report(candidate)
-            if not credit_report_account:
-                api.abort(404, **error_response)
+        credit_report_account, error_response = _handle_get_credit_report(candidate)
+        if not credit_report_account:
+            api.abort(404, **error_response)
 
-            if credit_report_account.registered_fraud_insurance:
-                response_object = {
-                    'success': False,
-                    'message': 'Credit account already registered for fraud insurance'
-                }
-                return response_object, 409
-
-            password = current_app.cipher.decrypt(credit_report_account.password).decode()
-            result = activate_smart_credit_insurance(credit_report_account.email, password)
-            credit_report_account.registered_fraud_insurance = True
-            update_credit_report_account(credit_report_account)
+        if credit_report_account.registered_fraud_insurance:
             response_object = {
-                'success': True,
-                'message': result
+                'success': False,
+                'message': 'Credit account already registered for fraud insurance'
             }
-            return response_object, 200
+            return response_object, 409
+
+        try:
+            result = register_fraud_insurance(credit_report_account)
+
+        except ServiceProviderLockedError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot register for fraud insurance due to a service provider Locked issue, {str(e)}'
+            }
+            return response_object, 409
+
+        except ServiceProviderError as e:
+            response_object = {
+                'success': False,
+                'message': f'Cannot register for fraud insurance due to a service provider issue, {str(e)}'
+            }
+            return response_object, 502
+
         except Exception as e:
             response_object = {
                 'success': False,
                 'message': str(e)
             }
             return response_object, 500
-
+        
+        response_object = {
+            'success': True,
+            'message': result
+        }
+        return response_object, 200
 
 @api.route('/<candidate_id>/employments')
 @api.param('candidate_id', 'Candidate public identifier')
@@ -742,15 +815,10 @@ class CandidateToLead(Resource):
         if not credit_report_account:
             api.abort(404, "No credit report account associated with candidate. Create SC account first.")
 
+        app.logger.api("Received request to STU and convert a Candidate to Lead")
         convert_candidate_to_lead(candidate)
 
-        if not credit_report_account.registered_fraud_insurance:
-            password = current_app.cipher.decrypt(credit_report_account.password.encode()).decode()
-            activate_smart_credit_insurance(credit_report_account.email, password)
-
-            credit_report_account.registered_fraud_insurance = True
-            update_credit_report_account(credit_report_account)
-
-        scrape_credit_report(credit_report_account, 'Pulling credit report debts for Lead in STU')
+        app.logger.api("Requesting Credit Report pull for converted Lead")
+        pull_credit_report(credit_report_account)
 
         return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200
