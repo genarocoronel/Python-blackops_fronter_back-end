@@ -5,6 +5,7 @@ from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAll
     ServiceProviderError, ServiceProviderLockedError)
 from app.main.core.types import CustomerType
 from ..util.dto import ClientDto, AppointmentDto
+from ..util.decorator import token_required
 from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
 from app.main.model.client import ClientType
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
@@ -15,6 +16,7 @@ from app.main.service.client_service import (get_all_clients, save_new_client, g
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
     get_verification_questions, answer_verification_questions, get_security_questions, complete_signup, pull_credit_report)
+from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from flask import current_app as app
 
 api = ClientDto.api
@@ -588,3 +590,65 @@ class CandidateToLead(Resource):
         pull_credit_report(credit_report_account)
 
         return {"success": True, "message": "Successfully created job to pull Credit Report and import Debts. Check for new Debts in a few minutes."}, 200
+
+
+@api.route('/<public_id>/service-schedule')
+@api.param('public_id', 'Client public ID')
+@api.response(404, 'Client not found')
+class ClientSvcSchedule(Resource):
+    @api.doc('Gets service schedule for a Client')
+    @token_required
+    def get(self, public_id):
+        """ Gets the Service Schedule for a Client """
+        client, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        app.logger.info("Received request to get Service Schedule for Client")
+        svc_sched = get_svc_schedule(client)
+
+        return svc_sched, 200
+
+    @api.doc('Creates the Service Schedule for a Client')
+    @token_required
+    def post(self, public_id):
+        """ Creates the Service Schedule for a Client """
+        client, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        app.logger.info("Received request to create the Service Schedule for Client")
+        svc_sched = create_svc_schedule(client)
+
+        response_object = {
+            'success': True,
+            'message': f'Successfully created initial Service Schedule for this Client'
+        }        
+        return response_object, 201
+
+    @api.doc('Updates the Service Schedule for a Client')
+    @token_required
+    def put(self, public_id):
+        """ Updates the Service Schedule for a Client """
+        client, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        schedule_items = request.json
+
+        try:
+            app.logger.info("Received request to updated the Service Schedule for this Client")
+            update_svc_schedule(client, schedule_items)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error updating Service Schedule for client, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error updating Service Schedule for client, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed updating Service Schedule for Client with ID {client_public_id}', success=False)    
+
+        response_object = {
+            'success': True,
+            'message': f'Successfully updated the Service Schedule for this Client'
+        }        
+        return response_object, 200

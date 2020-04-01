@@ -255,7 +255,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
 def get_client(public_id, client_type=ClientType.client):
     client = Client.query.filter_by(public_id=public_id).first()
     if client is not None:
-        app.logger.info(f"Cound a Client of type {client_type} with ID {public_id}")
+        app.logger.info(f"Found a Client of type {client_type} with ID {public_id}")
         if client.type == ClientType.coclient:
             return client 
         else:
@@ -685,4 +685,3 @@ def update_notification_pref(client, data):
     except Exception as err:
         raise ValueError("Update preferences error: Invalid parameter")
                                    
-
