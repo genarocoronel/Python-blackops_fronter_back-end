@@ -34,6 +34,7 @@ def get_svc_schedule(client):
 
 def update_svc_schedule(client, schedule_data):
     """ Updates the Service Schedule for a given Client """
+    updated_items = []
     for sched_data_item in schedule_data:
         is_updated = False
 
@@ -63,6 +64,9 @@ def update_svc_schedule(client, schedule_data):
             sched_item_record.updated_on = datetime.datetime.utcnow()
             sched_item_record.updated_by_username = g.current_user['username']
             save_changes(sched_item_record)
+            updated_items.append(sched_item_record)
+
+    return _synth_schedule(updated_items)
         
 
 def _generate_svc_schedule(client, term):
