@@ -638,7 +638,7 @@ class ClientSvcSchedule(Resource):
 
         try:
             app.logger.info("Received request to updated the Service Schedule for this Client")
-            update_svc_schedule(client, schedule_items)
+            result = update_svc_schedule(client, schedule_items)
 
         except BadRequestError as e:
             api.abort(400, message='Error updating Service Schedule for client, {}'.format(str(e)), success=False)
@@ -647,8 +647,4 @@ class ClientSvcSchedule(Resource):
         except Exception as e:
             api.abort(500, message=f'Failed updating Service Schedule for Client with ID {client_public_id}', success=False)    
 
-        response_object = {
-            'success': True,
-            'message': f'Successfully updated the Service Schedule for this Client'
-        }        
-        return response_object, 200
+        return result, 200
