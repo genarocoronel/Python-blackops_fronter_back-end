@@ -3,10 +3,12 @@ from app.main import db
 from sqlalchemy import func
 from sqlalchemy.orm import backref
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority 
+from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from flask import current_app as app
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import desc
 
 
 class DebtEftStatus(enum.Enum):
@@ -31,8 +33,10 @@ class ContractAction(enum.Enum):
     REMOVE_DEBTS = 'remove debts'
     MODIFY_DEBTS = 'modify debts'
     TERM_CHANGE = 'term change'
-    RECIEVE_SUMMON = 'recieve summon'
+    RECIEVE_SUMMON = 'receive summon'
     ADD_COCLIENT = 'add coclient'
+    REMOVE_COCLIENT = 'remove coclient'
+    NEW_EFT_AUTH = 'new eft auth'
 
 class DebtPaymentContract(db.Model):
     """ DB model for storing debt payment contract details """
@@ -65,6 +69,10 @@ class DebtPaymentContract(db.Model):
     # relationship 
     client = db.relationship('Client', backref='payment_contracts')
     agent = db.relationship('User', backref='payment_contracts')
+
+    # previous contract
+    prev_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_contract_prev_id_fkey'))
+    next_contract = db.relationship('DebtPaymentContract', uselist=False, remote_side=[prev_id]) 
 
     # STATE & EVENT HANDLERS
     def ON_SIGNED(self):
@@ -108,6 +116,14 @@ class DebtPaymentContract(db.Model):
                 func = 'send_removal_debts_for_signature'
             elif action == ContractAction.MODIFY_DEBTS:
                 func = 'send_modify_debts_for_signature'
+            elif action == ContractAction.RECIEVE_SUMMON:
+                func = 'send_receive_summon_for_signature'
+            elif action == ContractAction.NEW_EFT_AUTH:
+                func = 'send_eft_authorization_for_signature'
+            elif action == ContractAction.ADD_COCLIENT:
+                func = 'send_add_coclient_for_signature'
+            elif action == ContractAction.REMOVE_COCLIENT:
+                func = 'send_remove_coclient_for_signature'
             else:
                 raise ValueError("Action not valid")
             
@@ -120,7 +136,7 @@ class DebtPaymentContract(db.Model):
                             owner_id=self.agent_id,
                             priority=TaskPriority.MEDIUM,
                             title='Call Client',
-                            description= 'Call Client: {} Amendment approved'.format(action),
+                            description= 'Call Client: {} Amendment approved'.format(action.name),
                             due_date=due, 
                             client_id=self.client_id,
                             object_type='DebtPaymentContract',
@@ -153,13 +169,22 @@ class DebtPaymentContract(db.Model):
         if self.status == ContractStatus.SIGNED: 
             # check for the document review task
             if 'document for review' in task.title.lower():
-                credit_account = self.client.credit_report_account
                 client = self.client
-                for record in credit_account.records:
+                client_keys = [client.id, ]
+                if client.co_client:
+                    client_keys.append(client.co_client.id)
+
+                debts = CreditReportData.query.outerjoin(CreditReportAccount)\
+                                              .filter(CreditReportAccount.client_id.in_(client_keys)).all()
+                for record in debts:
                     active_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=self.id,
                                                                                 debt_id=record.id).first()
+                    ## update push status
                     if active_debt:
                         record.push = True
+                        ## update balance 
+                        if active_debt.balance_original != record.balance_original:
+                            record.balance_original = active_debt.balance_original
                     else:
                         record.push = False
                 db.session.commit()
@@ -173,6 +198,7 @@ class DebtPaymentContract(db.Model):
                     self.total_paid = active_contract.total_paid
                     self.num_inst_completed = active_contract.num_inst_completed 
                     self.status = ContractStatus.ACTIVE
+                    self.prev_id = active_contract.id
                     db.session.commit()
                 # new contract
                 else:
@@ -220,6 +246,20 @@ class DebtPaymentSchedule(db.Model):
     # single EPPS transaction allowed, so One-to-One
     transactions = db.relationship("DebtPaymentTransaction", backref="debt_payment_schedule") 
 
+    def ON_Processed(self):
+        if self.status == DebtEftStatus.Scheduled:
+            self.status = DebtEftStatus.Processed
+            db.session.commit()
+
+    def ON_Settled(self):
+        if self.status == DebtEftStatus.Scheduled or self.status == DebtEftStatus.Processed:
+            contract = self.contract
+            if contract:
+                contract.total_paid = contract.total_paid + contract.monthly_fee
+                contract.num_inst_completed = contract.num_inst_completed + 1
+            self.status = DebtEftStatus.Settled
+            db.session.commit()
+
     @classmethod
     def create_schedule(cls, contract):
         term = contract.term
@@ -248,7 +288,7 @@ class DebtPaymentSchedule(db.Model):
 
         if num_term_paid == 0:
             dps = cls.query.filter_by(contract_id=old_contract.id, 
-                                      due_date=old_contract.payment_start_date)
+                                      due_date=old_contract.payment_start_date).first()
             dps.contract_id = new_contract.id
             dps.amount = new_contract.monthly_fee
             db.session.commit()
@@ -259,7 +299,7 @@ class DebtPaymentSchedule(db.Model):
 
         for i in range(0, (term - num_term_paid)):
             dps = cls.query.filter_by(contract_id=old_contract.id, 
-                                      due_date=start).first()
+                                      due_date=start).order_by(desc(cls.id)).first()
             start = start + relativedelta(months=1)
             if dps is None:
                 continue

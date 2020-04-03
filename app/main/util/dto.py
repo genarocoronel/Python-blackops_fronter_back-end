@@ -238,7 +238,8 @@ _credit_report_debt_model = {
     'payment_amount': fields.Integer(),
     'credit_limit': fields.Integer(),
     'graduation': fields.DateTime(),
-    'last_update': fields.DateTime()
+    'last_update': fields.DateTime(),
+    'client_id': fields.Integer(attribute='credit_report_account.client_id'),
 }
 
 
@@ -454,6 +455,7 @@ class LeadDto:
         'lead_source': fields.String(description='lead source'),
         'application_date': DateFormatField(),
         'bank_account': fields.Nested(bank_account),
+        'co_client_id': fields.Integer(attribute='co_client.id'),
         # use 'user_account' - if nested properties of user model is needed
         # for simplicity using only 'full_name' attribute
         'account_manager': fields.String(attribute='account_manager.full_name'),

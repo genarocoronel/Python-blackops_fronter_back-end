@@ -12,7 +12,7 @@ from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 from app.main.model.address import Address, AddressType
-from app.main.model.credit_report_account import CreditReportAccount
+from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
@@ -695,3 +695,17 @@ def update_notification_pref(client, data):
         db.session.commit()
     except Exception as err:
         raise ValueError("Update preferences error: Invalid parameter")
+                                   
+# fetch client & coclient debts
+def fetch_client_combined_debts(client):
+    try:
+        keys = [client.id,]
+        if client.co_client:
+            keys.append(client.co_client.id)
+
+        debts = CreditReportData.query.outerjoin(CreditReportAccount)\
+                                      .filter(CreditReportAccount.client_id.in_(keys)).all()
+        return debts
+
+    except Exception as err:
+        raise ValueError("Fetch Combined debts error")

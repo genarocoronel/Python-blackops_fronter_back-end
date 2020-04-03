@@ -48,7 +48,7 @@ class CreditReportAccount(db.Model):
     fico = db.Column(db.Integer, nullable=True)
 
     # relationship
-    records = db.relationship("CreditReportData", backref="credit_report_accounts") 
+    records = db.relationship("CreditReportData", backref="credit_report_account") 
 
     @property
     def password(self):

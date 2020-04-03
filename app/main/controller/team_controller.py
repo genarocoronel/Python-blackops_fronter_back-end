@@ -39,7 +39,7 @@ class TeamRequestFilter(Resource):
 
 
 @api.route('/<team_name>/requests/<req_id>')
-@api.param('team_name', 'Team nam')
+@api.param('team_name', 'Team name')
 class TeamRequestItem(Resource):
     @api.doc('get team request record by identifier')
     @api.marshal_with(_team_request)

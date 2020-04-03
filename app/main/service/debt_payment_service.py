@@ -47,6 +47,8 @@ def calc_contract_vals(term, total_debt, co_sign=False):
         "min_fee": min_allowed_fee,
         "credit_monitoring_fee": credit_monitoring_fee,
         "monthly_fee": monthly_fee,
+        "total_paid": 0,
+        "num_term_paid": 0,
         "active": False,
     }
 
@@ -76,10 +78,12 @@ def fetch_payment_contract(client):
             "term": term,
             "total_debt" : active_contract.total_debt,
             "enrolled_debt": active_contract.enrolled_debt,
-            "bank_fee": 0,
+            "bank_fee": 10,
             "min_fee": 0,
-            "credit_monitoring_fee": 0,
+            "credit_monitoring_fee": 59,
             "monthly_fee": active_contract.monthly_fee,
+            "total_paid": active_contract.total_paid,
+            "num_term_paid": active_contract.num_inst_completed,
             "active": True,
             "payment_1st_date": pymt_start.strftime('%m-%d-%Y'),
             "payment_2nd_date": pymt_rec_begin_date.strftime('%m-%d-%Y'),
@@ -208,10 +212,11 @@ def payment_contract_action(client):
     contract.status = ContractStatus.APPROVED
     db.session.commit()
     action = contract.current_action
-
     ## fetch the action
     func = ''
     if action == ContractAction.NEW_CONTRACT:
+        
+
         func = 'send_contract_for_signature'
         app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), client.id)
 
@@ -251,7 +256,7 @@ def fetch_amendment_plan(client, plan_id=None):
         raise ValueError('Amendment plan failed: Active contract not found')
     
     credit_monitoring_fee = cpp.monitoring_fee_1signer
-    if client.co_client:
+    if client.co_client and planned_contract.current_action != ContractAction.REMOVE_COCLIENT:
         credit_monitoring_fee = cpp.monitoring_fee_2signer
     bank_fee = cpp.monthly_bank_fee
 
@@ -267,10 +272,10 @@ def fetch_amendment_plan(client, plan_id=None):
     result = {
         'action': planned_contract.current_action.name,
         'new_term': planned_contract.term,
-        'new_total_debt': planned_contract.total_debt,
-        'new_enrolled_debt': n_enrolled_debt,
-        'new_total_fee': n_total_fee,
-        'new_monthly_fee': n_monthly_fee,
+        'new_total_debt': round(planned_contract.total_debt, 2),
+        'new_enrolled_debt': round(n_enrolled_debt, 2),
+        'new_total_fee': round(n_total_fee, 2),
+        'new_monthly_fee': round(n_monthly_fee, 2),
         'current_term': active_contract.term,
         'current_total_debt': active_contract.total_debt,
         'current_enrolled_debt': active_contract.enrolled_debt,
@@ -291,21 +296,17 @@ def update_amendment_plan(client, data):
     term = data.get('term')
     action = data.get('action') 
     enrolled_debts = data.get('debts')
-
-    # add all pushed debt items to this contract
-    credit_report = client.credit_report_account
-    if credit_report is None:
-        raise ValueError("Amendment update failed: Credit report not found")
+    client_ids = [client.id,]
 
     # check if client has co-client associated with it
     co_sign = False
     if client.client_id is not None:
         co_sign = True
+        client_ids.append(client.client_id)
 
     #if active contract exists
     active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
                                                           status=ContractStatus.ACTIVE).first()
-
     if active_contract is None:
         raise ValueError('Active contract not present')
     # Not a term change
@@ -334,29 +335,40 @@ def update_amendment_plan(client, data):
     # add the debts 
     total_debt = planned_contract.total_debt
     if enrolled_debts is not None:
-      total_debt = 0
-      for item in enrolled_debts:
-          debt_line = CreditReportData.query.filter_by(account_id=credit_report.id,
-                                                       public_id=item['public_id']).first()
-          if debt_line is None:
-              raise ValueError('Not avalid debt line')
+        total_debt = 0
+        for item in enrolled_debts:
+            debt_line = CreditReportData.query.filter_by(public_id=item['public_id']).first()
+            if debt_line is None:
+                raise ValueError('Not avalid debt line')
 
-          # check if change in the balance, MODIFY DEBT 
-          balance_original = debt_line.balance_original
-          if debt_line.balance_original != balance_original:
-              balance_original = item['balance_original'] 
-
-          planned_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=planned_contract.id,
-                                                                       debt_id=debt_line.id).first()                                      
-          if planned_debt is None:
-              planned_debt = DebtPaymentContractCreditData(contract_id=planned_contract.id,
-                                                           debt_id=debt_line.id,
-                                                           creditor=debt_line.creditor,                                                     
-                                                           account_number=debt_line.account_number,
-                                                           balance_original=float(balance_original),
-                                                           )
-              db.session.add(planned_debt)
-              total_debt = total_debt + float(balance_original)
+            # check if change in the balance, MODIFY DEBT 
+            balance_original = item['balance_original']
+            planned_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=planned_contract.id,
+                                                                         debt_id=debt_line.id).first()                                      
+            if planned_debt is None:
+                planned_debt = DebtPaymentContractCreditData(contract_id=planned_contract.id,
+                                                             debt_id=debt_line.id,
+                                                             creditor=debt_line.creditor,                                                     
+                                                             account_number=debt_line.account_number,
+                                                             balance_original=float(balance_original),
+                                                             )
+                db.session.add(planned_debt)
+            total_debt = total_debt + float(balance_original)
+    # TERM CHANGE --- copy from the active debts
+    elif action == ContractAction.TERM_CHANGE.name or action == ContractAction.NEW_EFT_AUTH.name:
+        for item in active_contract.enrolled_debt_lines:
+            planned_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=planned_contract.id,
+                                                                         debt_id = item.debt_id).first()
+            if planned_debt is None:
+                planned_debt = DebtPaymentContractCreditData(contract_id=planned_contract.id,
+                                                             debt_id=item.debt_id,
+                                                             creditor=item.creditor,
+                                                             account_number=item.account_number,
+                                                             balance_original=float(item.balance_original),
+                                                             )
+                db.session.add(planned_debt)
+                total_debt = total_debt + float(item.balance_original)
+          
 
     planned_contract.total_debt = total_debt
     db.session.commit()
@@ -369,14 +381,13 @@ def update_amendment_plan(client, data):
     return result
 
 
-
 @enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def payment_contract_req4approve(user, client, data):
     action_title = data.get('action')
+    note = data.get('note')
     action = ContractAction[action_title]
     requestor = user
     #team_manager = requestor.team_manager
-     
     # update the payment contract
     update_amendment_plan(client, data)
 
@@ -423,65 +434,13 @@ def payment_contract_req4approve(user, client, data):
         'message': 'Approval request submitted'
     }
 
-"""
-Generate Debt Payment schedule for the client
-Called after Document signature/s are completed.
-"""
-def create_debt_payment_schedule(contract):
-    try:
-        term = contract.term
-        pymt_start = contract.payment_start_date
-        monthly_fee = contract.monthly_fee
-        dps = DebtPaymentSchedule(contract_id=contract.id,
-                                  due_date=pymt_start,
-                                  amount=monthly_fee,
-                                  bank_fee=10)
-        db.session.add(dps)
-        db.session.commit()
-        start = contract.payment_recurring_begin_date
-        for i in range(1, term):
-            dps = DebtPaymentSchedule(contract_id=contract.id,
-                                      due_date=start,
-                                      amount=monthly_fee,
-                                      bank_fee=0)
-            db.session.add(dps)
-            db.session.commit()
-            # add the schedule record
-            start = start + relativedelta(months=1)
-    except Exception as err:
-        logging.warning("Create Debt Payment Schedule issue {}".format(str(err)))
-
-def update_debt_payment_schedule(new_contract, old_contract):
-    term = new_contract.term
-    num_term_paid = old_contract.num_inst_completed
-   
-    if num_term_paid == 0:
-        dps = DebtPaymentSchedule.query.filter_by(contract_id=old_contract.id, due_date=old_contract.payment_start_date)
-        dps.contract_id = new_contract.id
-        dps.amount = new_contract.monthly_fee
-        db.session.commit()
-        num_term_paid = 1
-
-    # skip paid ones
-    start = contract.payment_recurring_begin_date
-    for i in range(1, num_term_paid): 
-        start = start + relativedelta(months=1)
-    
-    for i in range(num_term_paid, term):
-        dps = DebtPaymentSchedule.query.filter_by(contract_id=old_contract.id, due_date=start)
-        dps.contract_id = new_contract.id
-        dps.amount = new_contract.monthly_fee
-        db.session.commit() 
-        start = start + relativedelta(months=1)
-
-
 def update_debt_payment_account(client, contract, active_contract):
     try:
         # check payment schedule is present or not
         pymt_schedule = contract.payment_schedule
         if pymt_schedule is None or len(pymt_schedule) == 0:
             # create payment schedule
-            create_debt_payment_schedule(contract)
+            ## create_debt_payment_schedule(contract)
             # send to worker queue
             func = "register_customer"
             # app.queue.enqueue('app.main.tasks.debt_payment.{}'.format(func), client_id)
@@ -489,7 +448,7 @@ def update_debt_payment_account(client, contract, active_contract):
             if active_contract is None:
                 raise ValueError("Active contract not found")
 
-            update_debt_payment_schedule(contract, active_contract)
+            ## update_debt_payment_schedule(contract, active_contract)
 
     except Exception as err:
         logging.warning("Create Payment account {}".format(str(err)))
@@ -535,12 +494,14 @@ def fetch_payment_schedule(client):
         raise ValueError('Active Payment Contract not fond')
 
     initial_contract = DebtPaymentContract.query.filter_by(status=ContractStatus.REPLACED)\
-                                                .order_by(desc(DebtPaymentContract.inserted_on)).first()
+                                                .order_by(asc(DebtPaymentContract.id)).first()
     if initial_contract is None:
         initial_contract = active_contract
 
     total_fee = initial_contract.monthly_fee * initial_contract.term
     tmp = {
+        'id': 0,
+        'editable': False,
         'description': 'Invoice Amount',
         'type': 'Initial Balance',
         'status': '',
@@ -559,7 +520,7 @@ def fetch_payment_schedule(client):
 
     records = DebtPaymentSchedule.query.outerjoin(DebtPaymentContract)\
                                        .filter(DebtPaymentContract.client_id==client.id)\
-                                       .order_by(asc(DebtPaymentSchedule.due_date)).all()
+                                       .order_by(asc(DebtPaymentSchedule.id)).all()
     # error ?
     if len(records) == 0:
         raise ValueError('Payment Schecule not found')
@@ -569,11 +530,18 @@ def fetch_payment_schedule(client):
     current_contract = initial_contract
     for record in records:
         if current_contract != record.contract:
-            # there is a change in contract 
-            # create a change record 
-            item = _get_contract_description(record.contract, current_contract, balance)
-            result.append(item)
-            balance = item['balance']
+            while True:
+                next_contract = current_contract.next_contract
+                item = _get_contract_description(next_contract, current_contract, balance)
+                if item:
+                    result.append(item)
+                    balance = item['balance']
+
+                if next_contract == record.contract:
+                    break
+
+                current_contract = next_contract
+
             current_contract = record.contract 
 
         index = index + 1
@@ -583,6 +551,8 @@ def fetch_payment_schedule(client):
             status = 'Cleared'
 
         item = {
+            'id': record.id,
+            'editable': True,
             'description': 'Payment {}'.format(index),
             'type': 'Payment',
             'status': status,
@@ -609,24 +579,89 @@ def _get_contract_description(new_contract, old_contract, balance):
     new_total_fee = new_contract.term * new_contract.monthly_fee
     
     type = ""
-    status = ""
+    desc = ""
+    status = "Approved"
     minus = ""
+    plus = ""
     if new_contract.current_action == ContractAction.REMOVE_DEBTS:
         reduced = round(balance - new_balance, 2)
-        desc = "Remove Debt"
-        desc = desc + "New Term: \n".format(new_contract.term)
-        desc = desc + "New Invoice Amount: ${}\n".format(new_total_fee)
-        desc = desc + "Reduce Amount: ${}\n".format(reduced)
+        desc = "Remove Debt <br />"
+        desc = desc + "New Term: {} <br />".format(new_contract.term)
+        desc = desc + "New Invoice Amount: ${} <br />".format(new_total_fee)
+        desc = desc + "Removed Amount: ${} <br />".format(reduced)
 
         type = "Remove Debt"
-        status = "Approved"
         minus = reduced
+    elif new_contract.current_action == ContractAction.ADD_DEBTS:
+        reduced = round(new_balance - balance, 2)
+        desc = "Add Debt <br />"
+        desc = desc + "New Term: {} <br />".format(new_contract.term)
+        desc = desc + "New Invoice Amount: ${} <br />".format(new_total_fee)
+        desc = desc + "Added Amount: ${} <br />".format(reduced)
+        type = "Add Debt"
+        plus = reduced
+    elif new_contract.current_action == ContractAction.MODIFY_DEBTS:
+        desc = "Modify Debt <br />"
+        desc = desc + "New Term: {} <br />".format(new_contract.term)
+        desc = desc + "New Invoice Amount: ${} <br />".format(new_total_fee)
+        diff = 0
+        if new_balance > balance:
+            diff = (new_balance - balance)
+            diff = round(diff, 2)
+            desc = desc + "Added Amount: ${} ".format(diff)
+            plus = diff
+        else:
+            diff = (balance - new_balance)
+            diff = round(diff, 2)
+            desc = desc + "Removed Amount: ${} ".format(diff)
+            minus = diff
+        type = "Modify Debt"
+
+    elif new_contract.current_action == ContractAction.TERM_CHANGE:
+        type = "New term"
+        desc = "Term Change <br />"
+        desc = desc + "New Term: {} <br />".format(new_contract.term)
+        desc = desc + "New Invoice Amount: ${} <br />".format(new_total_fee)
+        diff = 0
+        if new_balance > balance:
+            diff = (new_balance - balance)
+            diff = round(diff, 2)
+            desc = desc + "Added Amount: ${}".format(diff)
+            plus = diff
+        else:
+            diff = (balance - new_balance)
+            diff = round(diff, 2)
+            desc = desc + "Removed Amount: ${}".format(diff)
+            minus = diff
+    elif new_contract.current_action == ContractAction.ADD_COCLIENT:
+        type = "Add Co-Client"
+        desc = "Add Co-Client<br />"
+        desc = desc + "New Term: {} <br />".format(new_contract.term)
+        desc = desc + "New Invoice Amount: ${}<br />".format(new_total_fee)
+        diff = (new_balance - balance)
+        diff = round(diff, 2)
+        desc = desc + "Added Amount: ${}".format(diff)
+        plus = diff
+    elif new_contract.current_action == ContractAction.REMOVE_COCLIENT:
+        type = "Remove Co-Client"
+        desc = "Remove Co-Client <br />"
+        desc = desc + "New Term: {}<br />".format(new_contract.term)
+        desc = desc + "New Invoice Amount: ${} <br />".format(new_total_fee)
+        diff = (balance - new_balance)
+        diff = round(diff, 2)
+        desc = desc + "Removed Amount: ${}".format(diff)
+        minus = diff
+    elif new_contract.current_action == ContractAction.NEW_EFT_AUTH: 
+        return None
+
         
     item = {
+        'id': 0,
+        'editable': False,
         'description': desc,
         'type': type,
         'status': status,
-        'plus' : '',
+        'plus' : plus,
         'minus': minus,
         'balance': new_balance,
         'trans_date': '',
@@ -639,3 +674,25 @@ def _get_contract_description(new_contract, old_contract, balance):
     }
 
     return item
+
+def update_payment_schedule(client, schedule_id, data):
+    status = data.get('status')
+    payment_schedule = DebtPaymentSchedule.query.outerjoin(DebtPaymentContract)\
+                                                .filter(and_(DebtPaymentSchedule.id==schedule_id, DebtPaymentContract.client_id==client.id)).first() 
+    if payment_schedule is None:
+        raise ValueError("Schedule not found")
+    
+    contract = payment_schedule.contract
+    if payment_schedule.status != status:
+        state_handler = "ON_{}".format(status)
+        try:
+            func = getattr(payment_schedule, state_handler)
+            func()
+        except Exception as err:
+            # state handler is not defined
+            pass
+
+    return {
+       'success': True,
+    }
+

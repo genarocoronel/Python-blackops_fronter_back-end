@@ -25,6 +25,7 @@ from app.main.seed.checklist import seed_client_main_checklist
 from app.main.seed.rac import seed_rac_roles
 from app.main.seed.users_roles import seed_users_with_roles
 from app.main.tasks import jive_listener
+from app.main.seed.team import seed_team_request_types
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -52,6 +53,7 @@ def seed():
     seed_rsign_records()
     seed_datax_validation_codes()
     seed_client_main_checklist()
+    seed_team_request_types()
 
 
 @manager.command
