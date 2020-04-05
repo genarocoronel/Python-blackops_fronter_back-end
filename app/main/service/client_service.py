@@ -1,11 +1,13 @@
 import uuid
 import datetime
 
+from phonenumbers import PhoneNumber
+
 from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientCheckList, \
-                                  ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
+    ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
@@ -271,6 +273,15 @@ def get_client_by_public_id(id):
 def get_client_by_id(id):
     """ Gets a client by (internal) ID """
     return Client.query.filter_by(id=id).first()
+
+
+def get_client_contact_by_phone(phone_no: PhoneNumber):
+    assert phone_no is not None
+
+    client_cn = ClientContactNumber.query \
+        .join(ContactNumber) \
+        .filter(ContactNumber.phone_number == str(phone_no.national_number)).first()
+    return client_cn
 
 
 def get_client_by_phone(phone_number):

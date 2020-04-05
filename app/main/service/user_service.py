@@ -89,6 +89,18 @@ def get_a_user(public_id):
     return User.query.filter_by(public_id=public_id).first()
 
 
+def get_user_by_mailbox_id(employee_mailbox_id: str):
+    assert employee_mailbox_id is not None
+
+    return User.query.filter(User.pbx_mailbox_id == employee_mailbox_id).first()
+
+
+def get_user_by_caller_id(caller_id: str):
+    assert caller_id is not None
+
+    return User.query.filter(User.pbx_caller_id == caller_id).first()
+
+
 def save_changes(*data):
     for entry in data:
         db.session.add(entry)
