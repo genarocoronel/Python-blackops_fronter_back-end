@@ -81,6 +81,38 @@ services:
     networks:
       - app-network
 
+  comms_listener:
+    depends_on:
+      - dbsvc
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: registry.thedeathstarco.com/api:dev
+    container_name: comms-listener
+    restart: unless-stopped
+    tty: true
+    environment:
+      BOILERPLATE_ENV: dev
+      POSTGRES_SERVICE: dbsvc
+      POSTGRES_DB: dstar
+      POSTGRES_USER: dstaruser
+      POSTGRES_PASSWORD: password123
+      AWS_ACCOUNT_ID: elitedocs
+      # define the home folder; credentials will be read from $HOME/.aws
+      HOME: "/home"
+      # You can change which AWS CLI Profile is used
+      AWS_PROFILE: "default"
+    working_dir: /app
+    command: ['python', 'manage.py', 'comms_listener']
+    volumes:
+      - ./:/app
+      - ./docker/api.env:/app/.env
+      # Mount the shared configuration directory, used by the AWS CLI and AWS SDKs
+      # On Windows, this directory can be found at "%UserProfile%\.aws"
+      - $HOME/.aws/:/home/.aws/
+    networks:
+      - app-network
+
   redis:
     image: redis
     container_name: redis
