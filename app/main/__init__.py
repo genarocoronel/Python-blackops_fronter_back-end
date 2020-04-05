@@ -31,6 +31,9 @@ def create_app(config_name):
    
     app.cipher = Fernet(app.config['SECRET_KEY'])
 
+    app.s3_bucket_voicemail = app.config['S3_BUCKET_VOICEMAIL']
+    app.s3_bucket_fax = app.config['S3_BUCKET_FAX']
+
     app.smart_credit_url = app.config['SMART_CREDIT_URL']
     app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']
     app.smart_credit_publisher_id = app.config['SMART_CREDIT_PUBLISHER_ID']
