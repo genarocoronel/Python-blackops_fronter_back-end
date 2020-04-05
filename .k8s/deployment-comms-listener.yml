@@ -17,12 +17,12 @@ spec:
         workload.user.cattle.io/workloadselector: deployment-default-comms-listener
     spec:
       containers:
-      - name: comms-listener
-        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
-        args:
-        - python
-        - manage.py
-        - comms_listener
+        - name: comms-listener
+          image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
+          args:
+            - python
+            - manage.py
+            - comms_listener
       env:
         - name: DATABASE_URL
             valueFrom:
