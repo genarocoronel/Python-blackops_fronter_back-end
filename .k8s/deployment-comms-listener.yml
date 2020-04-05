@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: comms-listener
+  labels:
+    cattle.io/creator: norman
+    workload.user.cattle.io/workloadselector: deployment-default-comms-listener
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: deployment-default-comms-listener
+  template:
+    metadata:
+      labels:
+        workload.user.cattle.io/workloadselector: deployment-default-comms-listener
+    spec:
+      containers:
+      - name: comms-listener
+        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
+        args:
+        - python
+        - manage.py
+        - comms_listener
+      env:
+        - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: postgresql
+                key: postgresql-connection-string
+                optional: false
+        - name: S3_BUCKET_VOICEMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: comms-listener
+              key: S3_BUCKET_VOICEMAIL
+              optional: false
+        - name: S3_BUCKET_FAX
+          valueFrom:
+            configMapKeyRef:
+              name: comms-listener
+              key: S3_BUCKET_FAX
+              optional: false
+        - name: JIVE_QUEUE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: comms-listener
+              key: QUEUE_URL
+              optional: false
+        - name: AWS_ACCOUNT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: environment-config
+              key: AWS_ACCOUNT_ID
+              optional: false
+        - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: comms-listener
+                key: AWS_ACCESS_KEY_ID
+                optional: false
+        - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: comms-listener
+                key: AWS_SECRET_ACCESS_KEY
+                optional: false

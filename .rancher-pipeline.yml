@@ -17,6 +17,10 @@ stages:
   steps:
   - applyYamlConfig:
       path: ./.k8s/deployment-worker.yml
+- name: Deploy Comms Listener Stage
+  steps:
+  - applyYamlConfig:
+      path: ./.k8s/deployment-comms-listener.yml
 timeout: 60
 branch:
   include:
