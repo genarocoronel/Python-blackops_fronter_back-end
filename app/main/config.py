@@ -49,6 +49,7 @@ class Config:
     DOCUSIGN_INTEGRATION_KEY = os.getenv('DOCUSIGN_INTEGRATION_KEY', 'a40df05f-4138-42c7-bae0-140a80b73baa')
     DOCUSIGN_RSA_PRIVATE_KEY = os.getenv('DOCUSIGN_RSA_PRIVATE_KEY', 'docsign/rsa_private.key')
 
+
 class DevelopmentConfig(Config):
     DEBUG = True
     postgres_db = os.environ.get('POSTGRES_DB')

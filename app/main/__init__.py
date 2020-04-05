@@ -9,7 +9,6 @@ from redis import Redis
 from werkzeug.contrib.fixers import ProxyFix
 
 from .config import config_by_name
-from datetime import datetime
 
 db = SQLAlchemy()
 flask_bcrypt = Bcrypt()
