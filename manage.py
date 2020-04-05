@@ -9,25 +9,11 @@ from flask import current_app
 
 from app import blueprint
 from app.main import create_app, db
+from app.main.model.credit_report_account import CreditReportAccount
 from app.main.seed.admins import create_super_admin
 
+from app.main.model import *
 from app.main.background.worker import run_worker
-from app.main.model.notes import Note
-from app.main.model.rac import RACRole, RACResource, RACPolicy
-from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth
-from app.main.model.campaign import Campaign
-from app.main.model.docsign import DocusignTemplate, DocusignSession
-from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, DebtPaymentTransaction, DebtPaymentContract
-from app.main.model.checklist import CheckList
-from app.main.model.client import Client
-from app.main.model.client_call import ClientCall
-from app.main.model.contact_number import ContactNumberType, ContactNumber
-from app.main.model.address import AddressType, Address
-from app.main.model.income import IncomeType, Income
-from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
-from app.main.model.credit_report_account import CreditReportAccount
-from app.main.model.notification import NotificationPreference
-from app.main.model.usertask import UserTask
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
 from app.main.seed.client_dispositions import seed_client_disposition_values
 from app.main.seed.contact_number_types import seed_contact_number_types
@@ -38,6 +24,7 @@ from app.main.seed.bank_account import seed_datax_validation_codes
 from app.main.seed.checklist import seed_client_main_checklist
 from app.main.seed.rac import seed_rac_roles
 from app.main.seed.users_roles import seed_users_with_roles
+from app.main.tasks import jive_listener
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -77,10 +64,14 @@ def encrypt_string(password):
     print(current_app.cipher.encrypt(password.encode()).decode("utf-8"))
 
 
-# kron
 @manager.command
 def kron():
     subprocess.run(["python", "-m", "app.main.scheduler", "--url", app.config['REDIS_URL']])
+
+
+@manager.command
+def comms_listener():
+    jive_listener.run()
     
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')

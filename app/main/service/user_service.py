@@ -13,7 +13,7 @@ def get_request_user():
     return user
     
 
-def save_new_user(data, desired_role:RACRoles = None):
+def save_new_user(data, desired_role: RACRoles = None):
     """ Saves a new User
 
         Parameters

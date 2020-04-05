@@ -21,9 +21,9 @@ from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
-    total_debt = data.get('estimated_debt')    
-    total_debt = 0 if total_debt is None else int(total_debt) 
-  
+    total_debt = data.get('estimated_debt')
+    total_debt = 0 if total_debt is None else int(total_debt)
+
     new_client = Client(
         public_id=str(uuid.uuid4()),
         email=data.get('email'),
@@ -55,9 +55,9 @@ def save_new_client(data, client_type=ClientType.lead):
     # contact number
     mobile_ph_number = '' if data.get('mobile_phone') is None else data.get('mobile_phone')
     number_type = ContactNumberType.query.filter_by(name='Cell Phone').first()
-    cn = ContactNumber(inserted_on= datetime.datetime.utcnow(),
+    cn = ContactNumber(inserted_on=datetime.datetime.utcnow(),
                        contact_number_type_id=number_type.id,
-                       phone_number= mobile_ph_number)
+                       phone_number=mobile_ph_number)
     save_changes(cn)
     ccn = ClientContactNumber(client_id=new_client.id,
                               contact_number_id=cn.id)
@@ -137,7 +137,7 @@ def get_all_clients(client_type=ClientType.client):
 
 
 def client_filter(limit=25, sort_col='id', order="desc",
-                  pageno=1, search_fields=None, search_val="", 
+                  pageno=1, search_fields=None, search_val="",
                   dt_fields=None, from_date=None, to_date=None,
                   numeric_fields=None, client_type=ClientType.client):
     try:
@@ -147,10 +147,10 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         # base query
-        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition)\
-                                                        .outerjoin(CreditReportAccount)\
-                                                        .outerjoin(Address)\
-                                                        .outerjoin(ClientContactNumber)
+        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition) \
+            .outerjoin(CreditReportAccount) \
+            .outerjoin(Address) \
+            .outerjoin(ClientContactNumber)
         # search fields
         if search_fields is not None:
             _or_filts = []
@@ -162,9 +162,9 @@ def client_filter(limit=25, sort_col='id', order="desc",
                 and_exp = False
                 if len(tokens) > 1:
                     and_exp = True
-                    field  = tokens[0].strip()
+                    field = tokens[0].strip()
                     search = "%{}%".format(tokens[1].strip())
-                    e_val  = tokens[1].strip()
+                    e_val = tokens[1].strip()
                 else:
                     if search_val is not None or search_val.strip() != '':
                         search = "%{}%".format(search_val)
@@ -173,7 +173,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
                         continue
 
                 # enum fields in string
-                if 'employment_status' in field: 
+                if 'employment_status' in field:
                     rep = EmploymentStatus.frm_text(e_val)
                     if rep is not None:
                         filt = (Client.employment_status == rep)
@@ -212,7 +212,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
                     query = query.filter(column <= to_date)
                 else:
                     raise ValueError("Not a valid datetime filter query")
-   
+
         # Numeric fields
         if numeric_fields is not None:
             for field in numeric_fields:
@@ -221,8 +221,8 @@ def client_filter(limit=25, sort_col='id', order="desc",
                     continue
                 # format  field:op:val
                 field = tokens[0].strip()
-                op    = tokens[1].strip()
-                val   = float(tokens[2].strip())
+                op = tokens[1].strip()
+                val = float(tokens[2].strip())
                 column = getattr(Client, field, None)
 
                 if column is None:
@@ -240,15 +240,14 @@ def client_filter(limit=25, sort_col='id', order="desc",
                     query = query.filter(column == val)
                 else:
                     raise ValueError("Not a valid numeric operation")
- 
 
         total = query.count()
         query = query.order_by(sort).paginate(pageno, limit, False)
         records = query.items
 
         return {'data': records, "page_number": pageno, "total_records": total, "limit": limit}
-                
-                 
+
+
     except Exception as err:
         app.logger.warning('Client filter issue, {}'.format(str(err)))
         raise ValueError("Invalid Client filter query")
@@ -258,7 +257,7 @@ def get_client(public_id, client_type=ClientType.client):
     client = Client.query.filter_by(public_id=public_id).first()
     if client is not None:
         if client.type == ClientType.coclient:
-            return client 
+            return client
         else:
             return client if client.type == client_type else None
 
@@ -303,8 +302,8 @@ def update_client(client, data, client_type=ClientType.client):
                         setattr(client, 'disposition_id', disposition.id)
                     else:
                         response_object = {
-                                'success': False,
-                                'message': 'Invalid Disposition to update manually',
+                            'success': False,
+                            'message': 'Invalid Disposition to update manually',
                         }
                         return response_object, 400
                 else:
@@ -379,9 +378,9 @@ def update_client_employments(client, employments):
         employer_name = "" if data.get('employer_name') is None else data.get('employer_name')
         gross_salary = 0 if data.get('gross_salary') is None else data.get('gross_salary')
 
-        client_emplyoment = ClientEmployment.query.join(Client)\
-                                                  .join(Employment)\
-                                                  .filter(and_(Client.id==client.id, Employment.current==data.get('current'))).first()
+        client_emplyoment = ClientEmployment.query.join(Client) \
+            .join(Employment) \
+            .filter(and_(Client.id == client.id, Employment.current == data.get('current'))).first()
         if client_emplyoment is None:
             client_employment = ClientEmployment()
             client_employment.employment = Employment(
@@ -412,7 +411,6 @@ def update_client_employments(client, employments):
 
 
 def update_client_addresses(client, addresses):
-
     for address in addresses:
         addr1 = '' if address['address1'] is None else address['address1']
         addr2 = address['address2'] if 'address2' in address else None
@@ -420,15 +418,15 @@ def update_client_addresses(client, addresses):
         city = '' if address['city'] is None else address['city']
         state = '' if address['state'] is None else address['state']
 
-        from_date = datetime.datetime.utcnow() 
+        from_date = datetime.datetime.utcnow()
         to_date = datetime.datetime.utcnow()
         if address['from_date'] != '':
             from_date = datetime.datetime.strptime(address['from_date'], "%Y-%m-%d")
         if address['to_date'] != '':
-            to_date = datetime.datetime.strptime(address['to_date'], "%Y-%m-%d") 
+            to_date = datetime.datetime.strptime(address['to_date'], "%Y-%m-%d")
         # check already exists,if exists update
         # else create new one
-        client_address = Address.query.filter_by(client_id=client.id, 
+        client_address = Address.query.filter_by(client_id=client.id,
                                                  type=address['type']).first()
         if client_address is None:
             client_address = Address(client_id=client.id,
@@ -438,7 +436,7 @@ def update_client_addresses(client, addresses):
                                      city=city,
                                      state=state,
                                      from_date=from_date,
-                                     to_date=to_date, 
+                                     to_date=to_date,
                                      type=address['type'])
             save_changes(client_address)
         else:
@@ -449,7 +447,7 @@ def update_client_addresses(client, addresses):
             client_address.state = state
             client_address.from_date = from_date
             client_address.to_date = to_date
-            save_changes() 
+            save_changes()
 
     return {'message': 'Successfully updated client addresses'}, None
 
@@ -479,21 +477,20 @@ def get_client_income_sources(client):
 
 
 def update_client_income_sources(client, income_sources):
-
     for data in income_sources:
         income_type_id = data.get('income_type_id')
         income_val = data.get('value')
 
-        client_income = ClientIncome.query.join(Client)\
-                                          .join(Income)\
-                                          .filter(and_(Client.id==client.id, Income.income_type_id==income_type_id)).first()
+        client_income = ClientIncome.query.join(Client) \
+            .join(Income) \
+            .filter(and_(Client.id == client.id, Income.income_type_id == income_type_id)).first()
         if client_income is None:
             income = Income(inserted_on=datetime.datetime.utcnow(),
                             income_type_id=income_type_id,
                             value=income_val,
-                            frequency=Frequency[data.get('frequency')]) 
+                            frequency=Frequency[data.get('frequency')])
             save_changes(income)
-            client_income = ClientIncome(client_id=client.id, income_id=income.id) 
+            client_income = ClientIncome(client_id=client.id, income_id=income.id)
             save_changes(client_income)
         else:
             client_income.income_source.value = income_val
@@ -523,14 +520,13 @@ def get_client_monthly_expenses(client):
 
 
 def update_client_monthly_expenses(client, expenses):
-
     for data in expenses:
         expense_type_id = data.get('expense_type_id')
         expense_val = data.get('value')
 
-        cme = ClientMonthlyExpense.query.join(Client)\
-                                        .join(MonthlyExpense)\
-                                        .filter(and_(Client.id==client.id, MonthlyExpense.expense_type_id==expense_type_id)).first()
+        cme = ClientMonthlyExpense.query.join(Client) \
+            .join(MonthlyExpense) \
+            .filter(and_(Client.id == client.id, MonthlyExpense.expense_type_id == expense_type_id)).first()
         if cme is None:
             monthly_expense = MonthlyExpense(inserted_on=datetime.datetime.utcnow(),
                                              expense_type_id=expense_type_id,
@@ -539,7 +535,7 @@ def update_client_monthly_expenses(client, expenses):
             cme = ClientMonthlyExpense(client_id=client.id, expense_id=monthly_expense.id)
             save_changes(cme)
         else:
-            cme.monthly_expense.value = expense_val 
+            cme.monthly_expense.value = expense_val
             db.session.commit()
 
     return {'message': 'Successfully updated monthly expenses'}, None
@@ -571,33 +567,33 @@ def update_client_contact_numbers(client, contact_numbers):
         phone_type_id = data.get('phone_type_id')
         phone_type = data.get('phone_type')
         phone_number = data.get('phone_number')
-        preferred=data.get('preferred')
+        preferred = data.get('preferred')
 
         # check already exists,if exists update
         # else create new one
-        ccn = ClientContactNumber.query.join(Client)\
-                                 .join(ContactNumber)\
-                                 .filter(and_(Client.id==client.id, ContactNumber.contact_number_type_id==phone_type_id)).first()
+        ccn = ClientContactNumber.query.join(Client) \
+            .join(ContactNumber) \
+            .filter(and_(Client.id == client.id, ContactNumber.contact_number_type_id == phone_type_id)).first()
         if ccn is None:
             new_cn = ContactNumber(inserted_on=datetime.datetime.utcnow(),
                                    contact_number_type_id=phone_type_id,
                                    phone_number=phone_number,
                                    preferred=preferred)
             save_changes(new_cn)
-            new_ccn = ClientContactNumber(client_id=client.id, contact_number_id=new_cn.id)  
+            new_ccn = ClientContactNumber(client_id=client.id, contact_number_id=new_cn.id)
             save_changes(new_ccn)
         else:
             cn = ccn.contact_number
             cn.phone_number = phone_number
             cn.preferred = preferred
             db.session.commit()
-            
+
     return {'message': 'Successfully updated contact numbers'}, None
 
 
 def get_co_client(client):
-    # fetch the co-client 
-    co_client = client.co_client 
+    # fetch the co-client
+    co_client = client.co_client
     if co_client is not None:
         return co_client
     else:
@@ -606,14 +602,12 @@ def get_co_client(client):
 
 
 def update_co_client(client, data):
-
-
     co_client = client.co_client
     if co_client is None:
         # required fields
         first_name = data.get('first_name')
-        last_name  = data.get('last_name')
-        email  = data.get('email')
+        last_name = data.get('last_name')
+        email = data.get('email')
         # optional fields
         mi = data.get('middle_initial').strip()
         dob = data.get('dob')
@@ -637,7 +631,7 @@ def update_co_client(client, data):
         db.session.commit()
 
     else:
-        #update
+        # update
         for attr in data:
             if hasattr(co_client, attr):
                 setattr(co_client, attr, data.get(attr))
@@ -655,12 +649,12 @@ def get_client_checklist(client):
     try:
         client_items = [ccl.checklist_id for ccl in ClientCheckList.query.filter_by(client_id=client.id).all()]
         for item in items:
-           cl = {
-               'id': item.id,
-               'title': item.title,
-               'checked': True if item.id in client_items else False,
-           }
-           result.append(cl)
+            cl = {
+                'id': item.id,
+                'title': item.title,
+                'checked': True if item.id in client_items else False,
+            }
+            result.append(cl)
     except Exception:
         raise ValueError("Error in fetching client checklist")
 
@@ -675,15 +669,15 @@ def update_client_checklist(client, data):
         raise ValueError("Checklist item is not valid")
 
     if item['checked']:
-       ccl = ClientCheckList(client_id=client.id,
-                             checklist_id=item['id'])
-       save_changes(ccl)
+        ccl = ClientCheckList(client_id=client.id,
+                              checklist_id=item['id'])
+        save_changes(ccl)
     else:
-       try:
-           ClientCheckList.query.filter_by(client_id=client.id, checklist_id=item['id']).delete()
-           db.session.commit()
-       except Exception:
-           raise ValueError("Not a valid checklist item for the client")
+        try:
+            ClientCheckList.query.filter_by(client_id=client.id, checklist_id=item['id']).delete()
+            db.session.commit()
+        except Exception:
+            raise ValueError("Not a valid checklist item for the client")
 
 
 def update_notification_pref(client, data):
@@ -700,4 +694,3 @@ def update_notification_pref(client, data):
         db.session.commit()
     except Exception as err:
         raise ValueError("Update preferences error: Invalid parameter")
-

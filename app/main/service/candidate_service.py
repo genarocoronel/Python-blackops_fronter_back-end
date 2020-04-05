@@ -589,12 +589,12 @@ def convert_candidate_to_lead(candidate):
     new_client = create_client_from_candidate(candidate)
     if not new_client:
         raise Exception(f'Error converting Candidate with ID {candidate.public_id} to a Client')
-    
+
     submitted_dispo = CandidateDisposition.query.filter_by(name='Opener_ActiveSubmittedApplicationCreatedDate').first()
     if not submitted_dispo:
         raise Exception('Error finding Candidate disposition record for "Submitted"')
 
     candidate.disposition_id = submitted_dispo.id
     save_changes(candidate)
-    
+
     return new_client
