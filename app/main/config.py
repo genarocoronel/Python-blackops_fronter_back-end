@@ -16,6 +16,8 @@ class Config:
     S3_BUCKET_VOICEMAIL = os.environ.get('S3_BUCKET_VOICEMAIL', 'dev-voicemails')
     S3_BUCKET_FAX = os.environ.get('S3_BUCKET_FAX', 'dev-faxes')
 
+    JIVE_QUEUE_URL = os.environ.get('JIVE_QUEUE_URL', 'https://sqs.us-west-2.amazonaws.com/450101876349/jive')
+
     SMART_CREDIT_URL = os.environ.get('SMART_CREDIT_URL', 'https://stage-sc.consumerdirect.com')
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')
     SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')

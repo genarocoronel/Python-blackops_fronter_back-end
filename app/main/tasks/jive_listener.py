@@ -396,8 +396,7 @@ class JiveListener(SqsListener):
 
 def run():
     print("Initializing listener")
-    listener = JiveListener('jive-listener', region_name='us-west-2', interval=10,
-                            queue_url='https://sqs.us-west-2.amazonaws.com/450101876349/jive')
+    listener = JiveListener('jive-listener', region_name='us-west-2', interval=10, queue_url=current_app.jive_queue_url)
     listener.listen()
 
 

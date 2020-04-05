@@ -33,6 +33,8 @@ def create_app(config_name):
     app.s3_bucket_voicemail = app.config['S3_BUCKET_VOICEMAIL']
     app.s3_bucket_fax = app.config['S3_BUCKET_FAX']
 
+    app.jive_queue_url = app.config['JIVE_QUEUE_URL']
+
     app.smart_credit_url = app.config['SMART_CREDIT_URL']
     app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']
     app.smart_credit_publisher_id = app.config['SMART_CREDIT_PUBLISHER_ID']
