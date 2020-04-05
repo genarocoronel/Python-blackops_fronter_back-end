@@ -182,3 +182,23 @@ class CandidateEmployment(db.Model):
     # relationships
     candidate = db.relationship('Candidate', backref='candidate_employment_assoc')
     employment = db.relationship('Employment', backref='employment_candidate_assoc')
+
+
+class CandidateVoiceCommunication(db.Model):
+    __tablename__ = "candidate_voice_communications"
+
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
+    voice_communication_id = db.Column(db.Integer, db.ForeignKey('voice_communications.id'), primary_key=True)
+
+    candidate = db.relationship('Candidate', backref='voice_communication_candidate_assoc')
+    voice_communication = db.relationship('VoiceCommunication', backref='candidate_voice_communication_assoc')
+
+
+class CandidateFaxCommunication(db.Model):
+    __tablename__ = "candidate_fax_communications"
+
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
+    fax_communication_id = db.Column(db.Integer, db.ForeignKey('fax_communications.id'), primary_key=True)
+
+    candidate = db.relationship('Candidate', backref='fax_communication_candidate_assoc')
+    fax_communication = db.relationship('FaxCommunication', backref='candidate_fax_communication_assoc')
