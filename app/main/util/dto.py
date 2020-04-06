@@ -511,6 +511,7 @@ class LeadDto:
         'employment_status': fields.String(),
         'contact_numbers': fields.List(fields.Nested(lead_phone)),
         'addresses': fields.List(fields.Nested(lead_address)),
+        'credit_report_account': fields.Nested(credit_report_account),
         'notification_pref': fields.Nested(notification_preference),
     })
 
@@ -574,6 +575,11 @@ class CandidateStatusField(fields.String):
 
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'fico': fields.Integer(),
+        'status': CreditReportAccountStatusField()
+    })
     credit_report_account = api.model('credit_report_account', {
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
