@@ -249,9 +249,19 @@ class EmploymentStatusField(fields.String):
         else:
             return 'unknown'
 
+class CreditReportAccountStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportSignupStatus):
+            return value.name
+        else:
+            return 'unknown'
 
 class ClientDto:
     api = Namespace('clients', description='client related operations')
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'status': CreditReportAccountStatusField()
+    })
     client = api.model('client', {
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
@@ -260,6 +270,7 @@ class ClientDto:
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
+        'credit_report_account': fields.Nested(credit_report_account),
     })
     update_client = api.model('update_client', {
         'first_name': fields.String(description='client first name'),
@@ -385,13 +396,6 @@ class ClientDto:
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
     })
-
-class CreditReportAccountStatusField(fields.String):
-    def format(self, value):
-        if isinstance(value, CreditReportSignupStatus):
-            return value.name
-        else:
-            return 'unknown'
 
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
