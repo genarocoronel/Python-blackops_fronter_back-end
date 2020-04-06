@@ -12,7 +12,7 @@ from app.main.service.debt_service import check_existing_scrape_task, get_report
 from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments,
     update_client, get_client_employments, update_client_employments, get_client_income_sources, 
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, save_changes, 
-    update_client_addresses, get_client_addresses)
+    update_client_addresses, get_client_addresses, get_client_contact_numbers, update_client_contact_numbers)
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
     get_verification_questions, answer_verification_questions, get_security_questions, complete_signup, pull_credit_report)
@@ -31,6 +31,8 @@ _client_monthly_expense = ClientDto.client_monthly_expense
 _update_client_monthly_expense = ClientDto.update_client_monthly_expense
 _credit_report_debt = ClientDto.credit_report_debt
 _update_client_address = ClientDto.update_client_address
+_contact_number = ClientDto.contact_number
+_update_contact_number = ClientDto.update_contact_number
 _client_address = ClientDto.client_address
 _new_credit_report_account = ClientDto.new_credit_report_account
 _update_credit_report_account = ClientDto.update_credit_report_account
@@ -188,6 +190,38 @@ class ClientEmployments(Resource):
             _convert_payload_datetime_values(employments, 'start_date', 'end_date')
 
             result, err_msg = update_client_employments(client, employments)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return dict(success=True, **result), 200
+
+
+@api.route('/<client_id>/contact_numbers')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class LeadContactNumbers(Resource):
+    @api.doc('Get Client contact numbers')
+    @api.marshal_list_with(_contact_number)
+    def get(self, client_id):
+        client, error_response = _handle_get_client(client_id, client_type=ClientType.client)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_contact_numbers(client)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+    @api.doc('Update Client contact numbers')
+    @api.expect([_update_contact_number], validate=True)
+    def put(self, client_id):
+        client, error_response = _handle_get_client(client_id, client_type=ClientType.client)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            numbers = request.json
+            result, err_msg = update_client_contact_numbers(client, numbers)
             if err_msg:
                 api.abort(500, err_msg)
             else:
