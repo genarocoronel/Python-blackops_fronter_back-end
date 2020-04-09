@@ -1,12 +1,14 @@
 import datetime
+import enum
 
-import jwt
-from pytz import utc
-
-from app.main.config import key
 from app.main.model.rac import RACRole
-from app.main.model.blacklist import BlacklistToken
 from .. import db, flask_bcrypt
+
+
+class Department(enum.Enum):
+    OPENERS = 'openers'
+    SALES = 'sales'
+    SERVICE = 'service'
 
 
 class User(db.Model):
@@ -27,12 +29,14 @@ class User(db.Model):
     require_2fa = db.Column(db.Boolean, default=True)
     title = db.Column(db.String(100), nullable=True)
     language = db.Column(db.String(25), nullable=False)
+    department = db.Column(db.Enum(Department), nullable=True)
     personal_phone = db.Column(db.String(25), nullable=False)
     voip_route_number = db.Column(db.String(50), nullable=True)
+    pbx_mailbox_id = db.Column(db.String(25), nullable=True, unique=True)
+    pbx_caller_id = db.Column(db.String(100), nullable=True, unique=True)
     public_id = db.Column(db.String(100), unique=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(100))
-    
 
     @property
     def password(self):
@@ -84,3 +88,36 @@ class UserPasswordReset(db.Model):
         if self.has_activated or duration.days >= 1:
             return True
         return False
+
+
+class UserPBXNumber(db.Model):
+    __tablename__ = "user_pbx_numbers"
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    pbx_number_id = db.Column(db.Integer, db.ForeignKey('pbx_numbers.id'), primary_key=True)
+
+    # relationships
+    user = db.relationship('User', backref='pbx_number_user_assoc')
+    pbx_number = db.relationship('PBXNumber', backref='user_pbx_number_assoc')
+
+
+class UserVoiceCommunication(db.Model):
+    __tablename__ = "user_voice_communications"
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    voice_communication_id = db.Column(db.Integer, db.ForeignKey('voice_communications.id'), primary_key=True)
+
+    # relationships
+    user = db.relationship('User', backref='voice_communication_user_assoc')
+    voice_communication = db.relationship('VoiceCommunication', backref='user_voice_communication_assoc')
+
+
+class UserFaxCommunication(db.Model):
+    __tablename__ = "user_fax_communications"
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    fax_communication_id = db.Column(db.Integer, db.ForeignKey('fax_communications.id'), primary_key=True)
+
+    # relationships
+    user = db.relationship('User', backref='fax_communication_user_assoc')
+    fax_communication = db.relationship('FaxCommunication', backref='user_fax_communication_assoc')

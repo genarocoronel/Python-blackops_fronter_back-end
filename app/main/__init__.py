@@ -9,7 +9,6 @@ from redis import Redis
 from werkzeug.contrib.fixers import ProxyFix
 
 from .config import config_by_name
-from datetime import datetime
 
 db = SQLAlchemy()
 flask_bcrypt = Bcrypt()
@@ -30,6 +29,11 @@ def create_app(config_name):
     app.queue = rq.Queue('default', connection=app.redis, default_timeout=3600)
    
     app.cipher = Fernet(app.config['SECRET_KEY'])
+
+    app.s3_bucket_voicemail = app.config['S3_BUCKET_VOICEMAIL']
+    app.s3_bucket_fax = app.config['S3_BUCKET_FAX']
+
+    app.jive_queue_url = app.config['JIVE_QUEUE_URL']
 
     app.smart_credit_url = app.config['SMART_CREDIT_URL']
     app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']

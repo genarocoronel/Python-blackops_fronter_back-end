@@ -163,4 +163,22 @@ class ClientCheckList(db.Model):
     client = db.relationship('Client', backref='checklist')
     checklist = db.relationship('CheckList', backref='client_checklist')
 
-     
+
+class ClientVoiceCommunication(db.Model):
+    __tablename__ = "client_voice_communications"
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    voice_communication_id = db.Column(db.Integer, db.ForeignKey('voice_communications.id'), primary_key=True)
+
+    client = db.relationship('Client', backref='voice_communication_client_assoc')
+    voice_communication = db.relationship('VoiceCommunication', backref='client_voice_communication_assoc')
+
+
+class ClientFaxCommunication(db.Model):
+    __tablename__ = "client_fax_communications"
+
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    fax_communication_id = db.Column(db.Integer, db.ForeignKey('fax_communications.id'), primary_key=True)
+
+    client = db.relationship('Client', backref='fax_communication_client_assoc')
+    fax_communication = db.relationship('FaxCommunication', backref='client_fax_communication_assoc')

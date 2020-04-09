@@ -1,6 +1,7 @@
 from app.main.model.checklist import CheckList
 from app.main import db
 
+
 def seed_client_main_checklist():
     values = ['Brand Phone Number', 
               'Summon', 

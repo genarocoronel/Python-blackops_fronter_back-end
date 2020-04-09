@@ -13,6 +13,11 @@ class Config:
     PREQUAL_ID_COUNTER_LOCK_FILE = os.getenv('PREQUAL_ID_COUNTER_LOCATION', f'{basedir}/prequal_id_counter.txt.lock')
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
 
+    S3_BUCKET_VOICEMAIL = os.environ.get('S3_BUCKET_VOICEMAIL', 'dev-voicemails')
+    S3_BUCKET_FAX = os.environ.get('S3_BUCKET_FAX', 'dev-faxes')
+
+    JIVE_QUEUE_URL = os.environ.get('JIVE_QUEUE_URL', 'https://sqs.us-west-2.amazonaws.com/450101876349/jive')
+
     SMART_CREDIT_URL = os.environ.get('SMART_CREDIT_URL', 'https://stage-sc.consumerdirect.com')
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')
     SMART_CREDIT_PUBLISHER_ID = os.environ.get('SMART_CREDIT_PUBLISHER_ID')
@@ -45,6 +50,7 @@ class Config:
     DOCUSIGN_ACCOUNT_ID = os.getenv('DOCUSIGN_ACCOUNT_ID', '910decab-18f3-4eae-8456-74552da97b03')
     DOCUSIGN_INTEGRATION_KEY = os.getenv('DOCUSIGN_INTEGRATION_KEY', 'a40df05f-4138-42c7-bae0-140a80b73baa')
     DOCUSIGN_RSA_PRIVATE_KEY = os.getenv('DOCUSIGN_RSA_PRIVATE_KEY', 'docsign/rsa_private.key')
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

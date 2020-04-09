@@ -13,7 +13,7 @@ def get_request_user():
     return user
     
 
-def save_new_user(data, desired_role:RACRoles = None):
+def save_new_user(data, desired_role: RACRoles = None):
     """ Saves a new User
 
         Parameters
@@ -87,6 +87,18 @@ def get_all_users():
 
 def get_a_user(public_id):
     return User.query.filter_by(public_id=public_id).first()
+
+
+def get_user_by_mailbox_id(employee_mailbox_id: str):
+    assert employee_mailbox_id is not None
+
+    return User.query.filter(User.pbx_mailbox_id == employee_mailbox_id).first()
+
+
+def get_user_by_caller_id(caller_id: str):
+    assert caller_id is not None
+
+    return User.query.filter(User.pbx_caller_id == caller_id).first()
 
 
 def save_changes(*data):

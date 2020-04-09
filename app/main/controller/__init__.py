@@ -23,6 +23,7 @@ def _convert_payload_datetime_values(payload, *keys):
                 except TypeError:
                     payload[key] = None
 
+
 def _parse_datetime_values(payload, *keys):
     if isinstance(payload, list):
         for item in payload:
@@ -39,6 +40,7 @@ def _parse_datetime_values(payload, *keys):
                     payload[key] = dt_parse(payload.get(key))
                 except Exception:
                     raise ValueError("Invalid date format")
+
 
 def _handle_get_client(public_id, client_type=ClientType.client):
     client = get_client(public_id, client_type=client_type)

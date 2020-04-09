@@ -1,6 +1,7 @@
 import uuid
 import datetime
 
+from phonenumbers import PhoneNumber
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
 from app.main.model.employment import Employment
@@ -557,6 +558,15 @@ def get_candidate(public_id):
         return Candidate.query.filter_by(public_id=public_id).first()
 
 
+def get_candidate_contact_by_phone(phone_no: PhoneNumber):
+    assert phone_no is not None
+
+    candidate_cn = CandidateContactNumber.query \
+        .join(ContactNumber) \
+        .filter(ContactNumber.phone_number == str(phone_no.national_number)).first()
+    return candidate_cn
+
+
 def save_changes(*data):
     for entry in data:
         db.session.add(entry)
@@ -579,12 +589,12 @@ def convert_candidate_to_lead(candidate):
     new_client = create_client_from_candidate(candidate)
     if not new_client:
         raise Exception(f'Error converting Candidate with ID {candidate.public_id} to a Client')
-    
+
     submitted_dispo = CandidateDisposition.query.filter_by(name='Opener_ActiveSubmittedApplicationCreatedDate').first()
     if not submitted_dispo:
         raise Exception('Error finding Candidate disposition record for "Submitted"')
 
     candidate.disposition_id = submitted_dispo.id
     save_changes(candidate)
-    
+
     return new_client
