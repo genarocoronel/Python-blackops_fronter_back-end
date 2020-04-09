@@ -249,9 +249,19 @@ class EmploymentStatusField(fields.String):
         else:
             return 'unknown'
 
+class CreditReportAccountStatusField(fields.String):
+    def format(self, value):
+        if isinstance(value, CreditReportSignupStatus):
+            return value.name
+        else:
+            return 'unknown'
 
 class ClientDto:
     api = Namespace('clients', description='client related operations')
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'status': CreditReportAccountStatusField()
+    })
     client = api.model('client', {
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
@@ -260,6 +270,7 @@ class ClientDto:
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
+        'credit_report_account': fields.Nested(credit_report_account),
     })
     update_client = api.model('update_client', {
         'first_name': fields.String(description='client first name'),
@@ -386,13 +397,6 @@ class ClientDto:
         }), required=True, skip_none=True)
     })
 
-class CreditReportAccountStatusField(fields.String):
-    def format(self, value):
-        if isinstance(value, CreditReportSignupStatus):
-            return value.name
-        else:
-            return 'unknown'
-
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
     credit_report_account = api.model('credit_report_account', {
@@ -507,6 +511,7 @@ class LeadDto:
         'employment_status': fields.String(),
         'contact_numbers': fields.List(fields.Nested(lead_phone)),
         'addresses': fields.List(fields.Nested(lead_address)),
+        'credit_report_account': fields.Nested(credit_report_account),
         'notification_pref': fields.Nested(notification_preference),
     })
 
@@ -570,6 +575,11 @@ class CandidateStatusField(fields.String):
 
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
+    credit_report_account = api.model('credit_report_account', {
+        'public_id': fields.String(),
+        'fico': fields.Integer(),
+        'status': CreditReportAccountStatusField()
+    })
     credit_report_account = api.model('credit_report_account', {
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()

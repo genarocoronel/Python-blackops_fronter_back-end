@@ -254,13 +254,14 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
 
 def get_client(public_id, client_type=ClientType.client):
-    client = Client.query.filter_by(public_id=public_id).first()
-    if client is not None:
-        if client.type == ClientType.coclient:
-            return client
-        else:
-            return client if client.type == client_type else None
-
+    client = Client.query.filter_by(public_id=public_id).join(CreditReportAccount).first()
+    if client:
+        app.logger.info(f"Found a Client with ID {public_id} and has Credit Report Account")
+        return client 
+    else:
+        client = Client.query.filter_by(public_id=public_id).first()
+        if client:
+            app.logger.info(f"Found a Client with ID {public_id} and does NOT have a Credit Report Account")
     return client
 
 
