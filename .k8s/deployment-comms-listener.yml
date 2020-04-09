@@ -66,3 +66,5 @@ spec:
                   name: comms-listener
                   key: AWS_SECRET_ACCESS_KEY
                   optional: false
+      imagePullSecrets:
+        - name: elite-docker-registry
