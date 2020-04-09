@@ -55,14 +55,14 @@ spec:
               key: AWS_ACCOUNT_ID
               optional: false
         - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: comms-listener
-                key: AWS_ACCESS_KEY_ID
-                optional: false
+          valueFrom:
+            secretKeyRef:
+              name: comms-listener
+              key: AWS_ACCESS_KEY_ID
+              optional: false
         - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: comms-listener
-                key: AWS_SECRET_ACCESS_KEY
-                optional: false
+          valueFrom:
+            secretKeyRef:
+              name: comms-listener
+              key: AWS_SECRET_ACCESS_KEY
+              optional: false
