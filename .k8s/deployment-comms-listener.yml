@@ -25,11 +25,11 @@ spec:
             - comms_listener
       env:
         - name: DATABASE_URL
-            valueFrom:
-              secretKeyRef:
-                name: postgresql
-                key: postgresql-connection-string
-                optional: false
+          valueFrom:
+            secretKeyRef:
+              name: postgresql
+              key: postgresql-connection-string
+              optional: false
         - name: S3_BUCKET_VOICEMAIL
           valueFrom:
             configMapKeyRef:
