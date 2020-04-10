@@ -4,6 +4,7 @@ import enum
 
 from app.main.model.client import ClientDisposition
 from app.main import db
+from sqlalchemy.orm import backref
 
 class DocusignSessionStatus(enum.Enum):
     SENT = 'Sent'
@@ -46,7 +47,7 @@ class DocusignSession(db.Model):
 
     # relationships
     template   = db.relationship('DocusignTemplate', backref='sessions')
-    contract   = db.relationship('DebtPaymentContract', backref='docusign_sessions')
+    contract   = db.relationship('DebtPaymentContract', backref=backref('docusign_sessions', cascade="all, delete-orphan"))
 
 
 # Model Helper function to pre-poulate the database tables related to docusign

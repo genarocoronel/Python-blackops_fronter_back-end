@@ -18,12 +18,12 @@ from app.main.service.client_service import get_all_clients, save_new_client, ge
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
     get_client_addresses, update_client_addresses, get_co_client, update_co_client, get_client_checklist, update_client_checklist, \
-    update_notification_pref
+    update_notification_pref, fetch_client_combined_debts
 from app.main.service.debt_service import get_report_data, check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract, payment_contract_action, \
                                                   payment_contract_req4approve, fetch_amendment_plan, update_amendment_plan,\
-                                                  fetch_payment_schedule
+                                                  fetch_payment_schedule, update_payment_schedule
 
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
     get_verification_questions, answer_verification_questions, get_security_questions, complete_signup, pull_credit_report)
@@ -311,11 +311,7 @@ class LeadCreditReportDebts(Resource):
         if not lead:
             api.abort(404, **error_response)
 
-        credit_account, error_response = _handle_get_credit_report(lead)
-        if not credit_account:
-            api.abort(404, **error_response)
-
-        data = get_report_data(credit_account)
+        data = fetch_client_combined_debts(lead)
         return data, 200
     
     @api.doc('add credit report data')
@@ -872,6 +868,22 @@ class LeadAmendmentPlanById(Resource):
 @api.response(404, 'Client not found')
 class LeadAmendmentPlan(Resource):
     @token_required
+    @api.doc('fetch amendment plan')
+    def get(self, lead_id):
+        """ Fetch amendment plan for the client """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, 'Client not found')
+        else:
+            try:
+                # update and fetch the latest contract
+                plan = fetch_amendment_plan(client)
+                return plan
+
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+    @token_required
     @api.doc('save amendment plan')
     def put(self, lead_id):
         """ Save amendment plan for the client """
@@ -946,6 +958,25 @@ class LeadPaymentSchedule(Resource):
                 schedule = fetch_payment_schedule(client)
                 return schedule
 
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+@api.route('/<lead_id>/payment/schedule/<record_id>')
+@api.param('lead_id', 'Lead public identifier')
+@api.param('record_id', 'Schedule record identifier')
+@api.response(404, 'Client not found')
+class LeadPaymentRecord(Resource):
+
+    @api.doc('Updates payment schedule record')
+    def put(self, lead_id, record_id):
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, "Client not found")
+        else:
+            try:
+                data = request.json
+                result = update_payment_schedule(client, record_id, data)
+                return result, 200
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 

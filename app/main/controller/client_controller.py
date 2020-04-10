@@ -17,6 +17,8 @@ from app.main.service.debt_service import scrape_credit_report
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
     get_verification_questions, answer_verification_questions, get_security_questions, complete_signup, pull_credit_report)
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
+from app.main.service.user_service import get_request_user
+from app.main.service.debt_payment_service import contract_open_revision
 from flask import current_app as app
 
 api = ClientDto.api
@@ -682,3 +684,27 @@ class ClientSvcSchedule(Resource):
             api.abort(500, message=f'Failed updating Service Schedule for Client with ID {client_public_id}', success=False)    
 
         return result, 200
+
+## used for client actions that doesn't require plan change (fee)
+## CHANGE DRAFT DATE, CHANGE RECUR DAY, SKIP PAYMENT,
+## ADD EFT, REINSTATE AND REFUND 
+@api.route('/<client_id>/contract/revision')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientPaymentScheduleRevision(Resource):
+    
+    @token_required
+    @api.doc('revises payment schedule')
+    def put(self, client_id):
+        """ Revises client payment schedule""" 
+        client = get_client(public_id=client_id, client_type=CLIENT) 
+        if not client:
+            api.abort(404, "Client not found")
+        else:
+            try:
+                user = get_request_user()
+                result = contract_open_revision(user, client, request.json)
+                return result
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+

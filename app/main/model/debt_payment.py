@@ -3,10 +3,13 @@ from app.main import db
 from sqlalchemy import func
 from sqlalchemy.orm import backref
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority 
+from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from flask import current_app as app
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import desc, asc, and_
+from app.main.core.errors import StateMachineError
 
 
 class DebtEftStatus(enum.Enum):
@@ -31,9 +34,26 @@ class ContractAction(enum.Enum):
     REMOVE_DEBTS = 'remove debts'
     MODIFY_DEBTS = 'modify debts'
     TERM_CHANGE = 'term change'
-    RECIEVE_SUMMON = 'recieve summon'
+    RECIEVE_SUMMON = 'receive summon'
     ADD_COCLIENT = 'add coclient'
+    REMOVE_COCLIENT = 'remove coclient'
+    NEW_EFT_AUTH = 'new eft auth'
 
+# Non docusign based amendment methods
+class RevisionMethod(enum.Enum):
+    SKIP_PAYMENT = 'skip payment'
+    CHANGE_DRAFT_DATE = 'change draft date'
+    CHANGE_RECUR_DAY = 'change draft day'
+    MANUAL_ADJUSTMENT = 'manual adjustment'
+    REFUND = 'refund'
+    RE_INSTATE = 'reinstate',
+    ADD_TO_EFT = 'add to eft',
+
+class RevisionStatus(enum.Enum):
+    OPENED = 'opened'
+    ACCEPTED  = 'accepted'
+    REJECTED  = 'rejected'
+    
 class DebtPaymentContract(db.Model):
     """ DB model for storing debt payment contract details """
     __tablename__ = "debt_payment_contract"
@@ -47,6 +67,7 @@ class DebtPaymentContract(db.Model):
     term = db.Column(db.Integer, nullable=True, default=24)
     payment_start_date = db.Column(db.DateTime, nullable=True)
     payment_recurring_begin_date = db.Column(db.DateTime, nullable=True)
+ 
     # debt
     total_debt = db.Column(db.Float, default=0)
     enrolled_debt = db.Column(db.Float, default=0)
@@ -65,6 +86,10 @@ class DebtPaymentContract(db.Model):
     # relationship 
     client = db.relationship('Client', backref='payment_contracts')
     agent = db.relationship('User', backref='payment_contracts')
+
+    # previous contract
+    prev_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_contract_prev_id_fkey'))
+    next_contract = db.relationship('DebtPaymentContract', uselist=False, remote_side=[prev_id]) 
 
     # STATE & EVENT HANDLERS
     def ON_SIGNED(self):
@@ -108,6 +133,14 @@ class DebtPaymentContract(db.Model):
                 func = 'send_removal_debts_for_signature'
             elif action == ContractAction.MODIFY_DEBTS:
                 func = 'send_modify_debts_for_signature'
+            elif action == ContractAction.RECIEVE_SUMMON:
+                func = 'send_receive_summon_for_signature'
+            elif action == ContractAction.NEW_EFT_AUTH:
+                func = 'send_eft_authorization_for_signature'
+            elif action == ContractAction.ADD_COCLIENT:
+                func = 'send_add_coclient_for_signature'
+            elif action == ContractAction.REMOVE_COCLIENT:
+                func = 'send_remove_coclient_for_signature'
             else:
                 raise ValueError("Action not valid")
             
@@ -120,7 +153,7 @@ class DebtPaymentContract(db.Model):
                             owner_id=self.agent_id,
                             priority=TaskPriority.MEDIUM,
                             title='Call Client',
-                            description= 'Call Client: {} Amendment approved'.format(action),
+                            description= 'Call Client: {} Amendment approved'.format(action.name),
                             due_date=due, 
                             client_id=self.client_id,
                             object_type='DebtPaymentContract',
@@ -153,13 +186,22 @@ class DebtPaymentContract(db.Model):
         if self.status == ContractStatus.SIGNED: 
             # check for the document review task
             if 'document for review' in task.title.lower():
-                credit_account = self.client.credit_report_account
                 client = self.client
-                for record in credit_account.records:
+                client_keys = [client.id, ]
+                if client.co_client:
+                    client_keys.append(client.co_client.id)
+
+                debts = CreditReportData.query.outerjoin(CreditReportAccount)\
+                                              .filter(CreditReportAccount.client_id.in_(client_keys)).all()
+                for record in debts:
                     active_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=self.id,
                                                                                 debt_id=record.id).first()
+                    ## update push status
                     if active_debt:
                         record.push = True
+                        ## update balance 
+                        if active_debt.balance_original != record.balance_original:
+                            record.balance_original = active_debt.balance_original
                     else:
                         record.push = False
                 db.session.commit()
@@ -173,14 +215,26 @@ class DebtPaymentContract(db.Model):
                     self.total_paid = active_contract.total_paid
                     self.num_inst_completed = active_contract.num_inst_completed 
                     self.status = ContractStatus.ACTIVE
+                    self.prev_id = active_contract.id
                     db.session.commit()
                 # new contract
                 else:
                     self.status = ContractStatus.ACTIVE
                     db.session.commit()
 
-                DebtPaymentSchedule.update_schedule(self, active_contract)
+                count = 0
+                for record in active_contract.payment_schedule:
+                    count = count + 1
+                    if count > self.term:
+                        db.session.delete(record)
+                        continue
 
+                    # change the monthly fee for the EFTs not processed
+                    if record.status == DebtEftStatus.Scheduled:
+                        record.contract_id = self.id 
+                        record.amount = self.monthly_fee
+
+                db.session.commit()
                 
 
 
@@ -201,6 +255,7 @@ class DebtPaymentContractCreditData(db.Model):
     contract = db.relationship('DebtPaymentContract', backref=backref('enrolled_debt_lines', cascade="all, delete-orphan"))
     debt = db.relationship('CreditReportData', backref=backref('contract_enrolled_debts', cascade="all, delete-orphan"))
 
+
 class DebtPaymentSchedule(db.Model):
     """ DB model for storing debt payment schedule and payment status."""   
     __tablename__ = "debt_payment_schedule"
@@ -219,6 +274,20 @@ class DebtPaymentSchedule(db.Model):
 
     # single EPPS transaction allowed, so One-to-One
     transactions = db.relationship("DebtPaymentTransaction", backref="debt_payment_schedule") 
+
+    def ON_Processed(self):
+        if self.status == DebtEftStatus.Scheduled:
+            contract = self.contract
+            if contract:
+                contract.total_paid = contract.total_paid + self.amount
+                contract.num_inst_completed = contract.num_inst_completed + 1
+            self.status = DebtEftStatus.Processed
+            db.session.commit()
+
+    def ON_Settled(self):
+        if self.status == DebtEftStatus.Scheduled or self.status == DebtEftStatus.Processed:
+            self.status = DebtEftStatus.Settled
+            db.session.commit()
 
     @classmethod
     def create_schedule(cls, contract):
@@ -242,34 +311,9 @@ class DebtPaymentSchedule(db.Model):
             start = start + relativedelta(months=1)
 
     @classmethod
-    def update_schedule(cls, new_contract, old_contract):
-        term = new_contract.term 
-        num_term_paid = old_contract.num_inst_completed
-
-        if num_term_paid == 0:
-            dps = cls.query.filter_by(contract_id=old_contract.id, 
-                                      due_date=old_contract.payment_start_date)
-            dps.contract_id = new_contract.id
-            dps.amount = new_contract.monthly_fee
-            db.session.commit()
-
-        start = old_contract.payment_recurring_begin_date
-        for i in range(1, num_term_paid):
-            start = start + relativedelta(months=1)
-
-        for i in range(0, (term - num_term_paid)):
-            dps = cls.query.filter_by(contract_id=old_contract.id, 
-                                      due_date=start).first()
-            start = start + relativedelta(months=1)
-            if dps is None:
-                continue
-            dps.contract_id = new_contract.id
-            dps.amount = new_contract.monthly_fee
-            db.session.commit()
-
-        del_items = cls.query.filter(cls.due_date >= start).all()
-        for item in del_items:
-            db.session.delete(item)
+    def update_next_payment_date(cls, contract, new_date):
+        record = cls.query.filter(and_(cls.contract_id==contract.id, cls.due_date > datetime.now())).order_by(asc(cls.due_data)).first()
+        record.due_date = due_date
         db.session.commit()
 
 
@@ -290,3 +334,79 @@ class DebtPaymentTransaction(db.Model):
     modified_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     # payment schedule foriegn key 
     payment_id = db.Column(db.Integer, db.ForeignKey(DebtPaymentSchedule.id))
+
+
+## Non debt based contract revisions
+## Non Docusign related
+class DebtPaymentContractRevision(db.Model):
+    """ DB model for storing debt payment revision details """
+    __tablename__ = "debt_payment_contract_revision"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    # contract id
+    contract_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_revision_contarct_id_fkey'))
+    # service agent id
+    agent_id  = db.Column(db.Integer, db.ForeignKey('users.id', name='debt_payment_revision_agent_id_fkey'))
+    # revision method/action 
+    method  = db.Column(db.Enum(RevisionMethod), nullable=True) 
+    status  = db.Column(db.Enum(RevisionStatus), default=RevisionStatus.OPENED)
+    # revision fields
+    fields = db.Column(db.JSON, default={})
+    # relationship
+    # contract to which revision is required
+    contract = db.relationship('DebtPaymentContract', backref='revisions')
+    agent = db.relationship('User', backref='payment_revisions') 
+
+    def ON_TR_APPROVED(self, req):
+        try:
+            if self.status == RevisionStatus.OPENED:
+                if self.method == RevisionMethod.CHANGE_DRAFT_DATE:
+                    ## change the next draft date in the contract
+                    ## update the schedule
+                    pymt_record = DebtPaymentSchedule.query\
+                        .filter(and_(DebtPaymentSchedule.contract_id==self.contract_id, 
+                                     DebtPaymentSchedule.due_date > datetime.now())).order_by(asc(DebtPaymentSchedule.id)).first()
+                    if pymt_record:
+                        new_due_date = self.fields['draft_date'] 
+                        pymt_record.due_date = new_due_date # convert to datetime
+
+                elif self.method == RevisionMethod.CHANGE_RECUR_DAY:
+                    # change the recurring day in the active contract
+                    print(self.fields)
+                    day = int(self.fields['recur_day'])
+                    records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self.contract_id, 
+                                                                    DebtPaymentSchedule.status==DebtEftStatus.Scheduled)).all()
+                    for record in records:
+                        record.due_date = record.due_date.replace(day=day)
+
+                elif self.method == RevisionMethod.SKIP_PAYMENT: 
+                    # skip the next payment from the schedule 
+                    records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self.contract_id, 
+                                                                    DebtPaymentSchedule.status==DebtEftStatus.Scheduled)).all()
+                    for record in records:
+                        due = record.due_date
+                        record.due_date = due + relativedelta(months=1)
+
+                elif self.method == RevisionMethod.RE_INSTATE:
+                    pass
+                elif self.method == RevisionMethod.REFUND:
+                    print(self.fields)
+
+                self.status = RevisionStatus.ACCEPTED  
+                # create a task if needed
+                due = datetime.utcnow() + timedelta(hours=24)
+                task = UserTask(assign_type=TaskAssignType.AUTO,
+                                owner_id=self.agent_id,
+                                priority=TaskPriority.MEDIUM,
+                                title='Call Client',
+                                description= 'Call Client: {} request approved'.format(self.method.value),
+                                due_date=due,
+                                client_id=self.contract.client_id,
+                                object_type='DebtPaymentRevision',
+                                object_id=self.id)
+                db.session.add(task)
+                db.session.commit()
+        except Exception as err:
+            print("SM Error {}".format(str(err))) 
+            raise StateMachineError("Contract revision SM error {}".format(str(err)))
