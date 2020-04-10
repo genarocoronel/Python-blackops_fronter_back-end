@@ -683,7 +683,7 @@ def send_modify_debts_for_signature(client_id):
 
         tmpl_name = 'Modify Debts'
         if co_client:
-            tmpl_name = 'Removal Debts 2Signer'
+            tmpl_name = 'Modify Debts 2Signer'
 
         ds_template = DocusignTemplate.query.filter_by(name=tmpl_name).first()
         if ds_template is None:

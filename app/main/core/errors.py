@@ -27,3 +27,8 @@ class ServiceProviderLockedError(Exception):
     """ App exception representing an external service provider 'Locked' error """
     def __init(self, arg):
         self.args = arg
+
+class StateMachineError(Exception):
+    """ State machine errors"""
+    def __init(self, arg):
+        self.args = arg

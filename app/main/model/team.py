@@ -8,7 +8,7 @@ class TeamRequestStatus(enum.Enum):
     NEW = 'new'
     APPROVED = 'approved'
     DECLINED = 'declined'
-    
+
 class TeamRequestType(db.Model):
     """ db model for storing team request types"""
     __tablename__ = "team_request_types"
@@ -17,8 +17,11 @@ class TeamRequestType(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)    
 
     # title & description
+    code =  db.Column(db.String(80), nullable=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    doc_sign_required = db.Column(db.Boolean, default=True)
+
 
 class TeamRequest(db.Model):
     """ db model for storing team requests"""
@@ -37,6 +40,8 @@ class TeamRequest(db.Model):
     team_manager_id = db.Column(db.Integer, db.ForeignKey('users.id', name='team_requests_team_manager_id_fkey'))
     request_type_id = db.Column(db.Integer, db.ForeignKey('team_request_types.id', name='team_requests_request_type_id_fkey'))
     contract_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='team_requests_contract_id_fkey'))
+    # contract revision
+    revision_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract_revision.id', name='team_requests_revision_id_fkey'))
     
     # relationships
     requester = db.relationship('User', backref='created_requests', foreign_keys=[requester_id])
@@ -44,13 +49,14 @@ class TeamRequest(db.Model):
     team_manager = db.relationship('User', backref='team_requests', foreign_keys=[team_manager_id])
     request_type = db.relationship('TeamRequestType', uselist=False, backref='team_request')
     contract = db.relationship('DebtPaymentContract', backref=backref('team_requests', cascade="all, delete-orphan"))
+    revision = db.relationship('DebtPaymentContractRevision', backref=backref('team_requests', cascade="all, delete-orphan"))
 
     description = db.Column(db.Text, nullable=True)
     # status
     status =  db.Column(db.Enum(TeamRequestStatus), default=TeamRequestStatus.NEW)
      
 ## Team Request to notes (1:n)
-class TeamRequestNotes(db.Model):
+class TeamRequestNote(db.Model):
     """ db model for storing team notes""" 
     __tablename__ = "team_request_notes"
 
@@ -58,5 +64,5 @@ class TeamRequestNotes(db.Model):
     team_request_id = db.Column(db.Integer, db.ForeignKey('team_requests.id', name='team_request_notes_team_request_id_fkey'))
 
     # relationships
-    note = db.relationship('Note', backref='team_request_note', uselist=False)
-    team_request = db.relationship('TeamRequest', backref='notes')
+    note = db.relationship('Note', uselist=False, backref=backref('team_request_note', cascade="all, delete-orphan"))
+    team_request = db.relationship('TeamRequest', backref=backref('notes', cascade="all, delete-orphan"))

@@ -844,6 +844,10 @@ class TeamDto:
         'client': fields.Nested(client),
     }) 
 
+    revision = api.model('debt_payment_contract_revision', {
+        'method': fields.String(attribute='method.name'),
+    })
+
     team_request = api.model('team_requests', {
         'id': fields.String(attribute='public_id'),
         'requested_on': DateTimeFormatField(),
@@ -853,6 +857,7 @@ class TeamDto:
         'description': fields.String(),
         'status': fields.String(attribute='status.name'),
         'contract': fields.Nested(contract),
+        'revision': fields.Nested(revision),
     });
 
 class TaskDto:

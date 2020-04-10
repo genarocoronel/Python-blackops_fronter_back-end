@@ -2,13 +2,15 @@ from datetime import datetime
 from app.main import db
 from app.main.model.credit_report_account import CreditReportData, CreditPaymentPlan
 from app.main.model.client import Client
-from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus, DebtPaymentContract,\
-                                         ContractStatus, DebtPaymentContractCreditData, ContractAction
+from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus, DebtPaymentContract, ContractStatus, \
+                                        DebtPaymentContractCreditData, ContractAction, DebtPaymentContractRevision, \
+                                        RevisionMethod
 from app.main.model.user import User
 from app.main.model.rac import RACRole
 from app.main.model.team import TeamRequestType, TeamRequest
 from app.main.util.decorator import enforce_rac_required_roles
 from app.main.core.rac import RACRoles
+from app.main.service.team_service import create_team_request
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, and_, desc, asc
 import logging
@@ -398,7 +400,7 @@ def payment_contract_req4approve(user, client, data):
         raise ValueError("Saved plan not found")
 
     # fetch the request type based on the action
-    req_type = TeamRequestType.query.filter(func.lower(TeamRequestType.title) == action.value).first()
+    req_type = TeamRequestType.query.filter_by(code=action.name).first()
     if req_type is None:
         raise ValueError("Request Type not found")
 
@@ -532,6 +534,8 @@ def fetch_payment_schedule(client):
         if current_contract != record.contract:
             while True:
                 next_contract = current_contract.next_contract
+                if next_contract is None:
+                    break
                 item = _get_contract_description(next_contract, current_contract, balance)
                 if item:
                     result.append(item)
@@ -696,3 +700,39 @@ def update_payment_schedule(client, schedule_id, data):
        'success': True,
     }
 
+
+## payment revision
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+def contract_open_revision(user, client, data):
+    
+    # revision method
+    action = data.get('action')
+    fields  = data.get('fields')
+    note  = data.get('note')
+    method = RevisionMethod[action]
+    requestor = user
+
+    # active contract
+    contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                   status=ContractStatus.ACTIVE).first()
+    if contract is None:
+        raise ValueError("Active contract not found")
+
+    
+    cr = DebtPaymentContractRevision(contract_id=contract.id,
+                                     agent_id=requestor.id,
+                                     method=method,
+                                     fields=fields)         
+    db.session.add(cr)
+    db.session.commit()
+
+    svc_mgr = User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()
+    if svc_mgr is None:
+        raise ValueError("Team Manager not found")
+
+    create_team_request(requestor, svc_mgr, note, contract, cr) 
+
+    return {
+        'success': True,
+        'message': 'Approval request submitted'
+    }
