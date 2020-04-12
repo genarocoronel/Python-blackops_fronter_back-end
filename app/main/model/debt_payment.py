@@ -395,10 +395,8 @@ class DebtPaymentContractRevision(db.Model):
                         due = record.due_date
                         record.due_date = due + relativedelta(months=1)
 
-                elif self.method == RevisionMethod.RE_INSTATE:
-                    pass
                 elif self.method == RevisionMethod.REFUND:
-                    print(self.fields)
+                    pass
 
                 self.status = RevisionStatus.ACCEPTED  
                 # create a task if needed

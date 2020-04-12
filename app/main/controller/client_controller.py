@@ -18,7 +18,7 @@ from app.main.service.credit_report_account_service import (creport_account_sign
     get_verification_questions, answer_verification_questions, get_security_questions, complete_signup, pull_credit_report)
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user
-from app.main.service.debt_payment_service import contract_open_revision
+from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
 from flask import current_app as app
 
 api = ClientDto.api
@@ -704,6 +704,27 @@ class ClientPaymentScheduleRevision(Resource):
             try:
                 user = get_request_user()
                 result = contract_open_revision(user, client, request.json)
+                return result
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+## RE-INSTATE IS A SPECIAL ACTION
+@api.route('/<client_id>/reinstate')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientReinstate(Resource):
+
+    @token_required
+    @api.doc('revises payment schedule')
+    def put(self, client_id):
+        """ Reinstate a client"""
+        client = get_client(public_id=client_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, "Client not found")
+        else:
+            try:
+                user = get_request_user()
+                result = contract_reinstate(user, client, request.json) 
                 return result
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))

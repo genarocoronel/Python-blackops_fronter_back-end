@@ -4,7 +4,7 @@ from app.main.model.credit_report_account import CreditReportData, CreditPayment
 from app.main.model.client import Client
 from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus, DebtPaymentContract, ContractStatus, \
                                         DebtPaymentContractCreditData, ContractAction, DebtPaymentContractRevision, \
-                                        RevisionMethod
+                                        RevisionMethod, RevisionStatus
 from app.main.model.user import User
 from app.main.model.rac import RACRole
 from app.main.model.team import TeamRequestType, TeamRequest
@@ -735,3 +735,35 @@ def contract_open_revision(user, client, data):
         'success': True,
         'message': 'Approval request submitted'
     }
+
+## contract re-instate
+@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+def contract_reinstate(user, client, data):
+    # fields
+    fields  = data.get('fields')
+    requestor = user
+
+    # active contract
+    contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                   status=ContractStatus.ACTIVE).first()
+    if contract is None:
+        raise ValueError("Active contract not found")
+
+    
+    eft_required = False
+    if 'is_update_bank_info' in fields and fields['is_update_bank_info'] is True:
+        eft_required = True
+
+    cr = DebtPaymentContractRevision(contract_id=contract.id,
+                                     agent_id=requestor.id,
+                                     method=RevisionMethod.RE_INSTATE,
+                                     fields=fields,
+                                     status=RevisionStatus.ACCEPTED)
+    db.session.add(cr)
+    db.session.commit()
+
+    return {
+        'success': True,
+        'eft_required': eft_required,
+    }
+
