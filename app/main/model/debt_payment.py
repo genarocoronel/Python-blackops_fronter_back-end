@@ -285,7 +285,14 @@ class DebtPaymentSchedule(db.Model):
             db.session.commit()
 
     def ON_Settled(self):
-        if self.status == DebtEftStatus.Scheduled or self.status == DebtEftStatus.Processed:
+        if self.status == DebtEftStatus.Scheduled:
+            contract = self.contract
+            if contract:
+                contract.total_paid = contract.total_paid + self.amount
+                contract.num_inst_completed = contract.num_inst_completed + 1
+            self.status = DebtEftStatus.Settled
+            db.session.commit()
+        elif self.status == DebtEftStatus.Processed:
             self.status = DebtEftStatus.Settled
             db.session.commit()
 
@@ -388,10 +395,8 @@ class DebtPaymentContractRevision(db.Model):
                         due = record.due_date
                         record.due_date = due + relativedelta(months=1)
 
-                elif self.method == RevisionMethod.RE_INSTATE:
-                    pass
                 elif self.method == RevisionMethod.REFUND:
-                    print(self.fields)
+                    pass
 
                 self.status = RevisionStatus.ACCEPTED  
                 # create a task if needed

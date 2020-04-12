@@ -8,9 +8,10 @@ from app.main.model.docsign import *
 from app.main.model.credit_report_account import *
 from app.main.model.address import Address, AddressType
 from app.main.model.contact_number import ContactNumberType
-from app.main.model.debt_payment import DebtPaymentContract, ContractAction, ContractStatus, DebtPaymentContractCreditData
+from app.main.model.debt_payment import DebtPaymentContract, ContractAction, ContractStatus, DebtPaymentContractCreditData, \
+                                        DebtPaymentSchedule, DebtEftStatus
 
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, desc, asc
 
 from flask import current_app as app
 
@@ -149,10 +150,11 @@ def send_contract_for_signature(client_id):
 
         # check if client has co-client associated with it
         co_sign = False
-        if client.client_id is not None:
+        co_client = client.co_client
+        if co_client:
             co_sign = True
             credit_monitoring_fee = cpp.monitoring_fee_2signer
-            cc_id = client.client_id
+            cc_id = co_client.id
 
         tmpl_name = 'EliteDMS_Contract_ 1Signed' 
         if co_sign is True:
@@ -285,10 +287,7 @@ def send_contract_for_signature(client_id):
 
         # co-sign related
         if co_sign is True:
-            cc = Client.query.filter_by(id=cc_id).first()
-            if cc is None:
-                raise ValueError("Co-Client is not valid")
-
+            cc = co_client
             ## find the co-client address
             cc_address = Address.query.filter_by(client_id=cc.id, type=AddressType.CURRENT).first()
             # fetch the phone numbers
@@ -305,7 +304,7 @@ def send_contract_for_signature(client_id):
             t_params['CoClientLastName'] = cc.last_name
             t_params['CoClientHomePhone'] = cc_phone_numbers['Home'] if 'Home' in cc_phone_numbers else ""
             t_params['CoClientWorkPhone'] = cc_phone_numbers['Work Phone'] if 'Work Phone' in cc_phone_numbers else ""
-            t_params['CoClientMobilePhone'] = cc_phone_numbers['Cell'] if 'Cell Phone' in cc_phone_numbers else ""
+            t_params['CoClientMobilePhone'] = cc_phone_numbers['Cell Phone'] if 'Cell Phone' in cc_phone_numbers else ""
             t_params['CoClientEmail'] = cc.email if cc.email is not None else ""
             t_params['CoClientDOB'] = cc.dob.strftime("%m/%d/%Y") if cc.dob is not None else ""
             t_params['CoClientLast4SSN'] = co_ssn4
@@ -434,35 +433,34 @@ def send_additional_debts_for_signature(client_id):
 
         pymt_term = payment_contract.term
         total_fee = active_contract.total_paid + ((payment_contract.term - active_contract.num_inst_completed) * payment_contract.monthly_fee)
-        
         monthly_fee = payment_contract.monthly_fee
+        ## payment schedule start
+        index = 0
         if active_contract.num_inst_completed > 0:
-            monthly_fee = active_contract.monthly_fee     
-        # First payment
-        pymt_start = payment_contract.payment_start_date
-        t_params['paymentNumber1'] = 1
-        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
-        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
+            paid_records = DebtPaymentSchedule.query\
+                                              .outerjoin(DebtPaymentContract)\
+                                              .filter(DebtPaymentContract.client_id==client.id)\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .order_by(asc(DebtPaymentSchedule.id)).all()
+            for record in paid_records:
+                index = index + 1
+                t_params['paymentNumber{}'.format(index)] = str(index)
+                t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(record.amount)
+                t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
 
-        start = payment_contract.payment_recurring_begin_date
-        n = 0
-        index = 1
-        for i in range(1, active_contract.num_inst_completed):
+        scheduled = DebtPaymentSchedule.query\
+                                       .outerjoin(DebtPaymentContract)\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .order_by(asc(DebtPaymentSchedule.id)).all()
+        for record in scheduled:
             index = index + 1
             t_params['paymentNumber{}'.format(index)] = str(index)
             t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
+            t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
+            if index == pymt_term:
+                break
+        ## payment schedule end
 
-        monthly_fee = payment_contract.monthly_fee
-       
-        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
-            index = index + 1
-            t_params['paymentNumber{}'.format(index)] = str(index)
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-     
         t_params['SavingsAmount'] = "${:.2f}".format(monthly_fee)
         t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
         t_params['BankFee1'] = "${:.2f}".format(credit_monitoring_fee)
@@ -594,33 +592,32 @@ def _handle_removal_debts(client_id,
         total_fee = active_contract.total_paid + ((payment_contract.term - active_contract.num_inst_completed) * payment_contract.monthly_fee)
         
         monthly_fee = payment_contract.monthly_fee
+
+        index = 0
         if active_contract.num_inst_completed > 0:
-            monthly_fee = active_contract.monthly_fee     
-        # First payment
-        pymt_start = payment_contract.payment_start_date
-        t_params['paymentNumber1'] = 1
-        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
-        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
+            paid_records = DebtPaymentSchedule.query\
+                                              .outerjoin(DebtPaymentContract)\
+                                              .filter(DebtPaymentContract.client_id==client.id)\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .order_by(asc(DebtPaymentSchedule.id)).all()
+            for record in paid_records:
+                index = index + 1
+                t_params['paymentNumber{}'.format(index)] = str(index)
+                t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(record.amount)
+                t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
 
-        start = payment_contract.payment_recurring_begin_date
-        n = 0
-        index = 1
-        for i in range(1, active_contract.num_inst_completed):
+        scheduled = DebtPaymentSchedule.query\
+                                       .outerjoin(DebtPaymentContract)\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .order_by(asc(DebtPaymentSchedule.id)).all()
+        for record in scheduled:
             index = index + 1
             t_params['paymentNumber{}'.format(index)] = str(index)
             t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
+            t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
+            if index == pymt_term:
+                break
 
-        monthly_fee = payment_contract.monthly_fee
-       
-        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
-            index = index + 1
-            t_params['paymentNumber{}'.format(index)] = str(index)
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-     
         t_params['SavingsAmount'] = "${:.2f}".format(monthly_fee)
         t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
         t_params['BankFee1'] = "${:.2f}".format(credit_monitoring_fee)
@@ -645,7 +642,7 @@ def _handle_removal_debts(client_id,
                                        signer_email=client.email,
                                        template_params=t_params,
                                        co_sign=True,
-                                       cosigner_name=co_client_fname,
+                                       cosigner_name=co_client_fullname,
                                        cosigner_email=co_client.email)
         # create signature
         session = DocusignSession(template_id=ds_template.id,
@@ -734,32 +731,31 @@ def send_modify_debts_for_signature(client_id):
         pymt_term = approved_contract.term
         total_fee = active_contract.total_paid + ((approved_contract.term - active_contract.num_inst_completed) * approved_contract.monthly_fee)
         monthly_fee = approved_contract.monthly_fee
-        if active_contract.num_inst_completed > 0:
-            monthly_fee = active_contract.monthly_fee 
-        # first payment
-        pymt_start = approved_contract.payment_start_date
-        t_params['paymentNumber1'] = 1
-        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
-        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
-        # recurring 
-        start = approved_contract.payment_recurring_begin_date
-        n = 0
-        index = 1
-        for i in range(1, active_contract.num_inst_completed):
-            index = index + 1
-            t_params['paymentNumber{}'.format(index)] = str(index)
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-        monthly_fee = approved_contract.monthly_fee
-        # remaining months
-        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
-            index = index + 1
-            t_params['paymentNumber{}'.format(index)] = str(index)
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1) 
 
+        index = 0
+        if active_contract.num_inst_completed > 0:
+            paid_records = DebtPaymentSchedule.query\
+                                              .outerjoin(DebtPaymentContract)\
+                                              .filter(DebtPaymentContract.client_id==client.id)\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .order_by(asc(DebtPaymentSchedule.id)).all()
+            for record in paid_records:
+                index = index + 1
+                t_params['paymentNumber{}'.format(index)] = str(index)
+                t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(record.amount)
+                t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
+
+        scheduled = DebtPaymentSchedule.query\
+                                       .outerjoin(DebtPaymentContract)\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .order_by(asc(DebtPaymentSchedule.id)).all()
+        for record in scheduled:
+            index = index + 1
+            t_params['paymentNumber{}'.format(index)] = str(index)
+            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)            
+            t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
+            if index == pymt_term:
+                break
 
         t_params['SavingsAmount'] = "${:.2f}".format(monthly_fee)
         t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
@@ -856,32 +852,33 @@ def send_term_change_for_signature(client_id):
         pymt_term = payment_contract.term
         total_fee = payment_contract.enrolled_debt + (pymt_term * credit_monitoring_fee) + (pymt_term * cpp.bank_fee) 
         monthly_fee   = payment_contract.monthly_fee
+        ## payment schedule start
+        index = 0
         if active_contract.num_inst_completed > 0:
-            monthly_fee = active_contract.monthly_fee
+            paid_records = DebtPaymentSchedule.query\
+                                              .outerjoin(DebtPaymentContract)\
+                                              .filter(DebtPaymentContract.client_id==client.id)\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .order_by(asc(DebtPaymentSchedule.id)).all()
+            for record in paid_records:
+                index = index + 1
+                t_params['paymentNumber{}'.format(index)] = str(index)
+                t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(record.amount)
+                t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
 
-        pymt_start = payment_contract.payment_start_date
-        # First payment
-        t_params['paymentNumber1'] = 1
-        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
-        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
-
-        start = payment_contract.payment_recurring_begin_date
-        index = 1
-        for i in range(1, active_contract.num_inst_completed):
-            index = i + 1
-            t_params['paymentNumber{}'.format(index)] = str(index)
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y") 
-            start = start + relativedelta(months=1)
-
-        monthly_fee = payment_contract.monthly_fee
-        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
+        scheduled = DebtPaymentSchedule.query\
+                                       .outerjoin(DebtPaymentContract)\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .order_by(asc(DebtPaymentSchedule.id)).all()
+        for record in scheduled:
             index = index + 1
             t_params['paymentNumber{}'.format(index)] = str(index)
             t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-            
+            t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
+            if index == pymt_term:
+                break
+        ## payment schedule end
+
         t_params['SavingsAmount'] = "${:.2f}".format(monthly_fee)
         t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
         t_params['BankFee1'] = "${:.2f}".format(credit_monitoring_fee)
@@ -1133,28 +1130,32 @@ def send_add_coclient_for_signature(client_id):
 
         pymt_term = payment_contract.term
         monthly_fee = payment_contract.monthly_fee
+        ## payment schedule start
+        index = 0
         if active_contract.num_inst_completed > 0:
-            monthly_fee = active_contract.monthly_fee
+            paid_records = DebtPaymentSchedule.query\
+                                              .outerjoin(DebtPaymentContract)\
+                                              .filter(DebtPaymentContract.client_id==client.id)\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .order_by(asc(DebtPaymentSchedule.id)).all()
+            for record in paid_records:
+                index = index + 1
+                t_params['paymentNumber{}'.format(index)] = str(index)
+                t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(record.amount)
+                t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
 
-        # First payment
-        pymt_start = payment_contract.payment_start_date
-        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
-        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
-
-        start = payment_contract.payment_recurring_begin_date
-        index = 1
-        for i in range(1, active_contract.num_inst_completed):
+        scheduled = DebtPaymentSchedule.query\
+                                       .outerjoin(DebtPaymentContract)\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .order_by(asc(DebtPaymentSchedule.id)).all()
+        for record in scheduled:
             index = index + 1
+            t_params['paymentNumber{}'.format(index)] = str(index)
             t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-        monthly_fee = payment_contract.monthly_fee
-        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
-            index = index + 1
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-      
+            t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
+            if index == pymt_term:
+                break
+        ## payment schedule end
         total_fee = active_contract.total_paid + ((payment_contract.term - active_contract.num_inst_completed) * payment_contract.monthly_fee)
         t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
         
@@ -1280,28 +1281,33 @@ def send_remove_coclient_for_signature(client_id):
 
         pymt_term = payment_contract.term
         monthly_fee = payment_contract.monthly_fee
+        ## payment schedule start
+        index = 0
         if active_contract.num_inst_completed > 0:
-            monthly_fee = active_contract.monthly_fee
+            paid_records = DebtPaymentSchedule.query\
+                                              .outerjoin(DebtPaymentContract)\
+                                              .filter(DebtPaymentContract.client_id==client.id)\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .order_by(asc(DebtPaymentSchedule.id)).all()
+            for record in paid_records:
+                index = index + 1
+                t_params['paymentNumber{}'.format(index)] = str(index)
+                t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(record.amount)
+                t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
 
-        # First payment
-        pymt_start = payment_contract.payment_start_date
-        t_params['SavingsAmount1'] = "${:.2f}".format(monthly_fee)
-        t_params['ProjectedDate1'] = pymt_start.strftime("%m/%d/%Y")
+        scheduled = DebtPaymentSchedule.query\
+                                       .outerjoin(DebtPaymentContract)\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .order_by(asc(DebtPaymentSchedule.id)).all()
+        for record in scheduled:
+            index = index + 1
+            t_params['paymentNumber{}'.format(index)] = str(index)
+            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
+            t_params['ProjectedDate{}'.format(index)] = record.due_date.strftime("%m/%d/%Y")
+            if index == pymt_term:
+                break
+        ## payment schedule end
 
-        start = payment_contract.payment_recurring_begin_date
-        index = 1
-        for i in range(1, active_contract.num_inst_completed):
-            index = index + 1
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-        monthly_fee = payment_contract.monthly_fee
-        for i in range(0, (pymt_term - active_contract.num_inst_completed)):
-            index = index + 1
-            t_params['SavingsAmount{}'.format(index)] = "${:.2f}".format(monthly_fee)
-            t_params['ProjectedDate{}'.format(index)] = start.strftime("%m/%d/%Y")
-            start = start + relativedelta(months=1)
-      
         total_fee = active_contract.total_paid + ((payment_contract.term - active_contract.num_inst_completed) * payment_contract.monthly_fee)
         t_params['TotalSavingsAmount'] = "${:.2f}".format(total_fee)
         
