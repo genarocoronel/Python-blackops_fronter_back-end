@@ -43,4 +43,10 @@ def downgrade():
     op.drop_column('team_request_types', 'doc_sign_required')
     op.drop_column('team_request_types', 'code')
     op.drop_table('debt_payment_contract_revision')
+
+    ## postgresql specific downgrade
+    revisionstatus = postgresql.ENUM('OPENED', 'ACCEPTED', 'REJECTED', name='revisionstatus')
+    revisionstatus.drop(op.get_bind())
+    revisionmethod = postgresql.ENUM('SKIP_PAYMENT', 'CHANGE_DRAFT_DATE', 'CHANGE_RECUR_DAY', 'MANUAL_ADJUSTMENT', 'REFUND', 'RE_INSTATE', 'ADD_TO_EFT', name='revisionmethod')
+    revisionmethod.drop(op.get_bind())
     # ### end Alembic commands ###
