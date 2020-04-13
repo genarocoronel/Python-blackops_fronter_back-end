@@ -20,10 +20,19 @@ from .main.controller.task_controller import api as task_ns
 
 blueprint = Blueprint('api', __name__)
 
+authorizations = {
+    'apikey': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization'
+    }
+}
+
 api = Api(blueprint,
           title='CRM API',
           version='1.0',
-          description='a definition of crm web service'
+          description='a definition of crm web service',
+          authorizations=authorizations
           )
 
 api.add_namespace(auth_ns)
