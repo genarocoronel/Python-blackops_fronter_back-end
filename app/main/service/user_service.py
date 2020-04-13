@@ -5,7 +5,10 @@ from app.main import db
 from app.main.core.errors import BadRequestError
 from app.main.core.auth import Auth
 from app.main.core.rac import RACMgr, RACRoles
-from app.main.model.user import User
+from app.main.model.candidate import Candidate
+from app.main.model.client import Client
+from app.main.model.user import User, UserClientAssignment, UserCandidateAssignment
+
 
 def get_request_user():
     req_user = g.current_user
@@ -128,3 +131,13 @@ def generate_token(user):
             'message': 'Some error occurred. Please try again.'
         }
         return response_object, 401
+
+
+def get_client_assignments(current_user):
+    client_assignments = UserClientAssignment.query.join(Client).filter(User.id == current_user.id).all()
+    return [assignment.client for assignment in client_assignments]
+
+
+def get_candidate_assignments(current_user):
+    candidate_assignments = UserCandidateAssignment.query.join(Candidate).filter(User.id == current_user.id).all()
+    return [assignment.candidate for assignment in candidate_assignments]

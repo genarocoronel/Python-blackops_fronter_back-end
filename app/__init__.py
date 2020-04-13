@@ -15,6 +15,7 @@ from .main.controller.rsign_controller import api as rsign_ns
 from .main.controller.debt_payment_controller import api as debtpay_ns
 from .main.controller.notes_controller import api as notes_ns
 from .main.controller.sms_controller import api as sms_ns
+from .main.controller.communication_controller import api as comms_ns
 from .main.controller.team_controller import api as team_ns
 from .main.controller.task_controller import api as task_ns
 
@@ -47,5 +48,6 @@ api.add_namespace(rsign_ns)
 api.add_namespace(debtpay_ns)
 api.add_namespace(notes_ns)
 api.add_namespace(sms_ns)
+api.add_namespace(comms_ns)
 api.add_namespace(team_ns)
 api.add_namespace(task_ns)
