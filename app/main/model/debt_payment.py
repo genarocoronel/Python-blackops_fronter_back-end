@@ -101,6 +101,11 @@ class DebtPaymentContract(db.Model):
                 DebtPaymentSchedule.create_schedule(self)
                 self.status = ContractStatus.ACTIVE
                 db.session.commit()
+
+                # register client with EPPS provider
+                func = 'register_customer'
+                app.queue.enqueue('app.main.tasks.debt_payment.{}'.format(func), self.client.id)
+
             else:
                 # create a task if needed
                 due = datetime.utcnow() + timedelta(hours=24)
@@ -273,7 +278,7 @@ class DebtPaymentSchedule(db.Model):
     status  = db.Column(db.Enum(DebtEftStatus), nullable=False, default=DebtEftStatus.Scheduled)
 
     # single EPPS transaction allowed, so One-to-One
-    transactions = db.relationship("DebtPaymentTransaction", backref="debt_payment_schedule") 
+    transaction = db.relationship("DebtPaymentTransaction", backref="debt_payment_schedule", uselist=False) 
 
     def ON_Processed(self):
         if self.status == DebtEftStatus.Scheduled:
@@ -322,8 +327,6 @@ class DebtPaymentSchedule(db.Model):
         record = cls.query.filter(and_(cls.contract_id==contract.id, cls.due_date > datetime.now())).order_by(asc(cls.due_data)).first()
         record.due_date = due_date
         db.session.commit()
-
-
 
 class DebtPaymentTransaction(db.Model):
     """ DB model for storing transaction details of debt payment record."""

@@ -20,15 +20,15 @@ def register_jobs(scheduler):
                         repeat=None)
 
         # schedule debt payment EFT
-        # schedule at 6:00 AM everyday
-        scheduler.cron('0 6 * * *',
+        # schedule at 8:00 PM everyday
+        scheduler.cron('0 20 * * *',
                        func='app.main.tasks.debt_payment.process_debt_payments',
                        args=[],
                        description='kron: process_debt_payments',
                        repeat=None) 
 
         # every hour check the status of EFT 
-        scheduler.cron('30 * * * *',
+        scheduler.cron('0 */4 * * *',
                        func='app.main.tasks.debt_payment.check_eft_status',
                        args=[],
                        description='kron: check_eft_status',

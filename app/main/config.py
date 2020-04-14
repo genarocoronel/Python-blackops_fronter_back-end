@@ -51,6 +51,8 @@ class Config:
     DOCUSIGN_INTEGRATION_KEY = os.getenv('DOCUSIGN_INTEGRATION_KEY', 'a40df05f-4138-42c7-bae0-140a80b73baa')
     DOCUSIGN_RSA_PRIVATE_KEY = os.getenv('DOCUSIGN_RSA_PRIVATE_KEY', 'docsign/rsa_private.key')
 
+    EPPS_USERNAME = os.getenv('EPPS_USERNAME', 'ASOL_API')
+    EPPS_PASSWORD = os.getenv('EPPS_PASSWORD', 'b075f05e-79ed-11ea-a215-005056a3526c')
 
 class DevelopmentConfig(Config):
     DEBUG = True

@@ -433,27 +433,6 @@ def payment_contract_req4approve(user, client, data):
         'message': 'Approval request submitted'
     }
 
-def update_debt_payment_account(client, contract, active_contract):
-    try:
-        # check payment schedule is present or not
-        pymt_schedule = contract.payment_schedule
-        if pymt_schedule is None or len(pymt_schedule) == 0:
-            # create payment schedule
-            ## create_debt_payment_schedule(contract)
-            # send to worker queue
-            func = "register_customer"
-            # app.queue.enqueue('app.main.tasks.debt_payment.{}'.format(func), client_id)
-        else:
-            if active_contract is None:
-                raise ValueError("Active contract not found")
-
-            ## update_debt_payment_schedule(contract, active_contract)
-
-    except Exception as err:
-        logging.warning("Create Payment account {}".format(str(err)))
-        raise ValueError("Internal Error {}".format(str(err)))
-
-
 def fetch_debt_payment_stats(client_id, start_date=None, end_date=None):
     result = []
     try: 
@@ -558,8 +537,8 @@ def fetch_payment_schedule(client):
             'plus' : '',
             'minus': record.amount, 
             'balance': balance,
-            'trans_date': '',
-            'trans_id': '',
+            'trans_date': record.transaction.created_date.strftime("%m/%d/%Y") if record.transaction else '',
+            'trans_id': record.transaction.trans_id if record.transaction else '',
             'proj_date': record.due_date.strftime("%m/%d/%Y"),
             'proj_amount': record.amount,
             'proj_balance': balance,
