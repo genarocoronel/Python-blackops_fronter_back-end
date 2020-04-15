@@ -4,6 +4,9 @@ from flask_restplus import Resource
 from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAllowed, 
     ServiceProviderError, ServiceProviderLockedError)
 from app.main.core.types import CustomerType
+from app.main.model.pbx import VoiceCommunicationType
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_communications
+from app.main.util.parsers import filter_request_parse
 from ..util.dto import ClientDto, AppointmentDto
 from ..util.decorator import token_required
 from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
@@ -36,6 +39,7 @@ _update_client_address = ClientDto.update_client_address
 _contact_number = ClientDto.contact_number
 _update_contact_number = ClientDto.update_contact_number
 _client_address = ClientDto.client_address
+_communication = ClientDto.communication
 _new_credit_report_account = ClientDto.new_credit_report_account
 _update_credit_report_account = ClientDto.update_credit_report_account
 _credit_account_verification_answers = ClientDto.account_verification_answers
@@ -59,6 +63,7 @@ class ClientList(Resource):
         """ Creates new Client """
         data = request.json
         return save_new_client(data=data, client_type=CLIENT)
+
 
 @api.route('/<public_id>')
 @api.param('public_id', 'The Client Identifier')
@@ -257,6 +262,39 @@ class ClientAddresses(Resource):
                 api.abort(500, err_msg)
             else:
                 return result, 200
+
+
+@api.route('/<client_id>/communications')
+class ClientCommunications(Resource):
+    @api.marshal_list_with(_communication, envelope='data')
+    @api.param('_dt', 'Comma separated date fields to be filtered')
+    @api.param('_from', 'Start date of communications to query (YYYY-MM-DD)')
+    @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
+    @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
+    def get(self, client_id):
+        """ Get all forms of communication for given client """
+        try:
+            client, error_response = _handle_get_client(client_id, client_type=CLIENT)
+            if not client:
+                api.abort(404, **error_response)
+            else:
+                filter = filter_request_parse(request)
+                comm_types_set = parse_communication_types(request)
+
+                date_range_filter(filter)
+
+                date_filter_fields = filter.get('dt_fields', [])
+                result = []
+                if any(isinstance(comm_type, VoiceCommunicationType) for comm_type in comm_types_set):
+
+                    client_voice_comms = get_client_communications(client, comm_types_set, date_filter_fields, filter)
+                    result = [record.voice_communication for record in client_voice_comms]
+
+                # TODO: check if SMS communication is requested and add to the result
+
+                return result
+        except Exception as e:
+            api.abort(500, message=f'Failed to retrieve communication records for client. Error: {e}', success=False)
 
 
 @api.route('/<public_id>/credit-report/debts')

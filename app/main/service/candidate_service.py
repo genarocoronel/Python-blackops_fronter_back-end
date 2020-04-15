@@ -20,6 +20,8 @@ from app.main.service.client_service import create_client_from_candidate
 
 from flask import current_app as app
 
+from app.main.util.query import build_query_from_dates
+
 
 def save_new_candidate(data):
     
@@ -499,17 +501,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                     query = query.filter(and_(*_and_filts))
 
         # datetime fields
-        if dt_fields is not None:
-            for field in dt_fields:
-                column = getattr(Candidate, field, None)
-                if from_date is not None and to_date is not None:
-                    query = query.filter(and_(column >= from_date, column <= to_date))
-                elif from_date is not None:
-                    query = query.filter(column >= from_date)
-                elif to_date is not None:
-                    query = query.filter(column <= to_date)
-                else:
-                    raise ValueError("Not a valid datetime filter query")
+        query = build_query_from_dates(query, from_date, to_date, Candidate, *dt_fields)
 
         # Numeric fields
         if numeric_fields is not None:

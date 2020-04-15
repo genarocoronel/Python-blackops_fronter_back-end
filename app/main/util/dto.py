@@ -8,6 +8,7 @@ from app.main.model.employment import FrequencyStatus
 from app.main.model.client import Client, ClientType, EmploymentStatus, ClientDispositionType
 from app.main.model.address import AddressType
 from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportDataAccountType
+from app.main.model.pbx import VoiceCommunicationType, CommunicationType
 from app.main.model.user import User
 from app.main.core.auth import Auth
 from app.main.util import parsers
@@ -34,6 +35,12 @@ class FrequencyTypeField(fields.String):
             return 'UNKNOWN'
 
 
+class CommsTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, CommunicationType):
+            return value.name
+
+
 class DateTimeFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y %H:%M")
@@ -42,6 +49,7 @@ class DateTimeFormatField(fields.String):
 class DateFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y")
+
 
 # set the current address
 class CurrentAddressField(fields.Raw):
@@ -56,6 +64,7 @@ class CurrentAddressField(fields.Raw):
 
         return result
 
+
 class PreferedPhoneField(fields.Raw):
     def format(self, records):
         for record in records:
@@ -65,6 +74,7 @@ class PreferedPhoneField(fields.Raw):
 
         return ""
 
+
 class FullNameField(fields.String):
     def format(self, value):
         if isinstance(value, User):
@@ -73,6 +83,16 @@ class FullNameField(fields.String):
             return '{} {}'.format(value.first_name, value.last_name)
         else:
             return ''
+
+
+authorizations = {
+    'apikey': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization'
+    }
+}
+
 
 class CampaignDto(object):
     api = Namespace('campaigns', description='campaign related operations')
@@ -200,12 +220,14 @@ class FrequencyStatusField(fields.String):
         else:
             return 'UNKNOWN'
 
+
 class ClientDispositionTypeField(fields.String):
     def format(self, value):
         if isinstance(value, ClientDispositionType):
             return value.name
         else:
             return 'UNKNOWN'
+
 
 class CandidateDispositionTypeField(fields.String):
     def format(self, value):
@@ -214,12 +236,14 @@ class CandidateDispositionTypeField(fields.String):
         else:
             return 'UNKNOWN'
 
+
 class CreditReportDataAccountTypeField(fields.String):
     def format(self, value):
         if isinstance(value, CreditReportDataAccountType):
             return value.name
         else:
             return 'UNKNOWN'
+
 
 _credit_report_debt_model = {
     'debt_name': fields.String(required=True),
@@ -240,6 +264,21 @@ _credit_report_debt_model = {
     'graduation': fields.DateTime(),
     'last_update': fields.DateTime(),
     'client_id': fields.Integer(attribute='credit_report_account.client_id'),
+}
+
+_communication = {
+    'type': CommsTypeField(required=True),
+    'source_number': fields.Integer(required=True),
+    'destination_number': fields.Integer(required=False),
+    'outside_number': fields.Integer(required=False),
+    'receive_date': fields.DateTime(required=True),
+    'duration_seconds': fields.Integer(required=True),
+    'file_size_bytes': fields.Integer(required=True),
+    'file_bucket_name': fields.String(required=True),
+    'file_bucket_key': fields.String(required=True),
+    'inserted_on': fields.DateTime(required=True),
+    'updated_on': fields.DateTime(required=True),
+    'is_viewed': fields.Boolean(required=True),
 }
 
 
@@ -397,6 +436,8 @@ class ClientDto:
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
     })
+    communication = api.model('communication', _communication)
+
 
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
@@ -496,9 +537,9 @@ class LeadDto:
         'phone_type': fields.String(required=True, attribute="contact_number_type.name"),
         'phone_number': fields.String(required=True),
         'preferred': fields.Boolean(required=True, default=False)
-    }) 
-    lead_phone = api.model('lead_phone', { 
-        'contact_number': fields.Nested(contact_number), 
+    })
+    lead_phone = api.model('lead_phone', {
+        'contact_number': fields.Nested(contact_number),
     })
     co_client = api.model('co_client', {
         'first_name': fields.String(description='lead first name'),
@@ -507,7 +548,7 @@ class LeadDto:
         'middle_initial': fields.String(),
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
-        'ssn': fields.String(), 
+        'ssn': fields.String(),
         'estimated_debt': fields.Integer(description='client estimated_debt'),
         'language': fields.String(required=True, enum=Language._member_names_),
         'employment_status': fields.String(),
@@ -553,11 +594,12 @@ class LeadDto:
     })
 
     debt_payment_schedule = api.model('debt_payment_schedule', {
-        'due_date': DateFormatField(), 
+        'due_date': DateFormatField(),
         'amount': fields.Float(),
         'status': fields.String(attribute='status.name'),
         'contract': fields.Nested(debt_payment_contract),
     })
+    communication = api.model('communication', _communication)
 
 
 class CandidateImportStatusField(fields.String):
@@ -574,6 +616,7 @@ class CandidateStatusField(fields.String):
             return value.name
         else:
             return 'unknown'
+
 
 class CandidateDto:
     api = Namespace('candidates', description='candidate related operations')
@@ -756,6 +799,7 @@ class CandidateDto:
             'answer3': fields.String(required=True)
         }), required=True, skip_none=True)
     })
+    candidate_communication = api.model('communication', _communication)
 
 
 class ConfigDto:
@@ -814,6 +858,11 @@ class NotesDto:
     })
 
 
+class CommunicationDto:
+    api = Namespace('communications', description='Communication related operations')
+    communication = api.model('communication', _communication)
+
+
 class SmsDto:
     api = Namespace('sms', description='SMS related operations')
 
@@ -826,6 +875,7 @@ class SmsDto:
 
     })
 
+
 class TeamDto:
     api = Namespace('teams', description='Team Request related operations')
 
@@ -834,7 +884,7 @@ class TeamDto:
         'name': fields.String(attribute='full_name'),
         'disposition': fields.String(attribute='disposition.value')
     })
-     
+
     contract = api.model('debt_payment_contract', {
         'id': fields.Integer(),
         'term': fields.Integer(),
@@ -842,7 +892,7 @@ class TeamDto:
         'total_paid': fields.Float(),
         'num_term_paid': fields.Integer(attribute='num_inst_completed'),
         'client': fields.Nested(client),
-    }) 
+    })
 
     revision = api.model('debt_payment_contract_revision', {
         'method': fields.String(attribute='method.name'),
@@ -860,6 +910,7 @@ class TeamDto:
         'revision': fields.Nested(revision),
     });
 
+
 class TaskDto:
     api = Namespace('tasks', description='User Task related operations')
 
@@ -875,7 +926,7 @@ class TaskDto:
         'description': fields.String(),
         'requested_on': DateTimeFormatField(),
         'status': fields.String(attribute='status.name'),
-        'client': fields.Nested(client),   
+        'client': fields.Nested(client),
         'due_date': DateTimeFormatField(),
         'inserted_on': DateTimeFormatField(),
     });

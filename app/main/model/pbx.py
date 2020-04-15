@@ -26,6 +26,7 @@ class CommunicationType(enum.Enum):
 
 
 class TextCommunicationType(CommunicationType):
+    SMS = 'sms'
     FAX = 'fax'
 
 

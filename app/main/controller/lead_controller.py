@@ -2,12 +2,12 @@ from flask import request
 from flask_restplus import Resource
 
 from app.main.model.client import ClientType
-from app.main.model.debt_payment import ContractStatus
-from app.main.model.user import User
+from app.main.model.pbx import VoiceCommunicationType
 
 from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAllowed, 
     ServiceProviderError, ServiceProviderLockedError)
 from app.main.core.types import CustomerType
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_communications
 from ..util.dto import LeadDto, ClientDto
 from ..util.parsers import filter_request_parse
 from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_CODES_SALES_OVERRIDABLE
@@ -47,6 +47,7 @@ _update_lead_monthly_expense = ClientDto.update_client_monthly_expense
 _contact_number = ClientDto.contact_number
 _update_contact_number = ClientDto.update_contact_number
 _lead_address = ClientDto.client_address
+_communication = ClientDto.communication
 _update_lead_address = ClientDto.update_client_address
 _co_client = LeadDto.co_client
 _new_credit_report_account = LeadDto.new_credit_report_account
@@ -83,6 +84,7 @@ class LeadFilter(Resource):
         fargs = filter_request_parse(request)
         result =  client_filter(client_type=LEAD, **fargs)
         return result, 200
+
 
 @api.route('/new')
 class LeadNew(Resource):
@@ -158,6 +160,7 @@ class LeadIncomeSources(Resource):
             else:
                 return dict(success=True, **result), 200
 
+
 @api.route('/<lead_id>/contact_numbers')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Lead not found')
@@ -189,6 +192,7 @@ class LeadContactNumbers(Resource):
             else:
                 return dict(success=True, **result), 200
 
+
 @api.route('/<lead_id>/addresses')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Lead not found')
@@ -215,6 +219,40 @@ class LeadAddresses(Resource):
                 api.abort(500, err_msg)
             else:
                 return result, 200
+
+
+@api.route('/<lead_id>/communications')
+class LeadCommunications(Resource):
+    @api.marshal_list_with(_communication, envelope='data')
+    @api.param('_dt', 'Comma separated date fields to be filtered')
+    @api.param('_from', 'Start date of communications to query (YYYY-MM-DD)')
+    @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
+    @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
+    def get(self, lead_id):
+        """ Get all forms of communication for given client """
+        try:
+            lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+            if not lead:
+                api.abort(404, **error_response)
+            else:
+                filter = filter_request_parse(request)
+                comm_types_set = parse_communication_types(request)
+
+                date_range_filter(filter)
+
+                date_filter_fields = filter.get('dt_fields', [])
+                result = []
+                if any(isinstance(comm_type, VoiceCommunicationType) for comm_type in comm_types_set):
+
+                    lead_voice_comms = get_client_communications(lead, comm_types_set, date_filter_fields, filter)
+                    result = [record.voice_communication for record in lead_voice_comms]
+
+                # TODO: check if SMS communication is requested and add to the result
+
+                return result
+        except Exception as e:
+            api.abort(500, message=f'Failed to retrieve communication records for lead. Error: {e}', success=False)
+
 
 @api.route('/<lead_id>/monthly-expenses')
 @api.param('lead_id', 'Lead public identifier')
@@ -650,6 +688,7 @@ class CompleteCreditReportAccount(Resource):
         }
         return response_object, 200
 
+
 @api.route('/<lead_public_id>/credit-report/account/pull')
 @api.param('lead_public_id', 'Lead public ID')
 @api.response(404, 'Lead not found')
@@ -670,6 +709,7 @@ class CandidateToLead(Resource):
 
         return {"success": True, "message": "Successfully created job to pull Credit Report and import Debts. Check for new Debts in a few minutes."}, 200
 
+
 @api.route('/<public_id>/credit-report/push-debts')
 @api.param('public_id', 'The lead Identifier')
 @api.response(404, 'lead or credit report account does not exist')
@@ -681,6 +721,7 @@ class LeadCreditReportPushDebts(Resource):
         push_debts(request_data.get('data')['ids'], request_data.get('data')['push'])
         return dict(success=True), 200
 
+
 @api.route('/<public_id>/credit-report/update-debt')
 @api.param('public_id', 'The lead Identifier')
 @api.response(404, 'lead or credit report account does not exist')
@@ -691,6 +732,7 @@ class LeadCreditReportUpdateDebt(Resource):
         request_data = request.json
         update_debt(request_data.get('data')['debt_data'])
         return dict(success=True), 200
+
 
 @api.route('/<lead_id>/payment/bank_account')
 @api.param('lead_id', 'Lead public identifier')
@@ -716,6 +758,7 @@ class LeadBankAccount(Resource):
                 api.abort(500, **error)
             else:
                 return result, 200
+
 
 @api.route('/<lead_id>/coclient')
 @api.param('lead_id', 'Lead public identifier')
@@ -751,6 +794,7 @@ class LeadCoClient(Resource):
             except Exception:
                 api.abort(500, "Internal Server Error")
 
+
 @api.route('/<lead_id>/checklist')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Client not found')
@@ -781,6 +825,7 @@ class LeadChecklist(Resource):
                 return checklist
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
+
 
 @api.route('/<lead_id>/notification/prefs')
 @api.param('lead_id', 'Lead public identifier')
@@ -846,6 +891,7 @@ class LeadPaymentPlan(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
+
 @api.route('/<lead_id>/amendment/<plan_id>')
 @api.param('lead_id', 'Lead public identifier')
 @api.response(404, 'Client not found')
@@ -863,6 +909,7 @@ class LeadAmendmentPlanById(Resource):
                 return contract
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
+
 
 @api.route('/<lead_id>/amendment/plan')
 @api.response(404, 'Client not found')

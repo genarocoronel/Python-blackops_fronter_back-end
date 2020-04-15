@@ -7,6 +7,8 @@ from werkzeug.utils import secure_filename
 from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAllowed, 
     ServiceProviderError, ServiceProviderLockedError)
 from app.main.core.types import CustomerType
+from app.main.model.pbx import VoiceCommunicationType
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_candidate_communications
 from app.main.util.dto import CandidateDto
 from app.main.util.parsers import filter_request_parse
 from app.main.config import upload_location
@@ -39,6 +41,7 @@ _update_candidate_employment = CandidateDto.update_candidate_employment
 _update_candidate_number = CandidateDto.update_candidate_number
 _candidate_number = CandidateDto.candidate_number
 _candidate_income = CandidateDto.candidate_income
+_communication = CandidateDto.candidate_communication
 _update_candidate_income = CandidateDto.update_candidate_income
 _candidate_monthly_expense = CandidateDto.candidate_monthly_expense
 _update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
@@ -222,6 +225,39 @@ class CandidateContactNumbers(Resource):
                 return dict(success=True, **result), 200
 
 
+@api.route('/<candidate_id>/communications')
+class CandidateCommunications(Resource):
+    @api.marshal_list_with(_communication, envelope='data')
+    @api.param('_dt', 'Comma separated date fields to be filtered')
+    @api.param('_from', 'Start date of communications to query (YYYY-MM-DD)')
+    @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
+    @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
+    def get(self, candidate_id):
+        """ Get all forms of communication for given client """
+        try:
+            candidate, error_response = _handle_get_candidate(candidate_id)
+            if not candidate:
+                api.abort(404, **error_response)
+            else:
+                filter = filter_request_parse(request)
+                comm_types_set = parse_communication_types(request)
+
+                date_range_filter(filter)
+
+                date_filter_fields = filter.get('dt_fields', [])
+                result = []
+                if any(isinstance(comm_type, VoiceCommunicationType) for comm_type in comm_types_set):
+
+                    candidate_voice_comms = get_candidate_communications(candidate, comm_types_set, date_filter_fields, filter)
+                    result = [record.voice_communication for record in candidate_voice_comms]
+
+                # TODO: check if SMS communication is requested and add to the result
+
+                return result
+        except Exception as e:
+            api.abort(500, message=f'Failed to retrieve communication records for candidate. Error: {e}', success=False)
+
+
 @api.route('/upload')
 class CandidateUpload(Resource):
     @api.doc('create candidates from file')
@@ -354,6 +390,7 @@ class CreateCreditReportAccount(Resource):
         }        
         return response_object, 201
 
+
 @api.route('/<candidate_public_id>/credit-report/account/<public_id>')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('public_id', 'The Credit Report Account Identifier')
@@ -424,6 +461,7 @@ class UpdateCreditReportAccount(Resource):
         }
         return response_object, 200
 
+
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/security-questions')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
@@ -465,6 +503,7 @@ class CreditReportAccountSecurityQuestions(Resource):
             return response_object, 500
 
         return questions, 200
+
 
 @api.route('/<candidate_public_id>/credit-report/account/<public_id>/verification-questions')
 @api.param('candidate_public_id', 'The Candidate Identifier')
@@ -686,6 +725,7 @@ class CreditReportAccountPassword(Resource):
             }
         return response_object, 200
 
+
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/fraud-insurance/register')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
@@ -736,6 +776,7 @@ class CandidateFraudInsurance(Resource):
             'message': result
         }
         return response_object, 200
+
 
 @api.route('/<candidate_id>/employments')
 @api.param('candidate_id', 'Candidate public identifier')
