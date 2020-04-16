@@ -198,7 +198,7 @@ def synth_doc(doc):
         'file_name': doc.file_name,
         'doc_name': doc.doc_name,
         'source_channel': doc.source_channel,
-        'correspondence_date': doc.correspondence_date.strftime(correspondence_date_format),
+        'correspondence_date': doc.correspondence_date.strftime(correspondence_date_format) if doc.correspondence_date else None,
         'from_who': doc.from_who,
         'debt_name': doc.debt_name,
         'creditor_name': doc.creditor_name,
