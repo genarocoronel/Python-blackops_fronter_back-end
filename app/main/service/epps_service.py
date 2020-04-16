@@ -2,6 +2,7 @@ from zeep import Client as SoapClient
 from requests import Session
 from requests.auth import HTTPBasicAuth
 from zeep.transports import Transport
+from flask import current_app as app
 
 from lxml import etree
 import requests
@@ -321,12 +322,11 @@ class EftFee(object):
 
 class EppsClient(object):
     _WSDL_URL = "https://www.securpaycardportal.com/proxy/proxy.incoming/eftservice.asmx?wsdl"
-    _EPPS_UNAME = "TESTDSS_API"
-    _EPPS_PSWD = "TestDSS1216"
 
     def __init__(self):
         # initialize globals 
-        pass
+        self._EPPS_UNAME = app.config['EPPS_USERNAME']
+        self._EPPS_PSWD  = app.config['EPPS_PASSWORD']
 
     def connect(self):
         try:
@@ -336,7 +336,7 @@ class EppsClient(object):
             # change the binding address
             self._client.service._binding_options['address'] = self._WSDL_URL
         except Exception as err:
-            logging.warning('EPPS client connect issue')            
+            app.logger.warning('EPPS client connect issue {}'.format(str(err)))
 
     def _raw_request(self, service_name, kwargs):
         try:
@@ -346,23 +346,25 @@ class EppsClient(object):
             message = self._client.create_message(self._client.service, service_name, **kwargs)
             xml = etree.tostring(message)
             xml = xml.decode("utf-8")
-            print(xml)
+            # print(xml)
             headers = {'content-type': 'text/xml'}
             body = "<?xml version='1.0' encoding='UTF-8'?>{}".format(xml)
             response = requests.post(self._WSDL_URL, data=body, headers=headers)
-            print(response.text)
+            # print(response.text)
         except Exception as err:
-            logging.warning('EPPS client raw request issue ')
+            app.logger.warning('EPPS client raw request issue {}'.format(str(err)))
 
     def add_card_holder(self, card_holder):
         try:
             kwargs = card_holder.to_dict() 
             kwargs['UserName'] = self._EPPS_UNAME
             kwargs['PassWord'] = self._EPPS_PSWD
+            # print(kwargs)
             response = self._client.service.AddCardHolder(**kwargs) 
-            print(response)
+            # print(response)
         except Exception as err:
-            logging.warning("EppsClient add card issue")
+            app.logger.warning('EPPS client add card issue {}'.format(str(err)))
+
     """
     Update card holder 
     """
@@ -380,7 +382,7 @@ class EppsClient(object):
             response = self._client.service.UpdateCardHolder(**kwargs) 
             
         except Exception as err:
-            logging.warning("EppsClient update card issue")
+            app.logger.warning('EPPS client update card issue {}'.format(str(err)))
 
     """
     Response Statuses:
@@ -395,9 +397,9 @@ class EppsClient(object):
             kwargs = eft.to_dict() 
             kwargs['UserName'] = self._EPPS_UNAME
             kwargs['PassWord'] = self._EPPS_PSWD
-            print(kwargs)
+            # print(kwargs)
             response = self._client.service.AddEft(**kwargs)
-            print(response)
+            # print(response)
             if response['StatusCode'] is None:
                 eft.status = EftStatus.Failed
                 eft.message = response['Message']
@@ -409,8 +411,8 @@ class EppsClient(object):
             return eft
 
         except Exception as err:
-            print(str(err))
-            logging.warning("EppsClient register EFT issue")
+            # print(str(err))
+            app.logger.warning('EPPS client register EFT issue {}'.format(str(err)))
 
     """
     Find EFT by transaction
@@ -423,6 +425,7 @@ class EppsClient(object):
             kwargs['EFTTRansactionID'] = trans_id
             eft = Eft()
             response = self._client.service.FindEftByEFTTransactionID(**kwargs)
+            # print(response)
             if response['Message'] == 'Success':
                 eft.from_response(response)
             else:
@@ -431,7 +434,7 @@ class EppsClient(object):
             return eft
 
         except Exception as err:
-            logging.warning("EppsClient find EFT by transaction {}".format(str(err)))
+            app.logger.warning('EPPS client find EFT by transaction {}'.format(str(err)))
 
     """
     Find EFT by card holder id
@@ -452,7 +455,7 @@ class EppsClient(object):
             return eft
 
         except Exception as err:
-            logging.warning("EppsClient find EFT by holder {}".format(str(err)))
+            app.logger.warning('EPPS client find EFT by holder {}'.format(str(err)))
 
 
     # Add EFT fee
@@ -461,12 +464,12 @@ class EppsClient(object):
             kwargs = fee.to_dict()
             kwargs['UserName'] = self._EPPS_UNAME
             kwargs['PassWord'] = self._EPPS_PSWD
-            print(kwargs)
+            # print(kwargs)
             response = self._client.service.AddFee(**kwargs)
-            print(response)
+            # print(response)
 
         except Exception as err:
-            logging.warning("EppsClient Add Fee issue") 
+            app.logger.warning('EPPS client add fee issue {}'.format(str(err)))
         
 # test methods
     

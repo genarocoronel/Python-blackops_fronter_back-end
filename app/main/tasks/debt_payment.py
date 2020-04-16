@@ -17,14 +17,14 @@ API to register a customer with EPPS provider
 """
 def register_customer(client_id):
     try:
-        client = Client.query.filter_by(public_id=client_id).first()
+        client = Client.query.filter_by(id=client_id).first()
         if client is None:
             raise ValueError("Client not found")
  
+        ## client address
         client_address = Address.query.filter_by(client_id=client.id, type=AddressType.CURRENT).first()
         if client_address is None:
             raise ValueError("Client Address is not found")
-
         # fetch the phone numbers
         phone_numbers = {}
         client_contact_numbers = client.contact_numbers
@@ -33,8 +33,13 @@ def register_customer(client_id):
             number_type = ContactNumberType.query.filter_by(id=contact_number.contact_number_type_id).first()
             phone_numbers[number_type.name] = contact_number.phone_number
 
+        ## create a unique id
+        cid = '{:>07d}'.format(client.id)
+        cc_id = '222'
+        cardId = '{}{}'.format(cc_id, cid)
+
         card = CardHolder()
-        card.id = client.public_id
+        card.id = cardId
         card.first_name = client.first_name
         card.last_name = client.last_name
         card.dob = client.dob
@@ -75,19 +80,37 @@ def process_debt_payments():
         payments = DebtPaymentSchedule.query.filter(func.date(DebtPaymentSchedule.due_date)==due).all()
         for payment in payments:
             print(payment.id)
-            client = payment.client
+            contract = payment.contract
+            if not contract:
+                continue
+            client = contract.client
+            if not client:
+                continue
             bank_account = client.bank_account
+            if not bank_account:
+                continue
+
+            transaction = payment.transaction
+            if transaction and \
+              (transaction.status == EftStatus.Pending.value or transaction.status == EftStatus.Settled.value):
+                continue
+                 
+            ## create a unique id
+            cid = '{:>07d}'.format(client.id)
+            cc_id = '222'
+            cardId = '{}{}'.format(cc_id, cid)
             # EFT Request parameters
             eft = Eft() 	
-            eft.id = client.public_id
+            eft.id = cardId
             eft.date = payment.due_date
             eft.amount = payment.amount
             # EFT fee ??
             eft.fee = payment.amount
-            eft.bank_name = bank_account.name
-            if bank_account.city is not None:
+
+            eft.bank_name = bank_account.bank_name
+            if bank_account.city:
                 eft.bank_city = bank_account.city
-            if bank_account.state is not None:
+            if bank_account.state:
                 eft.bank_state = bank_account.state
             eft.account_no = bank_account.account_number
             eft.routing_no = bank_account.routing_number
@@ -106,18 +129,23 @@ def process_debt_payments():
                 trans_id = response.transaction_id
                 payment.status = DebtEftStatus.Settled
             else:
-                print("Successful EFT request")
-                print(response.status)
-                print(response.message)
+                # print(response.status)
+                # print(response.message)
                 trans_id = response.transaction_id
                 # update the payment schedule
                 payment.status = DebtEftStatus.Processed
 
-            transaction = DebtPaymentTransaction(trans_id=trans_id,
-                                                 status=response.status.value,
-                                                 message=response.message,
-                                                 payment_id=payment.id)
-            db.session.add(transaction)
+            if not transaction:
+                transaction = DebtPaymentTransaction(trans_id=trans_id,
+                                                     status=response.status.value,
+                                                     message=response.message,
+                                                     payment_id=payment.id)
+                db.session.add(transaction)
+            else:
+                transaction.trans_id = trans_id
+                transaction.status = response.status.value
+                transaction.message = response.message
+            
             db.session.commit()
                 
     except Exception as err:
@@ -135,12 +163,11 @@ def check_eft_status():
         
         # fetch all the EFT transactions
         payments = DebtPaymentSchedule.query.filter_by(status=DebtEftStatus.Processed).all()
-        if payments is None or len(payments) == 0:
-            return 
         for payment in payments:
             #fetch transaction
             print(payment.id)
-            for eft_transaction in payment.transactions:
+            eft_transaction = payment.transaction
+            if eft_transaction:
                 eft = epps_chnl.find_eft_by_transaction(eft_transaction.trans_id)
                 if eft.status.value != eft_transaction.status: 
                     eft_transaction.status = eft.status.value 
