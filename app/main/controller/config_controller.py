@@ -1,8 +1,8 @@
 from flask_restplus import Resource
 
 from app.main.core.errors import NotFoundError
-from app.main.service.config_service import get_contact_number_types, get_income_types, get_expense_types, \
-    get_all_candidates_dispositions, get_all_clients_dispositions
+from app.main.service.config_service import (get_contact_number_types, get_income_types, get_expense_types, 
+    get_all_candidates_dispositions, get_all_clients_dispositions, get_all_docproc_types)
 
 from ..util.dto import ConfigDto, CandidateDto, ClientDto, AuthDto
 from app.main.core.rac import RACMgr
@@ -15,6 +15,24 @@ _disposition = ConfigDto.disposition
 _candidate_dispositions = CandidateDto.candidate_dispositions
 _client_dispositions = ClientDto.client_dispositions
 _rac_roles = AuthDto.rac_roles
+_docproc_types = ConfigDto.docproc_types
+
+
+@api.route('/docproc-types')
+class DocprocTypes(Resource):
+    @api.doc('Get known Doc Process Types')
+    @api.marshal_list_with(_docproc_types, envelope='data')
+    def get(self):
+        """ Get all Doc process Types """
+        try:
+            types = get_all_docproc_types()
+        except NotFoundError as e:
+            api.abort(404, message='Error getting Doc Process types, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed get Doc Process types. Please report this issue.', success=False)    
+        
+        return types, 200
+
 
 @api.route('/rac-roles')
 class RacRoles(Resource):

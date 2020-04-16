@@ -92,6 +92,10 @@ def get_a_user(public_id):
     return User.query.filter_by(public_id=public_id).first()
 
 
+def get_user_by_id(id):
+    return User.query.filter_by(id=id).first()
+
+
 def get_user_by_mailbox_id(employee_mailbox_id: str):
     assert employee_mailbox_id is not None
 

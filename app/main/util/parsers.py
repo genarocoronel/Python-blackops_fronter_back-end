@@ -9,6 +9,13 @@ file_upload.add_argument('csv_file',
                          required=True,
                          help='CSV file')
 
+doc_upload = reqparse.RequestParser()
+doc_upload.add_argument('doc_file',
+                         type=werkzeug.datastructures.FileStorage,
+                         location='files',
+                         required=True,
+                         help='PDF, PNG, JPG, or GIF file')
+
 
 # utility api to parse generic filter arguments
 # @return dictionary of structured filter set
