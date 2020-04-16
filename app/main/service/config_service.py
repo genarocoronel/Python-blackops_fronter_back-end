@@ -4,6 +4,8 @@ from app.main.model.candidate import CandidateDisposition
 from app.main.model.client import ClientDisposition
 from app.main.model.monthly_expense import ExpenseType
 from app.main.model.pbx import PBXNumber
+from app.main.model.docproc import DocprocType
+from app.main.service.docproc_service import get_docproc_types
 
 
 def get_contact_number_types():
@@ -28,3 +30,7 @@ def get_all_clients_dispositions():
 
 def get_registered_pbx_numbers(enabled=True):
     return [pbx.number for pbx in PBXNumber.query.filter_by(enabled=enabled).all()]
+
+
+def get_all_docproc_types():
+    return get_docproc_types()

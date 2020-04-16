@@ -830,6 +830,12 @@ class ConfigDto:
         'value': fields.String(required=False),
         'description': fields.String(required=False),
     })
+    docproc_types = api.model('docproc_types', {
+        'public_id': fields.String(required=True),
+        'name': fields.String(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'updated_on': fields.DateTime(required=True),
+    })
 
 
 class TestAPIDto:
@@ -873,6 +879,78 @@ class SmsDto:
         'description': fields.String(required=False, example='Incoming message received'),
         'message': fields.String(required=False, example='a Provider message object'),
 
+    })
+
+
+class DocprocDto:
+    api = Namespace('docproc', description='Doc Process related operations')
+    doc_type = api.model('doc_type', {
+        'public_id': fields.String(required=False),
+        'name': fields.String(required=False)
+    })
+    doc_user = api.model('doc_user', {
+        'public_id': fields.String(required=False),
+        'username': fields.String(required=False)
+    })
+    doc_note = api.model('doc_note', {
+        'public_id': fields.String(required=False),
+        'content': fields.String(required=False),
+        'author': fields.Nested(doc_user),
+        'inserted_on': fields.DateTime(required=False),
+        'updated_on': fields.DateTime(required=False),
+    })
+    doc = api.model('doc', {
+        'public_id': fields.String(required=False),
+        'file_name': fields.String(required=False),
+        'doc_name': fields.String(required=False),
+        'source_channel': fields.String(required=False),
+        'type': fields.Nested(doc_type),
+        'correspondence_date': fields.String(required=False),
+        'from_who': fields.String(required=False),
+        'debt_name': fields.String(required=False),
+        'creditor_name': fields.String(required=False),
+        'collector_name': fields.String(required=False),
+        'status': fields.String(required=False),
+        'is_published': fields.Boolean(required=False),
+        'notes': fields.List(fields.Nested(doc_note)),
+        'client': fields.String(required=False),
+        'docproc_user': fields.Nested(doc_user),
+        'accmgr_user': fields.Nested(doc_user),
+        'inserted_on': fields.DateTime(required=False),
+        'created_by_username': fields.String(required=False),
+        'updated_on': fields.DateTime(required=False),
+        'updated_by_username': fields.String(required=False),
+    })
+    doc_assignment = api.model('doc_assignment', {
+        'public_id': fields.String(required=True, example='User ID such as c5feeae5-c0a3-4de7-8df0-0c6532a07d74')
+    })
+    doc_update = api.model('doc_update', {
+        'doc_name': fields.String(required=False),
+        'type': fields.Nested(doc_type),
+        'correspondence_date': fields.String(required=False, example='2020-04-15'),
+        'from_who': fields.String(required=False, example='Zoo, Collection Firm'),
+        'debt_name': fields.String(required=False, example='ZYZ Bank Visa'),
+        'creditor_name': fields.String(required=False, example='ZYZ Bank'),
+        'collector_name': fields.String(required=False, example='Zoo, Collection Firm'),
+        'status': fields.String(required=False),
+        'is_published': fields.Boolean(required=False)
+    })
+    doc_move = api.model('doc_move', {
+        'public_id': fields.String(required=True, example='Client ID such as c5feeae5-c0a3-4de7-8df0-0c6532a07d74')
+    })
+    doc_note_create = api.model('doc_note_create', {
+        'content': fields.String(required=True, example='This is a cool note for this Doc')
+    })
+    doc_upload = parsers.doc_upload
+    doc_create = api.model('doc_create', {
+        'source_channel': fields.String(required=True, example='One of: Mail, Fax, SMS, Email'),
+        'doc_name': fields.String(required=True, example='CITI Collection Letter'),
+        'type': fields.Nested(doc_type),
+        'correspondence_date': fields.String(required=False, example='2020-04-15'),
+        'from_who': fields.String(required=False, example='Some Collection Firm'),
+        'debt_name': fields.String(required=False, example='ZYZ Bank Visa'),
+        'creditor_name': fields.String(required=False, example='ZYZ Bank'),
+        'collector_name': fields.String(required=False, example='Zoo, Collection Firm')
     })
 
 
