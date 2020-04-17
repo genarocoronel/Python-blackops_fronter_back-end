@@ -156,15 +156,38 @@ class RACMgr():
         role_record = cls._handle_get_role_by_name(role_name)
         if role_record:
             return {
-                'id': role_record_item.public_id,
-                'name': role_record_item.name,
-                'name_friendly': role_record_item.name_friendly,
-                'description': role_record_item.description,
-                'inserted_on': role_record_item.inserted_on,
-                'updated_on': role_record_item.updated_on
+                'id': role_record.public_id,
+                'name': role_record.name,
+                'name_friendly': role_record.name_friendly,
+                'description': role_record.description,
+                'inserted_on': role_record.inserted_on,
+                'updated_on': role_record.updated_on
             }
         else:
             raise NotFoundError(f'That role {role} does not exist')
+
+    @classmethod
+    def get_role_record_by_name(cls, role_name):
+        return cls._handle_get_role_by_name(role_name)
+
+    @classmethod
+    def get_role_by_pubid(cls, pub_id):
+        role_record = cls._handle_get_role_by_pubid(pub_id)
+        if role_record:
+            return {
+                'id': role_record.public_id,
+                'name': role_record.name,
+                'name_friendly': role_record.name_friendly,
+                'description': role_record.description,
+                'inserted_on': role_record.inserted_on,
+                'updated_on': role_record.updated_on
+            }
+        else:
+            raise NotFoundError(f'That role {role} does not exist')
+
+    @classmethod
+    def get_role_record_by_pubid(cls, pub_id):
+        return cls._handle_get_role_by_pubid(pub_id)
     
     @classmethod
     def assign_role_to_user(cls, desired_role, user):
@@ -173,7 +196,6 @@ class RACMgr():
         user.role = desired_role_record
         return user
 
-
     @classmethod
     def _handle_get_roles(cls):
         return RACRole.query.all()
@@ -181,3 +203,7 @@ class RACMgr():
     @classmethod
     def _handle_get_role_by_name(cls, role_name):
         return RACRole.query.filter_by(name=role_name).first()
+
+    @classmethod
+    def _handle_get_role_by_pubid(cls, pub_id):
+        return RACRole.query.filter_by(public_id=pub_id).first()

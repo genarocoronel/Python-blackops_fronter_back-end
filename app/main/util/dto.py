@@ -164,6 +164,14 @@ class UserDto:
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
         'rac_role': fields.String(required=False, description='RAC Role')
     })
+    user_supressed = api.model('user_supressed', {
+        'public_id': fields.String(description='user identifier'),
+        'username': fields.String(required=True, description='user username'),
+        'first_name': fields.String(required=True, description='user first name'),
+        'last_name': fields.String(required=True, description='user last name'),
+        'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
+        'rac_role': fields.String(required=False, description='RAC Role')
+    })
 
 
 class AuthDto:

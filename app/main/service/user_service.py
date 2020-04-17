@@ -88,6 +88,16 @@ def get_all_users():
     return User.query.all()
 
 
+def get_all_users_by_rolename(rac_role_name):
+    role = RACMgr.get_role_record_by_name(rac_role_name)
+    return User.query.filter_by(role=role).all()
+
+
+def get_all_users_by_role_pubid(role_pub_id):
+    role = RACMgr.get_role_record_by_pubid(role_pub_id)
+    return User.query.filter_by(role=role).all()
+
+
 def get_a_user(public_id):
     return User.query.filter_by(public_id=public_id).first()
 

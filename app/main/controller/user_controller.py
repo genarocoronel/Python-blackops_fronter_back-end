@@ -7,10 +7,12 @@ from ..util.decorator import (token_required, enforce_rac_policy,
 from ..util.dto import UserDto
 from ..core.auth import Auth
 from ..core.rac import RACRoles
-from ..service.user_service import save_new_user, get_all_users, get_a_user, update_user
+from ..service.user_service import (save_new_user, get_all_users, get_a_user, 
+    update_user, get_all_users_by_role_pubid)
 
 api = UserDto.api
 _user = UserDto.user
+_user_supressed = UserDto.user_supressed
 _new_user = UserDto.new_user
 _update_user = UserDto.update_user
 
@@ -57,6 +59,31 @@ class UserList(Resource):
                 'phone_number': user_record_item.personal_phone,
                 'personal_phone': user_record_item.personal_phone,
                 'last_4_of_phone': user_record_item.personal_phone[-4:],
+                'voip_route_number': user_record_item.voip_route_number,
+                'rac_role': user_record_item.role.name
+            }
+            users.append(tmp_user)
+
+        return users
+
+@api.route('/members/<role_pub_id>')
+@api.param('role_pub_id', 'RAC Role public ID')
+class UsersRoleMembers(Resource):
+    @api.doc('Get users that are members of a RAC Role')
+    @api.marshal_with(_user_supressed, envelope='data')
+    @token_required
+    def get(self, role_pub_id):
+        """ Get all users (supressed) by RAC role membership """
+        users = []
+
+        user_records = get_all_users_by_role_pubid(role_pub_id)
+        for user_record_item in user_records:
+            tmp_user = {
+                'public_id': user_record_item.public_id,
+                'username': user_record_item.username,
+                'first_name': user_record_item.first_name,
+                'last_name': user_record_item.last_name,
+                'language': user_record_item.language,
                 'voip_route_number': user_record_item.voip_route_number,
                 'rac_role': user_record_item.role.name
             }
