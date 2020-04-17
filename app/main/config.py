@@ -15,6 +15,7 @@ class Config:
 
     S3_BUCKET_VOICEMAIL = os.environ.get('S3_BUCKET_VOICEMAIL', 'dev-voicemails')
     S3_BUCKET_FAX = os.environ.get('S3_BUCKET_FAX', 'dev-faxes')
+    S3_BUCKET_DOCPROC = os.environ.get('S3_BUCKET_DOCPROC', 'dev-docproc')
 
     JIVE_QUEUE_URL = os.environ.get('JIVE_QUEUE_URL', 'https://sqs.us-west-2.amazonaws.com/450101876349/jive')
 
