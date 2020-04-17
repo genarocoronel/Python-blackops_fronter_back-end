@@ -4,17 +4,19 @@ import time
 import datetime
 
 from werkzeug.utils import secure_filename
-from flask import g, send_from_directory
-from flask import current_app as app
+from flask import g, send_from_directory, after_this_request, current_app as app
 
 from app.main.core.errors import BadRequestError, NotFoundError
 from app.main.core.rac import RACRoles
+from app.main.core.io import (save_file, stream_file, delete_file, generate_secure_filename, 
+    get_extension_for_filename, get_mime_from_extension)
 from app.main.config import upload_location
 from app.main import db
 from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus, 
     DocprocNote, Docproc)
 from app.main.service.user_service import get_user_by_id, get_request_user
 from app.main.service.client_service import get_client_by_id
+from app.main.service.third_party.aws_service import upload_to_docproc, download_from_docproc
 
 ALLOWED_DOC_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
@@ -97,46 +99,40 @@ def allowed_doc_file_kinds(filename):
 
 def attach_file_to_doc(doc, file):
     """ Saves and attaches a File to a Doc """
-    orig_filename = secure_filename(file.filename)
-    filename_part, fileext_part = os.path.splitext(orig_filename)
+    orig_filename = generate_secure_filename(file.filename)
+    fileext_part = get_extension_for_filename(orig_filename)
     ms = time.time()
-    safe_filename = 'docproc_{}_{}{}'.format(doc.public_id, ms, fileext_part)
-    #TODO - Refactor for storing to AWS S3 bucket
-    file_path = os.path.join(upload_location, safe_filename)
-    file.save(file_path)
+    unique_filename = 'docproc_{}_{}{}'.format(doc.public_id, ms, fileext_part)
+    secure_filename, secure_file_path = save_file(file, unique_filename, upload_location)
 
-    return update_doc(doc, dict(file_name=safe_filename, orig_file_name=orig_filename))
+    @after_this_request
+    def cleanup(resp):
+        # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
+        delete_file(secure_file_path)
+        return resp
+
+    # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
+    upload_to_docproc(secure_file_path, secure_filename)
+
+    return update_doc(doc, dict(file_name=secure_filename, orig_file_name=orig_filename))
 
 
 def stream_doc_file(doc):
-    extension = get_file_extension(doc.file_name)    
-    mime = get_mime_from_extension(extension)
+    """ Streams File associated with Doc """
+    file_ext = get_extension_for_filename(doc.file_name)
+    mime = get_mime_from_extension(file_ext)
+    filepath = os.path.join(upload_location, doc.file_name)
 
-    # TODO - Refactor for streaming from AWS S3 bucket
-    return send_from_directory(upload_location, filename=doc.file_name, as_attachment=False, mimetype=mime)
-    
+    @after_this_request
+    def cleanup(resp):
+        # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
+        delete_file(filepath)
+        return resp
 
-def get_mime_from_extension(extension):
-    mime = None
-    if extension in ('.jpg', '.jpeg'):
-        mime = 'image/jpeg'
-    elif extension == '.png':
-        mime = 'image/png'
-    elif extension == '.gif':
-        mime == 'image/gif'
-    elif extension == '.pdf':
-        mime == 'application/pdf'
+    # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
+    download_from_docproc(doc.file_name, filepath)
 
-    return mime
-
-
-def get_doc_file_uri(doc):
-    return os.path.join(upload_location, doc.file_name)
-
-
-def get_file_extension(filename):
-    _, fileext_part = os.path.splitext(filename)
-    return fileext_part
+    return stream_file(upload_location, doc.file_name, as_attachment=False, mimetype=mime)
 
 
 def create_doc_manual(data):
