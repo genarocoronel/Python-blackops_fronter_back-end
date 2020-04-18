@@ -900,6 +900,12 @@ class DocprocDto:
         'public_id': fields.String(required=False),
         'username': fields.String(required=False)
     })
+    doc_client = api.model('doc_client', {
+        'public_id': fields.String(required=False),
+        'first_name': fields.String(required=False),
+        'last_name': fields.String(required=False),
+        'status':  fields.String(required=False),
+    })
     doc_note = api.model('doc_note', {
         'public_id': fields.String(required=False),
         'content': fields.String(required=False),
@@ -921,7 +927,7 @@ class DocprocDto:
         'status': fields.String(required=False),
         'is_published': fields.Boolean(required=False),
         'notes': fields.List(fields.Nested(doc_note)),
-        'client': fields.String(required=False),
+        'client': fields.Nested(doc_client),
         'docproc_user': fields.Nested(doc_user),
         'accmgr_user': fields.Nested(doc_user),
         'inserted_on': fields.DateTime(required=False),
