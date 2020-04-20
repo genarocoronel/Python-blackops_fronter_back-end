@@ -501,7 +501,8 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                     query = query.filter(and_(*_and_filts))
 
         # datetime fields
-        query = build_query_from_dates(query, from_date, to_date, Candidate, *dt_fields)
+        if dt_fields is not None:
+            query = build_query_from_dates(query, from_date, to_date, Candidate, *dt_fields)
 
         # Numeric fields
         if numeric_fields is not None:
