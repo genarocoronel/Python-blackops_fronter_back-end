@@ -131,6 +131,17 @@ class Auth():
             }
             return response_object, 401
 
+    @staticmethod  
+    def get_user_from_token(auth_token):
+        if auth_token and len(auth_token) > 0:     
+            key = Auth.decode_auth_token(auth_token)
+            if not isinstance(key, str): 
+                user = User.query.filter_by(id=key).first()
+                return user
+
+        return None
+
+
     @staticmethod
     def request_reset_password(data):
         try:
