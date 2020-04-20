@@ -935,8 +935,12 @@ class DocprocDto:
         'updated_on': fields.DateTime(required=False),
         'updated_by_username': fields.String(required=False),
     })
-    doc_assignment = api.model('doc_assignment', {
-        'public_id': fields.String(required=True, example='User ID such as c5feeae5-c0a3-4de7-8df0-0c6532a07d74')
+    doc_assign = api.model('doc_assign', {
+        'public_id': fields.String(required=True, example='Doc public ID such as 39seeae5-c0a3-4de7-8df0-0c6532a07j41'),
+    })
+    doc_multiassignment = api.model('doc_multiassignment', {
+        'assignee_public_id': fields.String(required=True, example='User ID such as c5feeae5-c0a3-4de7-8df0-0c6532a07d74'),
+        'docs': fields.List(fields.Nested(doc_assign))
     })
     doc_update = api.model('doc_update', {
         'doc_name': fields.String(required=False),
