@@ -5,7 +5,7 @@ from app.main.util.dto import DocprocDto
 from app.main.util.decorator import (token_required, enforce_rac_policy, enforce_rac_required_roles)
 from app.main.core.errors import BadRequestError, NotFoundError
 from app.main.core.rac import RACRoles
-from app.main.service.docproc_service import (get_all_docs, get_doc_by_pubid, assign_for_processing, 
+from app.main.service.docproc_service import (get_all_docs, get_doc_by_pubid, multiassign_for_processing, 
     update_doc, move_to_client_dossier, create_doc_note, allowed_doc_file_kinds, attach_file_to_doc,
     create_doc_manual, stream_doc_file)
 from app.main.service.user_service import get_a_user
@@ -15,7 +15,7 @@ from flask import current_app as app
 api = DocprocDto.api
 _doc = DocprocDto.doc
 _doc_create = DocprocDto.doc_create
-_doc_assignment = DocprocDto.doc_assignment
+_doc_multiassignment = DocprocDto.doc_multiassignment
 _doc_update = DocprocDto.doc_update
 _doc_move = DocprocDto.doc_move
 _doc_note_create = DocprocDto.doc_note_create
@@ -54,36 +54,38 @@ class Doc(Resource):
         return get_all_docs()
 
 
-@api.route('/<doc_public_id>/assign/')
-@api.param('doc_public_id', 'Doc public ID')
+@api.route('/multiassign/')
 class DocAssign(Resource):    
-    @api.doc('Assigns a Doc to a Doc Processor user')
-    @api.expect(_doc_assignment, validate=True)
+    @api.doc('Assigns Docs to a Doc Processor user')
+    @api.expect(_doc_multiassignment, validate=True)
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR])
-    def put(self, doc_public_id):
-        """ Assigns a Doc to a Doc Processor user """
+    def put(self):
+        """ Assigns Docs to a Doc Processor user """
         request_data = request.json
 
-        doc = get_doc_by_pubid(doc_public_id)
-        if not doc:
-            api.abort(404, message='That Doc could not be found.', success=False)
-
-        docproc_user = get_a_user(request_data['public_id'])
+        docproc_user = get_a_user(request_data['assignee_public_id'])
         if not docproc_user:
             api.abort(404, message='That Doc Processor Rep could not be found.', success=False)
         
+        docs_to_assign = [];
+        for doc_item in request_data['docs']:
+            tmp_doc = get_doc_by_pubid(doc_item['public_id'])
+            if not tmp_doc:
+                api.abort(404, message=f"That Doc with ID {request_data['docs']['public_id']} could not be found.", success=False)
+            docs_to_assign.append(tmp_doc)
+        
         try:
-            updated_doc = assign_for_processing(doc, docproc_user)
+            updated_docs = multiassign_for_processing(docs_to_assign, docproc_user)
 
         except BadRequestError as e:
             api.abort(400, message='Error assigning Doc to Doc Processor, {}'.format(str(e)), success=False)
         except NotFoundError as e:
             api.abort(404, message='Error assigning Doc to Doc Processor, {}'.format(str(e)), success=False)
         except Exception as e:
-            api.abort(500, message=f'Failed to assigning Doc with ID {doc_public_id} to Doc Processor with ID {request_data["public_id"]}', success=False)
+            api.abort(500, message=f'Failed to assigning one or more Docs to Doc Processor with ID {request_data["public_id"]}', success=False)
         
-        return updated_doc, 200
+        return updated_docs, 200
 
 
 @api.route('/<doc_public_id>/')

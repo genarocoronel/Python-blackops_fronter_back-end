@@ -52,16 +52,23 @@ def get_doctype_by_pubid(public_id):
     return DocprocType.query.filter_by(public_id=public_id).first()
 
 
-def assign_for_processing(doc, docproc_user):
-    """ Assigns a Doc to a User for processing """
+def multiassign_for_processing(docs_to_assign, docproc_user):
+    """ Assigns Docs to a User for processing """
+    docs_to_assign_synth = []
+    print(f'User ID is: {docproc_user.id}')
+
     if docproc_user.role.name != RACRoles.DOC_PROCESS_REP.value:
         raise BadRequestError(f'Assignee user must be a member of the Doc Process Role')
+    
+    for doc_item in docs_to_assign:
+        doc_item.docproc_user_id = docproc_user.id
+        db.session.add(doc_item)
+        doc_item_synth = synth_doc(doc_item)
+        docs_to_assign_synth.append(doc_item_synth)
 
-    doc.docproc_user_id = docproc_user.id
-    db.session.add(doc)
     _save_changes()
 
-    return synth_doc(doc)
+    return docs_to_assign_synth
 
 
 def move_to_client_dossier(doc, client):
