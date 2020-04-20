@@ -8,7 +8,7 @@ from flask_script import Manager
 from flask import current_app
 
 from app import blueprint
-from app.main import create_app, db
+from app.main import create_app, db, wscomm
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.seed.admins import create_super_admin
 
@@ -57,11 +57,14 @@ def seed():
     seed_team_request_types()
     seed_docproc_types()
 
-
+## launching development server
+## uses eventlet library for websocket support
+## Werkzueg run is replaced with SocketIO run  
 @manager.command
 def run():
-    app.run(host='0.0.0.0')
-
+    # app.run(host='0.0.0.0')
+    wscomm.run(app, host='0.0.0.0', port=5000)
+   
 
 @manager.command
 def encrypt_string(password):

@@ -284,6 +284,20 @@ class DocuSign(object):
         except Exception as err: 
             print("Error in envelopes status {}".format(str(err)))
 
+    def download_documents(self, envelope_id):
+        try:
+            envelope_api = EnvelopesApi(self._client)
+            docs_result = envelope_api.list_documents(self._ACCOUNT_ID, envelope_id=envelope_id)
+            for env_doc in docs_result.envelope_documents:
+                #print(env_doc.name)
+                #print(env_doc.uri)
+                doc_file = envelope_api.get_document(self._ACCOUNT_ID, env_doc.document_id, envelope_id=envelope_id)
+                #print(doc_file)
+            
+
+        except Exception as err:
+            print("Error in download documents {}".format(str(err)))
+
     """
     Fetch template details from the docuserver
     """
