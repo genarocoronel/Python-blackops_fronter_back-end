@@ -473,12 +473,13 @@ def fetch_payment_schedule(client):
     result = []
 
     # fetch the active contract
-    active_contract = DebtPaymentContract.query.filter_by(status=ContractStatus.ACTIVE).first()
+    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                          status=ContractStatus.ACTIVE).first()
     # not an error scenario
     if active_contract is None:
         return result
 
-    initial_contract = DebtPaymentContract.query.filter_by(status=ContractStatus.REPLACED)\
+    initial_contract = DebtPaymentContract.query.filter_by(client_id=client.id, status=ContractStatus.REPLACED)\
                                                 .order_by(asc(DebtPaymentContract.id)).first()
     if initial_contract is None:
         initial_contract = active_contract
@@ -508,7 +509,8 @@ def fetch_payment_schedule(client):
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
     # error ?
     if len(records) == 0:
-        raise ValueError('Payment Schecule not found')
+        # raise ValueError('Payment Schecule not found')
+        return []
 
     index = 0
     balance = total_fee

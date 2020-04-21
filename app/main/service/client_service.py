@@ -33,6 +33,7 @@ def save_new_client(data, client_type=ClientType.lead):
         estimated_debt=total_debt,
         language=data.get('language'),
         ssn=data.get('ssn'),
+        dob=data.get('dob'),
         type=client_type,
         inserted_on=datetime.datetime.utcnow()
     )

@@ -435,6 +435,26 @@ class EppsClient(object):
 
         except Exception as err:
             app.logger.warning('EPPS client find EFT by transaction {}'.format(str(err)))
+   
+    """
+    Remove EFT
+    """
+    def remove_eft(self, trans_id):
+        try:
+            kwargs = {}
+            kwargs['UserName'] = self._EPPS_UNAME
+            kwargs['PassWord'] = self._EPPS_PSWD
+            kwargs['EftTransactionID'] = trans_id
+            eft = Eft()
+            response = self._client.service.VoidEft(**kwargs)
+            #print(response)
+            if response['Message'] == 'Success':
+                return True      
+
+        except Exception as err:
+            app.logger.warning('EPPS remove EFT {}'.format(str(err)))
+
+        return False
 
     """
     Find EFT by card holder id

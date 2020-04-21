@@ -151,6 +151,19 @@ def process_debt_payments():
     except Exception as err:
         logging.warning("Add EFT task issue {}".format(str(err)))
 
+def delete_eft(payment_schedule_id):
+    try:
+        epps_chnl = EppsClient()
+        epps_chnl.connect()
+        payment_record = DebtPaymentSchedule.query.filter_by(id=payment_schedule_id).first()
+        if payment_record:
+            eft_transaction = payment_record.transaction
+            if eft_transaction:
+                result = epps_chnl.remove_eft(eft_transaction.trans_id)
+
+    except Exception as err:
+        logging.warning("Delete EFT task issue {}".format(str(err)))
+
 """
 task routine to check the status of EFTs send to EPPS
 @@params None
@@ -164,8 +177,8 @@ def check_eft_status():
         # fetch all the EFT transactions
         payments = DebtPaymentSchedule.query.filter_by(status=DebtEftStatus.Processed).all()
         for payment in payments:
+            contract = payment.contract
             #fetch transaction
-            print(payment.id)
             eft_transaction = payment.transaction
             if eft_transaction:
                 eft = epps_chnl.find_eft_by_transaction(eft_transaction.trans_id)
@@ -175,10 +188,16 @@ def check_eft_status():
                     eft_transaction.message = eft.message
                     if eft.status == EftStatus.Failed or eft.status == EftStatus.Error:
                         payment.status = DebtEftStatus.Failed
-                    elif eft.status == EftStatus.Settled:
-                        payment.status = DebtEftStatus.Settled
+                        # reset the paid counters
+                        contract.num_inst_completed = contract.num_inst_completed - 1
+                        contract.total_paid = contract.total_paid - payment.amount
                     elif eft.status == EftStatus.Returned or eft.status == EftStatus.Voided:
                         payment.status = DebtEftStatus.Failed
+                        # reset the paid counters
+                        contract.num_inst_completed = contract.num_inst_completed - 1
+                        contract.total_paid = contract.total_paid - payment.amount
+                    elif eft.status == EftStatus.Settled:
+                        payment.status = DebtEftStatus.Settled
                       
             # db session commit
             db.session.commit()
