@@ -890,6 +890,29 @@ class SmsDto:
     })
 
 
+class CollectorDto:
+    api = Namespace('collectors', description='')
+
+    collector = api.model('collector', {
+        'public_id': fields.String(required=False),
+        'name': fields.String(required=False),
+        'phone': fields.String(required=False),
+        'fax': fields.String(required=False),
+        'address': fields.String(required=False),
+        'city': fields.String(required=False),
+        'state': fields.String(required=False),
+        'zip_code': fields.String(required=False),
+    })
+    collector_create = api.model('doc_create', {
+        'name': fields.String(required=True),
+        'phone': fields.String(required=False),
+        'fax': fields.String(required=False),
+        'address': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'zip_code': fields.String(required=False),
+    })
+
 class DocprocDto:
     api = Namespace('docproc', description='Doc Process related operations')
     doc_type = api.model('doc_type', {
