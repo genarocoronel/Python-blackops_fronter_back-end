@@ -280,12 +280,12 @@ _communication = {
     'destination_number': fields.Integer(required=False),
     'outside_number': fields.Integer(required=False),
     'receive_date': fields.DateTime(required=True),
-    'duration_seconds': fields.Integer(required=True),
-    'file_size_bytes': fields.Integer(required=True),
-    'file_bucket_name': fields.String(required=True),
-    'file_bucket_key': fields.String(required=True),
+    'body_text': fields.String(required=False),
+    'duration_seconds': fields.Integer(required=False),
+    'file_size_bytes': fields.Integer(required=False),
+    'file_bucket_name': fields.String(required=False),
+    'file_bucket_key': fields.String(required=False),
     'inserted_on': fields.DateTime(required=True),
-    'updated_on': fields.DateTime(required=True),
     'is_viewed': fields.Boolean(required=True),
 }
 
@@ -296,6 +296,7 @@ class EmploymentStatusField(fields.String):
             return value.name
         else:
             return 'unknown'
+
 
 class CreditReportAccountStatusField(fields.String):
     def format(self, value):
