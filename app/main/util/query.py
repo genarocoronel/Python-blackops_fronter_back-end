@@ -20,7 +20,8 @@ def build_query_from_dates(query: orm.Query, from_date: datetime.datetime, to_da
 
     for field in fields or ():
         column = getattr(model, field, None)
-        assert column, f'column \'{field}\' is invalid'
+        if column is None:
+            continue
 
         if from_date is not None and to_date is not None:
             query = query.filter(and_(column >= from_date, column <= to_date))
