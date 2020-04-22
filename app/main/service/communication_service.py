@@ -1,16 +1,55 @@
 import datetime
 import enum
 import itertools
-from typing import Union, List
+from dataclasses import dataclass
+from typing import Union, List, AbstractSet, Mapping, Any
 
 from sqlalchemy import or_
 
 from app.main.model.candidate import CandidateVoiceCommunication, Candidate
 from app.main.model.client import ClientVoiceCommunication, Client
-from app.main.model.pbx import VoiceCommunicationType, TextCommunicationType, VoiceCommunication
+from app.main.model.pbx import VoiceCommunicationType, TextCommunicationType, VoiceCommunication, CommunicationType
+from app.main.model.sms import SMSMessage, SMSConvo
 from app.main.util.query import build_query_from_dates
 
 PAST_DAYS = -7
+
+
+@dataclass
+class TextMessage:
+    type: TextCommunicationType
+    source_number: int
+    destination_number: int
+    outside_number: int
+    body_text: str
+    receive_date: datetime.datetime
+    inserted_on: datetime.datetime
+    is_viewed: bool
+
+
+def _normalize_sms_comms(sms_comms: List[SMSMessage]):
+    comms = []
+    for sms in sms_comms:
+        if sms.direction == 'in':
+            source_number = sms.from_phone
+            outside_number = sms.from_phone
+            dest_number = sms.to_phone
+        else:
+            source_number = sms.to_phone
+            dest_number = sms.from_phone
+            outside_number = sms.from_phone
+
+        comms.append(TextMessage(**{
+            'type': TextCommunicationType.SMS,
+            'source_number': source_number,
+            'destination_number': dest_number,
+            'outside_number': outside_number,
+            'body_text': sms.body_text,
+            'receive_date': sms.inserted_on,
+            'inserted_on': sms.inserted_on,
+            'is_viewed': sms.is_viewed
+        }))
+    return comms
 
 
 class CommTypeMapping(enum.Enum):
@@ -26,7 +65,13 @@ def parse_communication_types(request):
     return types_set
 
 
-def get_client_communications(clients: Union[Client, List[Client]], comm_types_set, date_filter_fields, filter):
+def get_client_voice_communications(clients: Union[Client, List[Client]],
+                                    comm_types_set: AbstractSet[CommunicationType],
+                                    date_filter_fields: List[str],
+                                    request_filter: Mapping[str, Any]):
+    if not clients:
+        return []
+
     client_comms_filter = ClientVoiceCommunication.query.join(VoiceCommunication)
 
     if isinstance(clients, list):
@@ -34,7 +79,8 @@ def get_client_communications(clients: Union[Client, List[Client]], comm_types_s
     else:
         client_comms_filter = client_comms_filter.filter(Client.id == clients.id)
 
-    client_comms_filter = build_query_from_dates(client_comms_filter, filter['from_date'], filter['to_date'], VoiceCommunication,
+    client_comms_filter = build_query_from_dates(client_comms_filter, request_filter['from_date'], request_filter['to_date'],
+                                                 VoiceCommunication,
                                                  *date_filter_fields)
     client_comms_filter = client_comms_filter.filter(or_(
         VoiceCommunication.type == comm_type for comm_type in comm_types_set if isinstance(comm_type, VoiceCommunicationType))
@@ -43,7 +89,13 @@ def get_client_communications(clients: Union[Client, List[Client]], comm_types_s
     return client_voice_comms
 
 
-def get_candidate_communications(candidates: Union[Candidate, List[Candidate]], comm_types_set, date_filter_fields, filter):
+def get_candidate_voice_communications(candidates: Union[Candidate, List[Candidate]],
+                                       comm_types_set: AbstractSet[CommunicationType],
+                                       date_filter_fields: List[str],
+                                       request_filter: Mapping[str, Any]):
+    if not candidates:
+        return []
+
     candidate_comms_filter = CandidateVoiceCommunication.query.join(VoiceCommunication)
 
     if isinstance(candidates, list):
@@ -52,7 +104,7 @@ def get_candidate_communications(candidates: Union[Candidate, List[Candidate]], 
     else:
         candidate_comms_filter = candidate_comms_filter.filter(Candidate.id == candidates.id)
 
-    candidate_comms_filter = build_query_from_dates(candidate_comms_filter, filter['from_date'], filter['to_date'],
+    candidate_comms_filter = build_query_from_dates(candidate_comms_filter, request_filter['from_date'], request_filter['to_date'],
                                                     VoiceCommunication,
                                                     *date_filter_fields)
     candidate_comms_filter = candidate_comms_filter.filter(or_(
@@ -62,14 +114,76 @@ def get_candidate_communications(candidates: Union[Candidate, List[Candidate]], 
     return candidate_voice_comms
 
 
-def date_range_filter(filter):
+def get_candidate_sms_communications(candidates: Union[Candidate, List[Candidate]],
+                                     date_filter_fields: List[str],
+                                     request_filter: Mapping[str, Any]):
+    if not candidates:
+        return []
+
+    candidate_comms_filter = SMSMessage.query.join(SMSConvo)
+
+    if isinstance(candidates, list):
+        candidate_comms_filter = candidate_comms_filter.filter(
+            or_(SMSConvo.candidate_id == candidate.id for candidate in candidates))
+    else:
+        candidate_comms_filter = candidate_comms_filter.filter(SMSConvo.candidate_id == candidates.id)
+
+    candidate_comms_filter = build_query_from_dates(candidate_comms_filter, request_filter['from_date'], request_filter['to_date'],
+                                                    SMSMessage,
+                                                    *date_filter_fields)
+
+    candidate_sms_comms = candidate_comms_filter.all()
+    return candidate_sms_comms
+
+
+def get_client_sms_communications(clients: Union[Client, List[Client]],
+                                  date_filter_fields: List[str],
+                                  request_filter: Mapping[str, Any]):
+    if not clients:
+        return []
+
+    client_comms_filter = SMSMessage.query.join(SMSConvo)
+
+    if isinstance(clients, list):
+        client_comms_filter = client_comms_filter.filter(
+            or_(SMSConvo.client_id == client.id for client in clients))
+    else:
+        client_comms_filter = client_comms_filter.filter(SMSConvo.client_id == clients.id)
+
+    client_comms_filter = build_query_from_dates(client_comms_filter, request_filter['from_date'], request_filter['to_date'],
+                                                 SMSMessage,
+                                                 *date_filter_fields)
+
+    client_sms_comms = client_comms_filter.all()
+    return client_sms_comms
+
+
+def date_range_filter(request_filter):
     # default from_date if not present
-    if 'from_date' not in filter:
+    if 'from_date' not in request_filter:
         seven_days_ago = datetime.datetime.utcnow() + datetime.timedelta(days=PAST_DAYS)
         from_date = datetime.datetime(seven_days_ago.year, seven_days_ago.month, seven_days_ago.day, 0, 0, 0, 0,
                                       tzinfo=datetime.timezone.utc)
-        filter['from_date'] = from_date
+        request_filter['from_date'] = from_date
 
     # default to_date if not present
-    if 'to_date' not in filter:
-        filter['to_date'] = None
+    if 'to_date' not in request_filter:
+        request_filter['to_date'] = None
+
+
+def get_communication_records(request_filter: Mapping[str, Any],
+                              comm_types_set: AbstractSet[CommunicationType],
+                              candidates: Union[Candidate, List[Candidate]] = [],
+                              clients: Union[Client, List[Client]] = [],
+                              date_filter_fields: List[str] = {}):
+    result = []
+    if any(isinstance(comm_type, VoiceCommunicationType) for comm_type in comm_types_set):
+        candidate_voice_comms = get_candidate_voice_communications(candidates, comm_types_set, date_filter_fields, request_filter)
+        client_voice_comms = get_client_voice_communications(clients, comm_types_set, date_filter_fields, request_filter)
+        result.extend([record.voice_communication for record in candidate_voice_comms + client_voice_comms])
+
+    if any(isinstance(comm_type, TextCommunicationType) for comm_type in comm_types_set):
+        candidate_sms_comms = _normalize_sms_comms(get_candidate_sms_communications(candidates, date_filter_fields, request_filter))
+        client_sms_comms = _normalize_sms_comms(get_client_sms_communications(clients, date_filter_fields, request_filter))
+        result.extend([record for record in candidate_sms_comms + client_sms_comms])
+    return result

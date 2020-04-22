@@ -1,28 +1,28 @@
+from flask import current_app as app
 from flask import request
 from flask_restplus import Resource
 
-from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAllowed, 
-    ServiceProviderError, ServiceProviderLockedError)
-from app.main.core.types import CustomerType
-from app.main.model.pbx import VoiceCommunicationType
-from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_communications
-from app.main.util.parsers import filter_request_parse
-from ..util.dto import ClientDto, AppointmentDto
-from ..util.decorator import token_required
 from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
+from app.main.core.errors import (BadRequestError, NotFoundError, ServiceProviderError, ServiceProviderLockedError)
+from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
-from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments,
-    update_client, get_client_employments, update_client_employments, get_client_income_sources, 
-    update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, save_changes, 
-    update_client_addresses, get_client_addresses, get_client_contact_numbers, update_client_contact_numbers)
+                                             update_client, get_client_employments, update_client_employments, get_client_income_sources,
+                                             update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
+                                             update_client_addresses, get_client_addresses, get_client_contact_numbers,
+                                             update_client_contact_numbers)
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records
+from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
+                                                            get_verification_questions, answer_verification_questions,
+                                                            get_security_questions, complete_signup, pull_credit_report)
+from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
+from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.debt_service import scrape_credit_report
-from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
-    get_verification_questions, answer_verification_questions, get_security_questions, complete_signup, pull_credit_report)
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user
-from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
-from flask import current_app as app
+from app.main.util.parsers import filter_request_parse
+from ..util.decorator import token_required
+from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
 _client = ClientDto.client
@@ -284,15 +284,9 @@ class ClientCommunications(Resource):
                 date_range_filter(filter)
 
                 date_filter_fields = filter.get('dt_fields', [])
-                result = []
-                if any(isinstance(comm_type, VoiceCommunicationType) for comm_type in comm_types_set):
+                result = get_communication_records(filter, comm_types_set, clients=client, date_filter_fields=date_filter_fields)
 
-                    client_voice_comms = get_client_communications(client, comm_types_set, date_filter_fields, filter)
-                    result = [record.voice_communication for record in client_voice_comms]
-
-                # TODO: check if SMS communication is requested and add to the result
-
-                return result
+                return sorted(result, key=lambda record: record.receive_date, reverse=True)
         except Exception as e:
             api.abort(500, message=f'Failed to retrieve communication records for client. Error: {e}', success=False)
 

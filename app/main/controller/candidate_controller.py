@@ -1,31 +1,32 @@
 import os
 
-from flask import request, current_app
+from flask import current_app as app
+from flask import request
 from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
-from app.main.core.errors import (BadRequestError, NotFoundError, NoDuplicateAllowed, 
-    ServiceProviderError, ServiceProviderLockedError)
-from app.main.core.types import CustomerType
-from app.main.model.pbx import VoiceCommunicationType
-from app.main.service.communication_service import parse_communication_types, date_range_filter, get_candidate_communications
-from app.main.util.dto import CandidateDto
-from app.main.util.parsers import filter_request_parse
 from app.main.config import upload_location
 from app.main.controller import _convert_payload_datetime_values
+from app.main.core.errors import (BadRequestError, ServiceProviderError, ServiceProviderLockedError)
+from app.main.core.types import CustomerType
 from app.main.model.candidate import CandidateImport
-from app.main.model.credit_report_account import CreditReportSignupStatus
 from app.main.service.candidate_service import (save_new_candidate_import, save_changes, get_all_candidate_imports,
-    get_candidate, update_candidate, get_candidate_employments, update_candidate_employments, 
-    update_candidate_contact_numbers, get_candidate_contact_numbers, get_candidate_income_sources, 
-    update_candidate_income_sources, get_candidate_monthly_expenses, update_candidate_monthly_expenses, 
-    get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead, delete_candidates, 
-    candidate_filter)
-from app.main.service.debt_service import scrape_credit_report
-from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, 
-    get_verification_questions, answer_verification_questions, complete_signup, get_security_questions, 
-    register_fraud_insurance, get_account_password, pull_credit_report)
-from flask import current_app as app
+                                                get_candidate, update_candidate, get_candidate_employments, update_candidate_employments,
+                                                update_candidate_contact_numbers, get_candidate_contact_numbers,
+                                                get_candidate_income_sources,
+                                                update_candidate_income_sources, get_candidate_monthly_expenses,
+                                                update_candidate_monthly_expenses,
+                                                get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead,
+                                                delete_candidates,
+                                                candidate_filter)
+from app.main.service.communication_service import parse_communication_types, date_range_filter, \
+    get_communication_records
+from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
+                                                            get_verification_questions, answer_verification_questions, complete_signup,
+                                                            get_security_questions,
+                                                            register_fraud_insurance, get_account_password, pull_credit_report)
+from app.main.util.dto import CandidateDto
+from app.main.util.parsers import filter_request_parse
 
 api = CandidateDto.api
 _candidate_upload = CandidateDto.candidate_upload
@@ -245,15 +246,9 @@ class CandidateCommunications(Resource):
                 date_range_filter(filter)
 
                 date_filter_fields = filter.get('dt_fields', [])
-                result = []
-                if any(isinstance(comm_type, VoiceCommunicationType) for comm_type in comm_types_set):
+                result = get_communication_records(filter, comm_types_set, candidates=candidate, date_filter_fields=date_filter_fields)
 
-                    candidate_voice_comms = get_candidate_communications(candidate, comm_types_set, date_filter_fields, filter)
-                    result = [record.voice_communication for record in candidate_voice_comms]
-
-                # TODO: check if SMS communication is requested and add to the result
-
-                return result
+                return sorted(result, key=lambda record: record.receive_date, reverse=True)
         except Exception as e:
             api.abort(500, message=f'Failed to retrieve communication records for candidate. Error: {e}', success=False)
 
