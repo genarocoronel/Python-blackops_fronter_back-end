@@ -10,7 +10,7 @@ from sqlalchemy import func
 from flask import g
 from datetime import datetime
 from app.main.service.user_service import get_request_user
-from app.main.channels.notification import NotificationChannel, NotificationType
+from app.main.channels.notification import TeamRequestChannel
 
 # fetch team requests for a team
 # @enforce_rac_required_roles(['service_mgr'])
@@ -48,9 +48,9 @@ def create_team_request(requestor, team_manager, note, contract, revision=None):
     db.session.add(team_request)
     db.session.commit()
         
-    NotificationChannel.send_message(team_manager.id, 
-                                     NotificationType.TEAMREQUEST, 
-                                     team_request)
+    # send through team request 
+    TeamRequestChannel.send(team_manager.id, 
+                            team_request)
 
     ## add notes
     if note and note.strip() != '': 

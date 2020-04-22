@@ -12,7 +12,7 @@ from app.main.util.decorator import enforce_rac_required_roles
 from app.main.core.rac import RACRoles
 from app.main.service.client_service import fetch_client_combined_debts
 from app.main.service.team_service import create_team_request
-from app.main.channels.notification import NotificationType, NotificationChannel
+from app.main.channels.notification import TeamRequestChannel
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, and_, desc, asc
 import logging
@@ -430,9 +430,8 @@ def payment_contract_req4approve(user, client, data):
     db.session.commit()
 
     # send notification to service manager
-    NotificationChannel.send_message(svc_mgr.id,
-                                     NotificationType.TEAMREQUEST,
-                                     team_request)
+    TeamRequestChannel.send(svc_mgr.id,
+                            team_request)
 
     return {
         'success': True,

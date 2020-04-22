@@ -2,13 +2,7 @@ from flask_socketio import Namespace, emit
 from app.main import wscomm
 from flask import request
 from app.main.core.auth import Auth
-
-# channel socket id mappings
-import redis
-storage = redis.StrictRedis('localhost', 
-                            6379, 
-                            charset="utf-8", 
-                            decode_responses=True)
+from flask import current_app as app
 
 ## base socketio/webocket wrapper
 class Channel(Namespace):
@@ -29,7 +23,7 @@ class Channel(Namespace):
                 # storage id
                 u_key = "channels:user:{}".format(user.id)
                 # update the storage
-                storage.set(u_key, request.sid, ex=self.CHANNELS_STORAGE_EXPIRY)
+                app.redis.set(u_key, request.sid, ex=self.CHANNELS_STORAGE_EXPIRY)
                 # add the socket id into store
                 self.on_open(user)
            
@@ -43,14 +37,16 @@ class Channel(Namespace):
                 u_key = "channels:user:{}".format(user.id)
                 self.on_close(user)
                 # update the storage
-                storage.delete(u_key)
+                app.redis.delete(u_key)
+
 
     @staticmethod
     def send_event(user_id, event_type, event_params, namespace):
         u_key = "channels:user:{}".format(user_id)
-        sid = storage.get(u_key) 
+        sid = app.redis.get(u_key) 
         if sid:
             emit(event_type, event_params, room=sid, namespace=namespace)
+
 
     @classmethod
     def register(cls, obj):

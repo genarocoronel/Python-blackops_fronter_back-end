@@ -1,15 +1,14 @@
 from flask import request
 from flask import current_app as app
-from flask_restplus import marshal
 import enum
 from .channel import Channel
+from .serializer import serialize
 from app.main.util.dto import TeamDto, TaskDto
 
 
 class NotificationType(enum.Enum):
     TASK = 'task'
     TEAMREQUEST = 'team_request'
-
 
 ## this channel is used to send real time announcements
 ## to user dashboards
@@ -27,23 +26,18 @@ class NotificationChannel(Channel):
         pass
     # send a message to a user 
     @classmethod
-    def send_message(cls, user_id, ntype, data): 
+    @serialize
+    def send(cls, user_id, data): 
         try:
-            if not isinstance(ntype, NotificationType):
+            if not isinstance(cls.type, NotificationType):
                 return False
 
-            event_params = {}
             # notification type
-            event_type = ntype.value
-            if ntype == NotificationType.TEAMREQUEST:
-                event_params = marshal(data, TeamDto.team_request) 
-            elif ntype == NotificationType.TASK:
-                event_params = marshal(data, TaskDto.user_task)
-
+            event_type = cls.type.value
             ns = cls.namespace 
             Channel.send_event(user_id, 
                                event_type, 
-                               event_params,
+                               data,
                                namespace=ns)
             return True
 
@@ -56,6 +50,20 @@ class NotificationChannel(Channel):
     def register(cls):
         ns = cls.namespace
         Channel.register(cls(ns))
+
+## Notification multiplexing
+## for new types - add here
+
+# team request notification
+class TeamRequestChannel(NotificationChannel):
+    type = NotificationType.TEAMREQUEST
+    serializer_class = TeamDto.team_request
+
+## User task notification
+class TaskChannel(NotificationChannel):
+    type = NotificationType.TASK
+    serializer_class = TaskDto.user_task
+
 
 # register the channel
 NotificationChannel.register()

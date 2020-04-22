@@ -28,7 +28,7 @@ def create_app(config_name):
 
     app.config['ERROR_404_HELP'] = False
 
-    app.redis = Redis.from_url(app.config['REDIS_URL'])
+    app.redis = Redis.from_url(app.config['REDIS_URL'], charset="utf-8", decode_responses=True)
     app.queue = rq.Queue('default', connection=app.redis, default_timeout=3600)
    
     app.cipher = Fernet(app.config['SECRET_KEY'])
