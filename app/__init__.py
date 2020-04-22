@@ -19,6 +19,7 @@ from .main.controller.communication_controller import api as comms_ns
 from .main.controller.team_controller import api as team_ns
 from .main.controller.task_controller import api as task_ns
 from .main.controller.docproc_controller import api as docproc_ns
+from .main.controller.collector_controller import api as collector_ns
 
 blueprint = Blueprint('api', __name__)
 
@@ -53,3 +54,4 @@ api.add_namespace(comms_ns)
 api.add_namespace(team_ns)
 api.add_namespace(task_ns)
 api.add_namespace(docproc_ns)
+api.add_namespace(collector_ns)

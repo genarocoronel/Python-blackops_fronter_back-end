@@ -891,6 +891,29 @@ class SmsDto:
     })
 
 
+class CollectorDto:
+    api = Namespace('collectors', description='')
+
+    collector = api.model('collector', {
+        'public_id': fields.String(required=False),
+        'name': fields.String(required=False),
+        'phone': fields.String(required=False),
+        'fax': fields.String(required=False),
+        'address': fields.String(required=False),
+        'city': fields.String(required=False),
+        'state': fields.String(required=False),
+        'zip_code': fields.String(required=False),
+    })
+    collector_create = api.model('doc_create', {
+        'name': fields.String(required=True),
+        'phone': fields.String(required=False),
+        'fax': fields.String(required=False),
+        'address': fields.String(required=True),
+        'city': fields.String(required=True),
+        'state': fields.String(required=True),
+        'zip_code': fields.String(required=False),
+    })
+
 class DocprocDto:
     api = Namespace('docproc', description='Doc Process related operations')
     doc_type = api.model('doc_type', {
@@ -900,6 +923,12 @@ class DocprocDto:
     doc_user = api.model('doc_user', {
         'public_id': fields.String(required=False),
         'username': fields.String(required=False)
+    })
+    doc_client = api.model('doc_client', {
+        'public_id': fields.String(required=False),
+        'first_name': fields.String(required=False),
+        'last_name': fields.String(required=False),
+        'status':  fields.String(required=False),
     })
     doc_note = api.model('doc_note', {
         'public_id': fields.String(required=False),
@@ -922,7 +951,7 @@ class DocprocDto:
         'status': fields.String(required=False),
         'is_published': fields.Boolean(required=False),
         'notes': fields.List(fields.Nested(doc_note)),
-        'client': fields.String(required=False),
+        'client': fields.Nested(doc_client),
         'docproc_user': fields.Nested(doc_user),
         'accmgr_user': fields.Nested(doc_user),
         'inserted_on': fields.DateTime(required=False),
@@ -930,8 +959,12 @@ class DocprocDto:
         'updated_on': fields.DateTime(required=False),
         'updated_by_username': fields.String(required=False),
     })
-    doc_assignment = api.model('doc_assignment', {
-        'public_id': fields.String(required=True, example='User ID such as c5feeae5-c0a3-4de7-8df0-0c6532a07d74')
+    doc_assign = api.model('doc_assign', {
+        'public_id': fields.String(required=True, example='Doc public ID such as 39seeae5-c0a3-4de7-8df0-0c6532a07j41'),
+    })
+    doc_multiassignment = api.model('doc_multiassignment', {
+        'assignee_public_id': fields.String(required=True, example='User ID such as c5feeae5-c0a3-4de7-8df0-0c6532a07d74'),
+        'docs': fields.List(fields.Nested(doc_assign))
     })
     doc_update = api.model('doc_update', {
         'doc_name': fields.String(required=False),
