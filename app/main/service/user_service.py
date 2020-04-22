@@ -11,6 +11,7 @@ from app.main.model.user import User, UserClientAssignment, UserCandidateAssignm
 
 
 def get_request_user():
+    # TODO: should modify flask context to set the 'current_user' to a User model instance
     req_user = g.current_user
     user = User.query.filter_by(id=req_user['user_id']).first()
     return user
@@ -148,10 +149,11 @@ def generate_token(user):
 
 
 def get_client_assignments(current_user):
-    client_assignments = UserClientAssignment.query.join(Client).filter(User.id == current_user.id).all()
+    client_assignments = UserClientAssignment.query.join(User).filter(User.id == current_user.id).all()
     return [assignment.client for assignment in client_assignments]
 
 
 def get_candidate_assignments(current_user):
-    candidate_assignments = UserCandidateAssignment.query.join(Candidate).filter(User.id == current_user.id).all()
+    candidate_assignments_filter = UserCandidateAssignment.query.join(User).filter(User.id == current_user.id)
+    candidate_assignments = candidate_assignments_filter.all()
     return [assignment.candidate for assignment in candidate_assignments]
