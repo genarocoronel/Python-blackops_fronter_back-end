@@ -16,7 +16,8 @@ from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus,
     DocprocNote, Docproc)
 from app.main.service.user_service import get_user_by_id, get_request_user
 from app.main.service.client_service import get_client_by_id
-from app.main.service.third_party.aws_service import upload_to_docproc, download_from_docproc
+from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc, 
+    copy_docproc_from_fax)
 
 ALLOWED_DOC_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
@@ -173,6 +174,37 @@ def create_doc_manual(data):
     db.session.add(doc)
     _save_changes()
 
+    return synth_doc(doc)
+
+
+def create_doc_from_fax(src_file_name):
+    """ Create Document from Fax comm """
+    public_id = str(uuid.uuid4())
+    orig_filename = generate_secure_filename(src_file_name)
+    fileext_part = get_extension_for_filename(orig_filename)
+    ms = time.time()
+    unique_filename = 'docproc_{}_{}{}'.format(public_id, ms, fileext_part)
+
+    print(f'Src: {src_file_name}')
+    print(f'Orig: {orig_filename}')
+    print(f'Unique: {unique_filename}')
+
+    copy_docproc_from_fax(src_file_name, unique_filename)
+
+    doc = Docproc(
+        public_id = public_id,
+        orig_file_name=orig_filename,
+        file_name=unique_filename,
+        source_channel=DocprocChannel.FAX.value,
+        status=DocprocStatus.NEW.value,
+        inserted_on=datetime.datetime.utcnow(),
+        created_by_username = 'system',
+        updated_on=datetime.datetime.utcnow(),
+        updated_by_username='system',
+    )
+    db.session.add(doc)
+    _save_changes()
+    
     return synth_doc(doc)
 
 
