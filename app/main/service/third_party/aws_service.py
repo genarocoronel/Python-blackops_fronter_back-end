@@ -53,6 +53,35 @@ def download_from_docproc(obj_name, dest_filepath):
     return True
 
 
+def copy_docproc_from_fax(src_obj_name, dest_obj_name):
+    """ Copies a Fax object to Docproc """
+    if not does_bucket_exist(app.s3_bucket_fax):
+        raise ServiceProviderError('That bucket {app.s3_bucket_fax} does not exist at Service Provider.')
+
+    if not does_bucket_exist(app.s3_bucket_docproc):
+        raise ServiceProviderError('That bucket {app.s3_bucket_docproc} does not exist at Service Provider.')
+
+    return copy_object(src_obj_name, app.s3_bucket_fax, dest_obj_name, app.s3_bucket_docproc)
+
+
+def copy_object(src_obj_name, src_bucket, dest_obj_name, dest_bucket):
+    """ Copies an Object to another Bucket """
+    s3 = boto3.resource('s3')
+    fax_src = {
+        'Bucket': src_bucket,
+        'Key': src_obj_name
+    }
+
+    bucket = s3.Bucket(dest_bucket)
+    try:
+        bucket.copy(fax_src, dest_obj_name)
+
+    except ClientError as e:
+        raise ServiceProviderError('Could not copy Fax object to Docproc bucket, {}'.format(str(e)))
+
+    return True
+
+
 def does_bucket_exist(bucket):
     """ Checks whether a given bucket does in fact exist """
     s3 = boto3.client('s3')

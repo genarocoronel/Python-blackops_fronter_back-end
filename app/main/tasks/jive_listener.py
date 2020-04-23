@@ -31,6 +31,7 @@ from app.main.model.user import User, UserVoiceCommunication, UserFaxCommunicati
 from app.main.service.config_service import get_registered_pbx_numbers
 from app.main.service.customer_service import identify_customer_by_phone
 from app.main.service.user_service import get_user_by_mailbox_id
+from app.main.service.docproc_service import create_doc_from_fax
 
 TEMP_EMAIL_FILE = '/tmp/email.txt'
 PDF_FILE_TYPE = 'pdf'
@@ -189,6 +190,8 @@ class Handler(abc.ABC):
             db.session.rollback()
             current_app.logger.error(f'Failed to save voice recording: Error: {e}')
             raise Exception('Failed to save voice recording!')
+
+        create_doc_from_fax(communication_data.s3_object_key)
 
 
 class JiveFaxHandler(Handler):
