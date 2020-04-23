@@ -185,10 +185,6 @@ def create_doc_from_fax(src_file_name):
     ms = time.time()
     unique_filename = 'docproc_{}_{}{}'.format(public_id, ms, fileext_part)
 
-    print(f'Src: {src_file_name}')
-    print(f'Orig: {orig_filename}')
-    print(f'Unique: {unique_filename}')
-
     copy_docproc_from_fax(src_file_name, unique_filename)
 
     doc = Docproc(
