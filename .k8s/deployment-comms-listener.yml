@@ -73,10 +73,10 @@ spec:
                   key: AWS_SECRET_ACCESS_KEY
                   optional: false
             - name: REQUIRE_SMS_WEBHOOK_IDS
-                valueFrom:
-                  configMapKeyRef:
-                    name: comms-listener
-                    key: REQUIRE_SMS_WEBHOOK_IDS
-                    optional: false
+              valueFrom:
+                configMapKeyRef:
+                  name: comms-listener
+                  key: REQUIRE_SMS_WEBHOOK_IDS
+                  optional: false
       imagePullSecrets:
         - name: elite-docker-registry
