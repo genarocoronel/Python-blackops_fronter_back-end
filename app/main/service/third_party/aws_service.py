@@ -1,4 +1,5 @@
 import boto3
+from botocore.exceptions import ClientError
 
 from app.main.core.errors import BadRequestError, ServiceProviderError, ConfigurationError
 from app.main.core.io import open_file
