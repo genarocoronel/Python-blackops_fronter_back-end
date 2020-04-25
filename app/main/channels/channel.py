@@ -15,9 +15,9 @@ class Channel(Namespace):
         pass
 
     def on_connect(self):
-        if request.headers and 'token' in request.headers:
+        if request.headers and 'Authorization' in request.headers:
             # find the user using the token
-            token = request.headers['token']
+            token = request.headers['Authorization']
             user = Auth.get_user_from_token(token)
             if user:
                 # storage id
