@@ -55,12 +55,17 @@ def create_app(config_name):
     app.bandwidth_api_token = app.config['BANDWIDTH_API_TOKEN']
     app.bandwidth_api_secret = app.config['BANDWIDTH_API_SECRET']
 
-    if not app.config['SMS_WEBHOOK_IDENTITIES']:
-        raise Exception('Error gettin SMS_WEBHOOK_IDENTITIES value. We got none.')
-    try:
-        app.sms_webhook_identities = ast.literal_eval(app.config['SMS_WEBHOOK_IDENTITIES'])
-    except Exception as e:
-        raise Exception('Error trying to get the SMS webhook identities environment variable.')
+    if not app.config['REQUIRE_SMS_WEBHOOK_IDS']:
+        app.sms_webhook_identities = None
+    else:
+        sms_webhook_ids = app.config['SMS_WEBHOOK_IDENTITIES']
+        if not sms_webhook_ids or '' == sms_webhook_ids:
+            raise Exception('Error gettin SMS_WEBHOOK_IDENTITIES value. We got None.')
+
+        try:
+            app.sms_webhook_identities = ast.literal_eval(app.config['SMS_WEBHOOK_IDENTITIES'])
+        except Exception as e:
+            raise Exception('Error trying to get the SMS webhook identities environment variable.')
 
     db.init_app(app)
     flask_bcrypt.init_app(app)

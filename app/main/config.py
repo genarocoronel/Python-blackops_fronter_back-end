@@ -6,6 +6,16 @@ load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 
+def _convert_bool(value):
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        return True if value.lower() in ['true', 'yes'] else False
+
+    return False
+
+
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'UtmqEhIIcPuNbXiKLi3Ufk5C6yv8cEiyiiywfsQSdtE=')
     UPLOAD_LOCATION = os.getenv('UPLOAD_LOCATION', f'{basedir}/files')
@@ -31,14 +41,15 @@ class Config:
     DATAX_CALL_TYPE = os.environ.get('DATAX_CALL_TYPE', 'dkwconsulting-bavnew')
 
     # Bandwidth API configs
-    BANDWIDTH_API_ENDPOINT=os.environ.get('BANDWIDTH_API_ENDPOINT', None)
-    BANDWIDTH_APP_ID=os.environ.get('BANDWIDTH_APP_ID', None)
-    BANDWIDTH_USER_ID=os.environ.get('BANDWIDTH_USER_ID', None)
-    BANDWIDTH_API_TOKEN=os.environ.get('BANDWIDTH_API_TOKEN', None)
-    BANDWIDTH_API_SECRET=os.environ.get('BANDWIDTH_API_SECRET', None)
+    BANDWIDTH_API_ENDPOINT = os.environ.get('BANDWIDTH_API_ENDPOINT', None)
+    BANDWIDTH_APP_ID = os.environ.get('BANDWIDTH_APP_ID', None)
+    BANDWIDTH_USER_ID = os.environ.get('BANDWIDTH_USER_ID', None)
+    BANDWIDTH_API_TOKEN = os.environ.get('BANDWIDTH_API_TOKEN', None)
+    BANDWIDTH_API_SECRET = os.environ.get('BANDWIDTH_API_SECRET', None)
 
     # Our own tokens to identify which provider is calling our /sms/register-message webhook API
     # If we change them, we must change the webhook endpoint with corresponding SMS Providers
+    REQUIRE_SMS_WEBHOOK_IDS = _convert_bool(os.environ.get('REQUIRE_SMS_WEBHOOK_IDS', True))
     SMS_WEBHOOK_IDENTITIES = os.environ.get('SMS_WEBHOOK_IDENTITIES', None)
 
     ENABLE_CORS = False
@@ -54,6 +65,7 @@ class Config:
 
     EPPS_USERNAME = os.getenv('EPPS_USERNAME', 'ASOL_API')
     EPPS_PASSWORD = os.getenv('EPPS_PASSWORD', 'b075f05e-79ed-11ea-a215-005056a3526c')
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
