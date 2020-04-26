@@ -17,6 +17,7 @@ PAST_DAYS = -7
 
 @dataclass
 class TextMessage:
+    public_id: str
     type: TextCommunicationType
     source_number: int
     destination_number: int
@@ -40,6 +41,7 @@ def _normalize_sms_comms(sms_comms: List[SMSMessage]):
             outside_number = sms.from_phone
 
         comms.append(TextMessage(**{
+            'public_id': sms.public_id,
             'type': TextCommunicationType.SMS,
             'source_number': source_number,
             'destination_number': dest_number,
