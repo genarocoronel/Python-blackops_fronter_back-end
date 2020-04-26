@@ -350,6 +350,7 @@ class ClientCreditReportDebts(Resource):
         data = get_report_data(credit_account)
         return data, 200
 
+
 @api.route('/<public_id>/credit-report/account')
 @api.param('public_id', 'The CoClient public ID')
 class CreateCreditReportAccount(Resource):
@@ -398,8 +399,9 @@ class CreateCreditReportAccount(Resource):
             'success': True,
             'message': f'Successfully created credit report account with {creport_acc.provider}',
             'public_id': creport_acc.public_id
-        }        
+        }
         return response_object, 201
+
 
 @api.route('/<coclient_public_id>/credit-report/account/<public_id>')
 @api.param('coclient_public_id', 'The CoClient Identifier')
@@ -416,10 +418,10 @@ class UpdateCreditReportAccount(Resource):
         account, error_response = _handle_get_credit_report(coclient)
         if not account:
             return error_response
-        
-        request_data = request.json        
+
+        request_data = request.json
         relevant_data = None
-        
+
         if 'security_question_id' in request_data:
             relevant_data = {
                 'security_question_id': request_data['security_question_id'],
@@ -428,10 +430,10 @@ class UpdateCreditReportAccount(Resource):
             }
         else:
             relevant_data = request_data
-            
+
         relevant_data['ip_address'] = request.remote_addr
         relevant_data['terms_confirmed'] = True
-        
+
         try:
             app.logger.info(f"Received request to update Credit Report account for CoClient with ID: {coclient_public_id}")
             update_credit_report_account(account, relevant_data)
@@ -463,13 +465,13 @@ class UpdateCreditReportAccount(Resource):
                 'message': str(e)
             }
             return response_object, 500
-        
 
         response_object = {
             'success': True,
             'message': 'Successfully updated credit report account for this CoClient'
         }
         return response_object, 200
+
 
 @api.route('/<coclient_public_id>/credit-report/account/<credit_account_public_id>/security-questions')
 @api.param('coclient_public_id', 'The CoClient pubic ID')
@@ -489,7 +491,7 @@ class CreditReportAccountSecurityQuestions(Resource):
         try:
             app.logger.info('Received request to get Credit Account Security Questions for a CoClient.')
             questions = get_security_questions(account)
-        
+
         except ServiceProviderLockedError as e:
             response_object = {
                 'success': False,
@@ -513,6 +515,7 @@ class CreditReportAccountSecurityQuestions(Resource):
 
         return questions, 200
 
+
 @api.route('/<coclient_public_id>/credit-report/account/<public_id>/verification-questions')
 @api.param('coclient_public_id', 'The CoClient Identifier')
 @api.param('public_id', 'The Credit Report Account Identifier')
@@ -531,7 +534,7 @@ class CreditReporAccounttVerification(Resource):
         try:
             app.logger.info('Received request to get CoClient Credit Account ID Verification Questions.')
             questions = get_verification_questions(account)
-        
+
         except BadRequestError as e:
             response_object = {
                 'success': False,
@@ -614,6 +617,7 @@ class CreditReporAccounttVerification(Resource):
         }
         return response_object, 200
 
+
 @api.route('/<coclient_public_id>/credit-report/account/<credit_account_public_id>/complete')
 @api.param('coclient_public_id', 'The CoClient public ID')
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
@@ -660,6 +664,7 @@ class CompleteCreditReportAccount(Resource):
         }
         return response_object, 200
 
+
 @api.route('/<coclient_public_id>/credit-report/account/pull')
 @api.param('coclient_public_id', 'CoClient public ID')
 @api.response(404, 'CoClient not found')
@@ -678,7 +683,8 @@ class CandidateToLead(Resource):
         app.logger.info("Received request to pull Credit Report for CoClient")
         pull_credit_report(credit_report_account)
 
-        return {"success": True, "message": "Successfully created job to pull Credit Report and import Debts. Check for new Debts in a few minutes."}, 200
+        return {"success": True,
+                "message": "Successfully created job to pull Credit Report and import Debts. Check for new Debts in a few minutes."}, 200
 
 
 @api.route('/<public_id>/service-schedule')
@@ -712,7 +718,7 @@ class ClientSvcSchedule(Resource):
         response_object = {
             'success': True,
             'message': f'Successfully created initial Service Schedule for this Client'
-        }        
+        }
         return response_object, 201
 
     @api.doc('Updates the Service Schedule for a Client')
@@ -734,9 +740,10 @@ class ClientSvcSchedule(Resource):
         except NotFoundError as e:
             api.abort(404, message='Error updating Service Schedule for client, {}'.format(str(e)), success=False)
         except Exception as e:
-            api.abort(500, message=f'Failed updating Service Schedule for Client with ID {client_public_id}', success=False)    
+            api.abort(500, message=f'Failed updating Service Schedule for Client with ID {client_public_id}', success=False)
 
         return result, 200
+
 
 ## used for client actions that doesn't require plan change (fee)
 ## CHANGE DRAFT DATE, CHANGE RECUR DAY, SKIP PAYMENT,
@@ -745,12 +752,12 @@ class ClientSvcSchedule(Resource):
 @api.param('client_id', 'Client public identifier')
 @api.response(404, 'Client not found')
 class ClientPaymentScheduleRevision(Resource):
-    
+
     @token_required
     @api.doc('revises payment schedule')
     def put(self, client_id):
-        """ Revises client payment schedule""" 
-        client = get_client(public_id=client_id, client_type=CLIENT) 
+        """ Revises client payment schedule"""
+        client = get_client(public_id=client_id, client_type=CLIENT)
         if not client:
             api.abort(404, "Client not found")
         else:
@@ -760,6 +767,7 @@ class ClientPaymentScheduleRevision(Resource):
                 return result
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
+
 
 ## RE-INSTATE IS A SPECIAL ACTION
 @api.route('/<client_id>/reinstate')
@@ -777,8 +785,7 @@ class ClientReinstate(Resource):
         else:
             try:
                 user = get_request_user()
-                result = contract_reinstate(user, client, request.json) 
+                result = contract_reinstate(user, client, request.json)
                 return result
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
-

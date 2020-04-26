@@ -63,7 +63,7 @@ class GetCandidates(Resource):
         """ Get all Candidates """
         limit = request.args.get('_limit', None)
         order = request.args.get('_order', None)
-        sort  = request.args.get('_sort', None)
+        sort = request.args.get('_sort', None)
         pagenum = request.args.get('_page_number', None)
 
         kwargs = {}
@@ -86,7 +86,7 @@ class GetCandidates(Resource):
         request_data = request.json
         delete_candidates(request_data.get('ids'))
         return dict(success=True), 200
-       
+
 
 #### request params
 # @_limit result set max limit
@@ -104,7 +104,7 @@ class CandidateFilter(Resource):
     @api.marshal_with(_candidate_pagination)
     def get(self):
         """ Get filtered Candidates """
-        #filter args
+        # filter args
         fargs = filter_request_parse(request)
         result = candidate_filter(**fargs)
         return result, 200
@@ -338,7 +338,7 @@ def _handle_get_candidate(candidate_public_id):
             'message': 'Candidate does not exist'
         }
         return None, response_object
-        
+
     return candidate, None
 
 
@@ -402,7 +402,7 @@ class CreateCreditReportAccount(Resource):
             'success': True,
             'message': f'Successfully created credit report account with {creport_acc.provider}',
             'public_id': creport_acc.public_id
-        }        
+        }
         return response_object, 201
 
 
@@ -421,10 +421,10 @@ class UpdateCreditReportAccount(Resource):
         account, error_response = _handle_get_credit_report(candidate)
         if not account:
             return error_response
-        
-        request_data = request.json        
+
+        request_data = request.json
         relevant_data = None
-        
+
         if 'security_question_id' in request_data:
             relevant_data = {
                 'security_question_id': request_data['security_question_id'],
@@ -433,10 +433,10 @@ class UpdateCreditReportAccount(Resource):
             }
         else:
             relevant_data = request_data
-            
+
         relevant_data['ip_address'] = request.remote_addr
         relevant_data['terms_confirmed'] = True
-        
+
         try:
             app.logger.info(f"Received request to update Credit Report account for Candidate with ID: {candidate_public_id}")
             update_credit_report_account(account, relevant_data)
@@ -468,7 +468,6 @@ class UpdateCreditReportAccount(Resource):
                 'message': str(e)
             }
             return response_object, 500
-        
 
         response_object = {
             'success': True,
@@ -495,7 +494,7 @@ class CreditReportAccountSecurityQuestions(Resource):
         try:
             app.logger.info('Received request to get Credit Account Security Questions.')
             questions = get_security_questions(account)
-        
+
         except ServiceProviderLockedError as e:
             response_object = {
                 'success': False,
@@ -538,7 +537,7 @@ class CreditReporAccounttVerification(Resource):
         try:
             app.logger.info('Received request to get Credit Account ID Verification Questions.')
             questions = get_verification_questions(account)
-        
+
         except BadRequestError as e:
             response_object = {
                 'success': False,
@@ -621,11 +620,12 @@ class CreditReporAccounttVerification(Resource):
         }
         return response_object, 200
 
+
 # TODO: consider removing the `credit_account_public_id` from URI since it is only 1-to-1 relationship in data model
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/complete')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
-class CompleteCreditReportAccount(Resource):
+class CompleteCreditReportAccoxnt(Resource):
     @api.doc('complete credit report account signup. Step #7 and final step in process.')
     def put(self, candidate_public_id, credit_account_public_id):
         """ Complete Credit Report Account Sign Up"""
@@ -668,7 +668,6 @@ class CompleteCreditReportAccount(Resource):
         }
         return response_object, 200
 
-
     # @api.doc('submit answer to security question')
     # @api.expect(_update_credit_report_account, validate=True)
     # def put(self, candidate_public_id, credit_account_public_id):
@@ -706,6 +705,7 @@ class CompleteCreditReportAccount(Resource):
     #         }
     #         return response_object, 500
 
+
 @api.route('/<candidate_public_id>/credit-report/account/password')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 class CreditReportAccountPassword(Resource):
@@ -735,9 +735,9 @@ class CreditReportAccountPassword(Resource):
             return response_object, 500
 
         response_object = {
-                'success': True,
-                'password': pwd
-            }
+            'success': True,
+            'password': pwd
+        }
         return response_object, 200
 
 
@@ -785,7 +785,7 @@ class CandidateFraudInsurance(Resource):
                 'message': str(e)
             }
             return response_object, 500
-        
+
         response_object = {
             'success': True,
             'message': result
