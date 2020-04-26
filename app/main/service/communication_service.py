@@ -4,8 +4,12 @@ import itertools
 from dataclasses import dataclass
 from typing import Union, List, AbstractSet, Mapping, Any
 
+import boto3
+from botocore.exceptions import ClientError
 from sqlalchemy import or_
+from flask import current_app as app
 
+from app.main.core.errors import ServiceProviderError
 from app.main.model.candidate import CandidateVoiceCommunication, Candidate
 from app.main.model.client import ClientVoiceCommunication, Client
 from app.main.model.pbx import VoiceCommunicationType, TextCommunicationType, VoiceCommunication, CommunicationType
@@ -189,3 +193,43 @@ def get_communication_records(request_filter: Mapping[str, Any],
         client_sms_comms = _normalize_sms_comms(get_client_sms_communications(clients, date_filter_fields, request_filter))
         result.extend([record for record in candidate_sms_comms + client_sms_comms])
     return result
+
+
+# TODO: consider tracking/caching URLs that have been generated for subsequent requests within expiration window
+def create_presigned_url(voice_communication: VoiceCommunication, expiration=3600):
+    """Generate a presigned URL to share an S3 object"""
+
+    # Generate a presigned URL for the S3 object
+    s3_client = boto3.client('s3')
+    try:
+        url = s3_client.generate_presigned_url('get_object',
+                                               Params={'Bucket': voice_communication.file_bucket_name,
+                                                       'Key': voice_communication.file_bucket_key},
+                                               ExpiresIn=expiration)
+    except ClientError as e:
+        app.logger.error(f'Failed to create presigned url for voice communication. Error: {e}')
+        raise ServiceProviderError('Failed to create presigned URL to voice communication file')
+
+    return url
+
+
+def get_candidate_voice_communication(candidate: Candidate, voice_communication_public_id: str):
+    candidate_voice_comm = CandidateVoiceCommunication.query.join(VoiceCommunication) \
+        .filter(Candidate.id == candidate.id) \
+        .filter(VoiceCommunication.public_id == voice_communication_public_id).first()
+    if candidate_voice_comm:
+        return candidate_voice_comm.voice_communication
+    return None
+
+
+def get_client_voice_communication(client: Client, voice_communication_public_id: str):
+    client_voice_comm = ClientVoiceCommunication.query.join(VoiceCommunication) \
+        .filter(Client.id == client.id) \
+        .filter(VoiceCommunication.public_id == voice_communication_public_id).first()
+    if client_voice_comm:
+        return client_voice_comm.voice_communication
+    return None
+
+
+def get_voice_communication(voice_communication_id: str):
+    return VoiceCommunication.query.filter_by(public_id=voice_communication_id).first()

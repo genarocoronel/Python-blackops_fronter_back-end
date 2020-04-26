@@ -11,7 +11,8 @@ from app.main.service.client_service import (get_all_clients, save_new_client, g
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
                                              update_client_contact_numbers)
-from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
+    get_client_voice_communication, create_presigned_url
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions,
                                                             get_security_questions, complete_signup, pull_credit_report)
@@ -273,22 +274,42 @@ class ClientCommunications(Resource):
     @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
     def get(self, client_id):
         """ Get all forms of communication for given client """
-        try:
-            client, error_response = _handle_get_client(client_id, client_type=CLIENT)
-            if not client:
-                api.abort(404, **error_response)
-            else:
-                filter = filter_request_parse(request)
-                comm_types_set = parse_communication_types(request)
+        client, error_response = _handle_get_client(client_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            filter = filter_request_parse(request)
+            comm_types_set = parse_communication_types(request)
 
-                date_range_filter(filter)
+            date_range_filter(filter)
 
-                date_filter_fields = filter.get('dt_fields', [])
-                result = get_communication_records(filter, comm_types_set, clients=client, date_filter_fields=date_filter_fields)
+            date_filter_fields = filter.get('dt_fields', [])
+            result = get_communication_records(filter, comm_types_set, clients=client, date_filter_fields=date_filter_fields)
 
-                return sorted(result, key=lambda record: record.receive_date, reverse=True)
-        except Exception as e:
-            api.abort(500, message=f'Failed to retrieve communication records for client. Error: {e}', success=False)
+            return sorted(result, key=lambda record: record.receive_date, reverse=True)
+
+
+@api.route('/<client_id>/communications/<communication_id>/file')
+class ClientCommunicationsFile(Resource):
+    @api.doc('Get communications audio file')
+    def get(self, client_id, communication_id):
+        """ Get voice communication file url """
+        client, error_response = _handle_get_client(client_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, **error_response)
+
+        voice_communication = get_client_voice_communication(client, communication_id)
+        if not voice_communication:
+            api.abort(404, message='Voice communication not found', success=False)
+        else:
+            expiration_seconds = 3600
+            file_url = create_presigned_url(voice_communication, expiration=expiration_seconds)
+            response_object = {
+                'success': True,
+                'message': f'File URL will expire in {expiration_seconds / 60} minutes.',
+                'file_url': file_url
+            }
+            return response_object, 200
 
 
 @api.route('/<public_id>/credit-report/debts')
