@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import desc, asc, and_
 from app.main.core.errors import StateMachineError
+from app.main.channels.notification import TaskChannel
 
 
 class DebtEftStatus(enum.Enum):
@@ -121,6 +122,9 @@ class DebtPaymentContract(db.Model):
                 self.status = ContractStatus.SIGNED
                 db.session.add(task)
                 db.session.commit() 
+                # notify
+                TaskChannel.send(self.agent_id,
+                                 task)
 
     # on Team Request completed action
     def ON_TR_APPROVED(self, req):
@@ -165,6 +169,9 @@ class DebtPaymentContract(db.Model):
                             object_id=self.id)
             db.session.add(task)
             db.session.commit()
+            # notify
+            TaskChannel.send(self.agent_id,
+                             task)
 
 
     def ON_TR_DECLINED(self, req):
@@ -185,6 +192,9 @@ class DebtPaymentContract(db.Model):
 
             db.session.add(task)
             db.session.commit() 
+            # notify
+            TaskChannel.send(self.agent_id,
+                             task)
 
     def ON_TASK_COMPLETED(self, task):
         # SIGNED state
@@ -415,6 +425,10 @@ class DebtPaymentContractRevision(db.Model):
                                 object_id=self.id)
                 db.session.add(task)
                 db.session.commit()
+                # notify 
+                TaskChannel.send(self.agent_id,
+                                 task) 
+
         except Exception as err:
             print("SM Error {}".format(str(err))) 
             raise StateMachineError("Contract revision SM error {}".format(str(err)))

@@ -7,12 +7,15 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from redis import Redis
 from werkzeug.contrib.fixers import ProxyFix
+from flask_socketio import SocketIO
 
 from .config import config_by_name
 
 db = SQLAlchemy()
 flask_bcrypt = Bcrypt()
 
+# sccket io channel
+wscomm = SocketIO()
 
 def create_app(config_name):
     app = Flask(__name__)
@@ -26,6 +29,7 @@ def create_app(config_name):
     app.config['ERROR_404_HELP'] = False
 
     app.redis = Redis.from_url(app.config['REDIS_URL'])
+    app.chnls_key_store = Redis.from_url(app.config['REDIS_URL'], charset="utf-8", decode_responses=True)
     app.queue = rq.Queue('default', connection=app.redis, default_timeout=3600)
    
     app.cipher = Fernet(app.config['SECRET_KEY'])
@@ -69,5 +73,10 @@ def create_app(config_name):
 
     db.init_app(app)
     flask_bcrypt.init_app(app)
+
+    from app.main.channels import ws
+    # initialize socketio
+    # debug => logger=True, engineio_logger=True
+    wscomm.init_app(app, path='/channels', cors_allowed_origins="*")
 
     return app

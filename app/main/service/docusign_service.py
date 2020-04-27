@@ -128,7 +128,6 @@ class DocuSign(object):
                 recipients.append(co_client)
 
 
-            #print(signer)
             # create an envelope definition
             envelope_definition = EnvelopeDefinition(status='sent',
                                                      template_id=template_id) 
@@ -279,10 +278,20 @@ class DocuSign(object):
                 status['status'] = envelope.status
                 status_list.append(status)
 
-            print(status_list)
 
         except Exception as err: 
             print("Error in envelopes status {}".format(str(err)))
+
+    def download_documents(self, envelope_id):
+        try:
+            envelope_api = EnvelopesApi(self._client)
+            docs_result = envelope_api.list_documents(self._ACCOUNT_ID, envelope_id=envelope_id)
+            for env_doc in docs_result.envelope_documents:
+                doc_file = envelope_api.get_document(self._ACCOUNT_ID, env_doc.document_id, envelope_id=envelope_id)
+            
+
+        except Exception as err:
+            print("Error in download documents {}".format(str(err)))
 
     """
     Fetch template details from the docuserver
@@ -298,7 +307,6 @@ class DocuSign(object):
                 template['id']   = tmpl.template_id
                 template_list.append(template)
 
-            print(template_list)
             return template_list
         except Exception as err:
             print("Error in fetch templates {}".format(str(err)))
