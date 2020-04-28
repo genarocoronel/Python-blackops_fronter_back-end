@@ -10,6 +10,7 @@ from sqlalchemy import func
 from flask import g
 from datetime import datetime
 from app.main.service.user_service import get_request_user
+from app.main.service.workflow import open_contract_flow
 from app.main.channels.notification import TeamRequestChannel
 
 # fetch team requests for a team
@@ -91,25 +92,26 @@ def change_team_request_status(team_request, status):
     if status not in TeamRequestStatus.__members__:
         raise ValueError('Not a valid status name')
 
-    objs = []
-    state_handler = "ON_TR_{}".format(status)
-    if team_request.contract:
-        objs.append(team_request.contract)
-    if team_request.revision:
-        objs.append(team_request.revision)
-
-    print(objs)
-    for obj in objs:
+    state_handler = "on_tr_{}".format(status.lower())
+    # team request code
+    request_type = team_request.request_type
+    if not request_type:
+        raise ValueError('Team Request code not found')
+    request_code = request_type.code
+    wf = open_contract_flow(request_code, 
+                            team_request.contract,
+                            team_request.revision)
+    if wf:
         try:
-            func = getattr(obj, state_handler)
-            # call the state handler
+            func = getattr(wf, state_handler)
             func(team_request)
         except AttributeError as err:
             # state handler is not defined
             pass
-
+    
     team_request.status = status
     db.session.commit()
+
 
 def add_team_request_notes(team_request, requestor, note ):
     note_record = Note(public_id=str(uuid.uuid4()),

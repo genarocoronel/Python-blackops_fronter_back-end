@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_restplus import Resource, Api
 
-from ..service.task_service import fetch_user_tasks, update_user_task
+from ..service.usertask import fetch_user_tasks, update_user_task
 from ..service.user_service import get_request_user
 from ..util.dto import TaskDto
 from app.main.util.decorator import token_required
