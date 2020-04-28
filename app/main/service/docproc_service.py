@@ -16,8 +16,7 @@ from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus,
     DocprocNote, Docproc)
 from app.main.service.user_service import get_user_by_id, get_request_user
 from app.main.service.client_service import get_client_by_id
-from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc, 
-    copy_docproc_from_fax)
+from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc)
 
 ALLOWED_DOC_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
@@ -138,7 +137,7 @@ def stream_doc_file(doc):
         return resp
 
     # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
-    download_from_docproc(doc.file_name, filepath)
+    download_from_docproc(doc.source_channel, doc.file_name, filepath)
 
     return stream_file(upload_location, doc.file_name, as_attachment=False, mimetype=mime)
 
@@ -180,17 +179,11 @@ def create_doc_manual(data):
 def create_doc_from_fax(src_file_name):
     """ Create Document from Fax comm """
     public_id = str(uuid.uuid4())
-    orig_filename = generate_secure_filename(src_file_name)
-    fileext_part = get_extension_for_filename(orig_filename)
-    ms = time.time()
-    unique_filename = 'docproc_{}_{}{}'.format(public_id, ms, fileext_part)
-
-    copy_docproc_from_fax(src_file_name, unique_filename)
 
     doc = Docproc(
         public_id = public_id,
-        orig_file_name=orig_filename,
-        file_name=unique_filename,
+        orig_file_name=src_file_name,
+        file_name=src_file_name,
         source_channel=DocprocChannel.FAX.value,
         status=DocprocStatus.NEW.value,
         inserted_on=datetime.datetime.utcnow(),

@@ -48,8 +48,8 @@ def get_mime_from_extension(extension):
     elif extension == '.png':
         mime = 'image/png'
     elif extension == '.gif':
-        mime == 'image/gif'
+        mime = 'image/gif'
     elif extension == '.pdf':
-        mime == 'application/pdf'
+        mime = 'application/pdf'
 
     return mime

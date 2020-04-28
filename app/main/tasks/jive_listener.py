@@ -191,8 +191,6 @@ class Handler(abc.ABC):
             current_app.logger.error(f'Failed to save voice recording: Error: {e}')
             raise Exception('Failed to save voice recording!')
 
-        create_doc_from_fax(communication_data.s3_object_key)
-
 
 class JiveFaxHandler(Handler):
     def handle(self, message):
@@ -243,6 +241,8 @@ class JiveFaxHandler(Handler):
 
         self._create_comm_records(communication_data, TextCommunicationType.FAX)
         current_app.logger.info('Fax capture completed!')
+
+        create_doc_from_fax(communication_data.s3_object_key)
 
     def _parse_page_count(self, page_count_raw):
         page_meta_parts = page_count_raw[0].split('(')
