@@ -5,6 +5,7 @@ from flask_restplus import Resource
 from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
 from app.main.core.errors import (BadRequestError, NotFoundError, ServiceProviderError, ServiceProviderLockedError)
 from app.main.core.types import CustomerType
+from app.main.core.rac import RACRoles
 from app.main.model.client import ClientType
 from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments,
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
@@ -20,8 +21,9 @@ from app.main.service.debt_service import check_existing_scrape_task, get_report
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user
+from app.main.service.docproc_service import get_docs_for_client
 from app.main.util.parsers import filter_request_parse
-from ..util.decorator import token_required
+from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto
 
 api = ClientDto.api
@@ -43,6 +45,7 @@ _communication = ClientDto.communication
 _new_credit_report_account = ClientDto.new_credit_report_account
 _update_credit_report_account = ClientDto.update_credit_report_account
 _credit_account_verification_answers = ClientDto.account_verification_answers
+_doc = ClientDto.doc
 
 CLIENT = ClientType.client
 
@@ -761,3 +764,22 @@ class ClientReinstate(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
+
+@api.route('/<client_id>/docs')
+@api.param('client_id', 'Client public identifier')
+class ClientDocs(Resource):
+    @api.doc('Get Client documents')
+    @api.marshal_list_with(_doc)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SALES_REP])
+    def get(self, client_id):
+        """ Get Client documents """
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            return api.abort(401, message='Could not find that Client with ID {}'.format(client_id), success=False)
+
+        docs = get_docs_for_client(client)
+
+        return docs, 200
+        

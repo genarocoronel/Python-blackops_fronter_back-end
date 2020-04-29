@@ -38,6 +38,20 @@ def get_all_docs():
     return docs
 
 
+def get_docs_for_client(client):
+    """ Gets all Doc to Process """
+    docs = []
+
+    doc_records = Docproc.query.filter_by(client_id=client.id).all()
+        
+    if doc_records:
+        for doc_item in doc_records:
+            tmp_doc = synth_doc(doc_item)
+            docs.append(tmp_doc)
+    
+    return docs
+
+
 def get_doc_by_pubid(public_id):
     """ Gets a Doc by Public ID """
     return Docproc.query.filter_by(public_id=public_id).first()
