@@ -13,7 +13,8 @@ from app.main.service.client_service import get_all_clients, save_new_client, ge
     update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
     get_client_addresses, update_client_addresses, get_co_client, update_co_client, get_client_checklist, update_client_checklist, \
     update_notification_pref, fetch_client_combined_debts
-from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
+    get_client_voice_communication, create_presigned_url
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions,
                                                             get_security_questions, complete_signup, pull_credit_report)
@@ -242,6 +243,32 @@ class LeadCommunications(Resource):
                 return sorted(result, key=lambda record: record.receive_date, reverse=True)
         except Exception as e:
             api.abort(500, message=f'Failed to retrieve communication records for lead. Error: {e}', success=False)
+
+
+@api.route('/<lead_id>/communications/<communication_id>/file')
+class LeadCommunicationsFile(Resource):
+    @api.doc('Get communications audio file')
+    def get(self, lead_id, communication_id):
+        """ Get voice communication file url """
+        try:
+            lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
+            if not lead:
+                api.abort(404, **error_response)
+
+            voice_communication = get_client_voice_communication(lead, communication_id)
+            if not voice_communication:
+                api.abort(404, message='Voice communication not found')
+            else:
+                expiration_seconds = app.s3_signed_url_timeout_seconds
+                file_url = create_presigned_url(voice_communication, expiration=expiration_seconds)
+                response_object = {
+                    'success': True,
+                    'message': f'File URL will expire in {expiration_seconds / 60} minutes.',
+                    'file_url': file_url
+                }
+                return response_object, 200
+        except Exception as e:
+            api.abort(500, message=f'Failed to retrieve url for audio file. Error: {e}', success=False)
 
 
 @api.route('/<lead_id>/monthly-expenses')

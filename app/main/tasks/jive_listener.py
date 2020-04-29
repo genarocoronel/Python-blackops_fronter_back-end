@@ -123,6 +123,7 @@ class Handler(abc.ABC):
 
         if communication_type in [VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL]:
             new_voice_comm = VoiceCommunication(
+                public_id=str(uuid.uuid4()),
                 type=communication_type,
                 inserted_on=datetime.datetime.utcnow(),
                 updated_on=datetime.datetime.utcnow(),
@@ -156,6 +157,7 @@ class Handler(abc.ABC):
 
         if communication_type in [TextCommunicationType.FAX]:
             new_fax_comm = FaxCommunication(
+                public_id=str(uuid.uuid4()),
                 inserted_on=datetime.datetime.utcnow(),
                 updated_on=datetime.datetime.utcnow(),
                 source_number=source_number.national_number,
