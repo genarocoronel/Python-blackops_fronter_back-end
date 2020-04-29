@@ -777,7 +777,7 @@ class ClientDocs(Resource):
         """ Get Client documents """
         client, error_response = _handle_get_client(client_id)
         if not client:
-            return api.abort(401, message='Could not find that Client with ID {}'.format(client_id), success=False)
+            api.abort(404, **error_response)
 
         docs = get_docs_for_client(client)
 
