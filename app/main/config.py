@@ -23,11 +23,12 @@ class Config:
     PREQUAL_ID_COUNTER_LOCK_FILE = os.getenv('PREQUAL_ID_COUNTER_LOCATION', f'{basedir}/prequal_id_counter.txt.lock')
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
 
+    # AWS configuration
     S3_BUCKET_VOICEMAIL = os.environ.get('S3_BUCKET_VOICEMAIL', 'dev-voicemails')
     S3_BUCKET_FAX = os.environ.get('S3_BUCKET_FAX', 'dev-faxes')
     S3_BUCKET_DOCPROC = os.environ.get('S3_BUCKET_DOCPROC', 'dev-docproc')
-
     JIVE_QUEUE_URL = os.environ.get('JIVE_QUEUE_URL', 'https://sqs.us-west-2.amazonaws.com/450101876349/jive')
+    S3_SIGNED_URL_TIMEOUT_SEC = os.environ.get('S3_SIGNED_URL_TIMEOUT_SEC', 3600)
 
     SMART_CREDIT_URL = os.environ.get('SMART_CREDIT_URL', 'https://stage-sc.consumerdirect.com')
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')

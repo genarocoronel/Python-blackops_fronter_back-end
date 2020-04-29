@@ -1,7 +1,8 @@
-from flask import request
+from flask import request, current_app as app
 from flask_restplus import Resource
 
-from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
+    get_voice_communication, create_presigned_url
 from app.main.service.user_service import get_client_assignments, get_candidate_assignments, get_request_user
 from app.main.util.decorator import token_required
 from app.main.util.dto import CommunicationDto
@@ -40,3 +41,24 @@ class Communications(Resource):
 
         except Exception as e:
             api.abort(500, message=f'Failed to retrieve communication records for {current_user.username}. Error: {e}', success=False)
+
+
+@api.route('/<communication_id>/file')
+class CommunicationsFile(Resource):
+    @token_required
+    @api.doc(security='apikey')
+    @api.doc('Get communications audio file')
+    def get(self, communication_id):
+        """ Get voice communication file url """
+        voice_communication = get_voice_communication(communication_id)
+        if not voice_communication:
+            api.abort(404, message='Voice communication not found', success=False)
+        else:
+            expiration_seconds = app.s3_signed_url_timeout_seconds
+            file_url = create_presigned_url(voice_communication, expiration=expiration_seconds)
+            response_object = {
+                'success': True,
+                'message': f'File URL will expire in {expiration_seconds / 60} minutes.',
+                'file_url': file_url
+            }
+            return response_object, 200

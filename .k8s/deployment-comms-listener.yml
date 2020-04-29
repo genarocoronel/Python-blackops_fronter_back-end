@@ -78,5 +78,11 @@ spec:
                   name: comms-listener
                   key: REQUIRE_SMS_WEBHOOK_IDS
                   optional: false
+            - name: S3_BUCKET_DOCPROC
+              valueFrom:
+                configMapKeyRef:
+                  name: comms-listener
+                  key: S3_BUCKET_DOCPROC
+                  optional: false
       imagePullSecrets:
         - name: elite-docker-registry

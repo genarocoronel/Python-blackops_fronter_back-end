@@ -275,6 +275,7 @@ _credit_report_debt_model = {
 }
 
 _communication = {
+    'public_id': fields.String(required=True),
     'type': CommsTypeField(required=True),
     'source_number': fields.Integer(required=True),
     'destination_number': fields.Integer(required=False),
