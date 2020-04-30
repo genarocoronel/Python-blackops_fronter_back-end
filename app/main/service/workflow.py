@@ -11,29 +11,88 @@ from datetime import datetime, timedelta
 Base Workflow class
 """
 class Workflow(object):
-    def __init__(self, client):
-        self._client = client
+    def __init__(self, obj, owner_id, client_id):
+        self._object = obj 
+        self._owner  = owner_id
+        self._client_id = client_id
+        self._status = obj.status
+        
+    @property
+    def status(self):
+        return self._status
 
+    @status.setter
+    def status(self, status):
+        self._status = status
+
+    @property
+    def owner(self):
+        return self._owner
+
+    ## task owner
+    @owner.setter
+    def owner(self, assigned_to):
+        self._owner = assigned_to
+
+    def save(self):
+        if self._object.status != self._status:
+            self._object.status = self._status
+            db.session.commit()
+
+    ## CREATE a USER TASK
     def _create_task(self):
         due = datetime.utcnow() + timedelta(hours=self._task_due)  
+        agent_id = self.owner
         task = UserTask(assign_type=self._task_assign_type,
-                        owner_id=self._owner_id,
+                        owner_id=agent_id,
                         priority=self._task_priority,
                         title=self._task_title,
                         description= self._task_desc,
                         due_date=due,
-                        client_id=self._client.id,
+                        client_id=self._client_id,
                         object_type=self._task_ref_type,
-                        object_id=self._task_obj.id) 
+                        object_id=self._object.id) 
 
         db.session.add(task)
         db.session.commit()
         # notify
-        TaskChannel.send(self._owner_id,
+        TaskChannel.send(agent_id,
                          task)
 
+## Doc processing workflow
+class DocprocWorkflow(Workflow):
+    _task_due = 24 ## task expiry in hours
+    _task_assign_type = TaskAssignType.AUTO
+    _task_priority = TaskPriority.MEDIUM
+    _task_ref_type = 'Docproc'
+
+    def __init__(self, docproc):
+        assigned_to = docproc.docproc_user_id
+        client_id = docproc.client_id
+        super().__init__(docproc, assigned_to, client_id)
+
+    def on_doc_update(self):
+        self._task_title = 'Document Review'
+        self._task_desc = 'Document Review - Action Required'
+        if self.status == DocprocStatus.NEW.value:
+            self.status = DocprocStatus.WAIT_AM_REVIEW.value
+            docproc = self._object
+            self.owner = docproc.accmgr_user_id
+            self._create_task() 
+            self.save()
+
+    def on_task_declined(self):
+        if self.status == DocprocStatus.WAIT_AM_REVIEW.value:
+            self.status = DocprocStatus.REJECT.value 
+            # notify doc processor 
+
+    def on_task_completed(self):
+        if self.status == DocprocStatus.WAIT_AM_REVIEW.value:
+            self.status = DocprocStatus.APPROVED.value
+   
+
 ## Debt Payment contract work flow   
-class ContractWorkFlow(Workflow):
+class ContractWorkflow(Workflow):
     _rsign_worker_func = None
     _task_due = 24 ## task expiry in hours
     _task_assign_type = TaskAssignType.AUTO
@@ -42,49 +101,98 @@ class ContractWorkFlow(Workflow):
     _task_priority = TaskPriority.MEDIUM
     
     def __init__(self, contract):
-        self._contract = contract 
-        super().__init__(contract.client)
-      
+        assigned_to = contract.agent_id
+        client_id = contract.client_id
+        super().__init__(contract, assigned_to, client_id)
+
     ## Client signed the contract
     def on_signed(self):
         self._task_title = 'Document for review'
         self._task_desc = 'Client signed, verify docusign document'
-        if self._contract and self._contract.status == ContractStatus.APPROVED:          
-            self._owner_id = self._contract.agent_id
-            self._task_obj = self._contract
+        if self.status == ContractStatus.APPROVED:          
+            self.status = ContractStatus.SIGNED
             self._create_task()
-            self._contract.status = ContractStatus.SIGNED
-            db.session.commit()
+            self.save()
 
     """
     On Team Request approved
     """
+    ## TEAM REQUEST APPROVED 
     def on_tr_approved(self, teamrequest):
-        if self._contract.status == ContractStatus.REQ4APPROVAL:
-            self._contract.status = ContractStatus.APPROVED
-            db.session.commit()
+        if self.status == ContractStatus.REQ4APPROVAL:
+            self.status = ContractStatus.APPROVED
+            self._create_task()
+            self.save()
             # send to worker queue for remote signature (docusign)
             if self._rsign_worker_func:
                 app.queue.enqueue('app.main.tasks.docusign.{}'.format(self._rsign_worker_func), 
-                                  self._client.id)
+                                  self._client_id)
 
-            self._owner_id = self._contract.agent_id
-            self._task_obj = self._contract
-            self._create_task()
-
-    
+    ## TEAM REQUEST DECLINED 
     def on_tr_declined(self, teamrequest):
-        if self._contract.status == ContractStatus.REQ4APPROVAL:
-            self._contract.status = ContractStatus.VOID
-            due = datetime.utcnow() + timedelta(hours=self._task_due)
-            
-            self._owner_id = self._contract.agent_id
-            self._task_obj = self._contract
+        if self.status == ContractStatus.REQ4APPROVAL:
+            self.status = ContractStatus.VOID
             self._create_task()
+            self.save()
+
+    ## TASK completed
+    def on_task_completed(self, task):
+        if self.status == ContractStatus.SIGNED:
+            # check for the document review task
+            if 'document for review' in task.title.lower():
+                client = self._object.client
+                client_keys = [client.id, ]
+                if client.co_client:
+                    client_keys.append(client.co_client.id)
+                debts = CreditReportData.query.outerjoin(CreditReportAccount)\
+                                        .filter(CreditReportAccount.client_id.in_(client_keys)).all()
+                for record in debts:
+                    active_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=self._object.id,
+                                                                                debt_id=record.id).first()
+                    ## update push status
+                    if active_debt:
+                        record.push = True
+                        ## update balance
+                        if active_debt.balance_original != record.balance_original:
+                            record.balance_original = active_debt.balance_original
+                    else:
+                        record.push = False
+                db.session.commit()
+
+                # change the current ACTIVE to REPLACED
+                active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                                      status=ContractStatus.ACTIVE).first()
+                if active_contract:
+                    active_contract.status = ContractStatus.REPLACED
+                    db.session.commit()
+                    self.total_paid = active_contract.total_paid
+                    self.num_inst_completed = active_contract.num_inst_completed
+                    self.status = ContractStatus.ACTIVE
+                    self.prev_id = active_contract.id
+                    self.save()
+                # new contract
+                else:
+                    self.status = ContractStatus.ACTIVE
+                    self.save()
+
+                count = 0
+                for record in active_contract.payment_schedule:
+                    count = count + 1
+                    if count > self._object.term:
+                        db.session.delete(record)
+                        continue
+
+                    # change the monthly fee for the EFTs not processed
+                    if record.status == DebtEftStatus.Scheduled:
+                        record.contract_id = self._object.id
+                        record.amount = self._object.monthly_fee
+
+                db.session.commit()
+
 
             
 ## debt payment revision workflow
-class RevisionWorkFlow(Workflow):
+class RevisionWorkflow(Workflow):
     _task_due = 24 ## task expiry in hours
     _task_assign_type = TaskAssignType.AUTO
     _task_ref_type = 'DebtPaymentRevision'
@@ -92,54 +200,48 @@ class RevisionWorkFlow(Workflow):
     _task_priority = TaskPriority.MEDIUM
 
     def __init__(self, revision):
-        self._revision = revision
-        client = revision.contract.client
-        super().__init__(client)
+        assigned_to = revision.agent_id 
+        client_id = revision.client_id
+        super().__init__(revision, assigned_to, client_id)
 
     def on_tr_approved(self, teamrequest): 
-        if self._revision.status == RevisionStatus.OPENED:
-            self._revision.status = RevisionStatus.ACCEPTED
-            db.session.commit()
-
-            self._owner_id = self._revision.agent_id
-            self._task_obj = self._revision
+        if self.status == RevisionStatus.OPENED:
+            self.status = RevisionStatus.ACCEPTED
             self._create_task()
+            self.save()
 
     def on_tr_declined(self, teamrequest): 
         ## temperorary
         self._task_title = 'Call Client'
         self._task_desc = 'Request Rejected'
 
-        if self._revision.status == RevisionStatus.OPENED:
-            self._revision.status = RevisionStatus.REJECTED
-            db.session.commit()
-
-            self._owner_id = self._revision.agent_id
-            self._task_obj = self._revision
+        if self.status == RevisionStatus.OPENED:
+            self.status = RevisionStatus.REJECTED
             self._create_task()
+            self.save()
  
 """
 factory method that returns the appropriate contract workflow
 """
 def open_contract_flow(code, contract, revision=None):
 
-    class NewContract(ContractWorkFlow):
+    class NewContract(ContractWorkflow):
         def on_tr_approved(self, teamrequest):
             pass
         def on_tr_declined(self, teamrequest):
             pass
         def on_signed(self):
-            if self._contract and self._contract.status == ContractStatus.APPROVED:
+            if self.status == ContractStatus.APPROVED:
                 # create payment schedule
-                DebtPaymentSchedule.create_schedule(self._contract)
-                self._contract.status = ContractStatus.ACTIVE
-                db.session.commit()
+                DebtPaymentSchedule.create_schedule(self._object)
+                self.status = ContractStatus.ACTIVE
+                self.save()
                 # add epps customer
                 # register client with EPPS provider
                 func = 'register_customer'
-                app.queue.enqueue('app.main.tasks.debt_payment.{}'.format(func), self._client.id)
+                app.queue.enqueue('app.main.tasks.debt_payment.{}'.format(func), self._client_id)
 
-    class TermChange(ContractWorkFlow): 
+    class TermChange(ContractWorkflow): 
         _rsign_worker_func = 'send_term_change_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -152,7 +254,7 @@ def open_contract_flow(code, contract, revision=None):
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
 
-    class AddDebts(ContractWorkFlow):
+    class AddDebts(ContractWorkflow):
         _rsign_worker_func = 'send_additional_debts_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -165,7 +267,7 @@ def open_contract_flow(code, contract, revision=None):
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
 
-    class RemoveDebts(ContractWorkFlow):
+    class RemoveDebts(ContractWorkflow):
         _rsign_worker_func = 'send_removal_debts_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -178,7 +280,7 @@ def open_contract_flow(code, contract, revision=None):
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
 
-    class ModifyDebts(ContractWorkFlow):
+    class ModifyDebts(ContractWorkflow):
         _rsign_worker_func = 'send_modify_debts_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -191,7 +293,7 @@ def open_contract_flow(code, contract, revision=None):
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
 
-    class ReceiveSummon(ContractWorkFlow):
+    class ReceiveSummon(ContractWorkflow):
         _rsign_worker_func = 'send_receive_summon_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -204,7 +306,7 @@ def open_contract_flow(code, contract, revision=None):
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
 
-    class NewEftAuth(ContractWorkFlow):
+    class NewEftAuth(ContractWorkflow):
         _rsign_worker_func = 'send_eft_authorization_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -217,7 +319,7 @@ def open_contract_flow(code, contract, revision=None):
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
 
-    class AddCoClient(ContractWorkFlow):
+    class AddCoClient(ContractWorkflow):
         _rsign_worker_func = 'send_add_coclient_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -230,7 +332,7 @@ def open_contract_flow(code, contract, revision=None):
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
 
-    class RemoveCoClient(ContractWorkFlow):
+    class RemoveCoClient(ContractWorkflow):
         _rsign_worker_func = 'send_remove_coclient_for_signature'
 
         def on_tr_approved(self, teamrequest):
@@ -242,20 +344,19 @@ def open_contract_flow(code, contract, revision=None):
             self._task_desc = 'Remove Co-client request declined.\
                                Please communicate to your client.'
             super().on_tr_declined(teamrequest)
-
     
-    class ChangeDraftDate(RevisionWorkFlow):
+    class ChangeDraftDate(RevisionWorkflow):
 
         def on_tr_approved(self, teamrequest):
             try:
-                if self._revision.status != RevisionStatus.OPENED:
+                if self.status != RevisionStatus.OPENED:
                     return
                 
                 pymt_record = DebtPaymentSchedule.query\
-                    .filter(and_(DebtPaymentSchedule.contract_id==self._revision.contract_id,
+                    .filter(and_(DebtPaymentSchedule.contract_id==self._object.contract_id,
                                  DebtPaymentSchedule.due_date > datetime.now())).order_by(asc(DebtPaymentSchedule.id)).first()
                 if pymt_record:
-                    new_due_date = self._revision.fields['draft_date']
+                    new_due_date = self._object.fields['draft_date']
                     pymt_record.due_date = new_due_date # convert to datetime
 
                 self._task_desc = 'Change Draft date Approved.\
@@ -264,16 +365,15 @@ def open_contract_flow(code, contract, revision=None):
             except Exception as err:
                 raise ValueError("ChangeDraftDate TR APPROVED handler issue")
 
-    class ChangeRecurDay(RevisionWorkFlow):
+    class ChangeRecurDay(RevisionWorkflow):
 
         def on_tr_approved(self, teamrequest):
             try:
-                if self._revision.status != RevisionStatus.OPENED:
+                if self.status != RevisionStatus.OPENED:
                     return
                 
-
-                day = int(self._revision.fields['recur_day'])
-                records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self._revision.contract_id,
+                day = int(self._object.fields['recur_day'])
+                records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self._object.contract_id,
                                                                 DebtPaymentSchedule.status==DebtEftStatus.Scheduled)).all()
                 for record in records:
                     record.due_date = record.due_date.replace(day=day)
@@ -283,15 +383,15 @@ def open_contract_flow(code, contract, revision=None):
             except Exception as err:
                 raise ValueError("ChangeRecurDay ON TR APPROVED {}".format(str(err)))
 
-    class SkipPayment(RevisionWorkFlow):
+    class SkipPayment(RevisionWorkflow):
 
         def on_tr_approved(self, teamrequest):
             try:
-                if self._revision.status != RevisionStatus.OPENED:
+                if self._object.status != RevisionStatus.OPENED:
                     return
 
                 # skip the next payment from the schedule
-                records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self._revision.contract_id,
+                records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self._object.contract_id,
                                                                 DebtPaymentSchedule.status==DebtEftStatus.Scheduled)).all()
                 for record in records:
                     due = record.due_date
@@ -304,19 +404,19 @@ def open_contract_flow(code, contract, revision=None):
             except Exception as err:
                 raise ValueError("SkipPayment ON TR APPROVED {}".format(str(err)))
 
-    class Refund(RevisionWorkFlow):
+    class Refund(RevisionWorkflow):
 
         def on_tr_approved(self, teamrequest):
             try:
-                if self._revision.status != RevisionStatus.OPENED:
+                if self._object.status != RevisionStatus.OPENED:
                     return
                 
                 self._task_desc = 'Refund Request Approved.\
                                    Please communicate with your client.'
                 super().on_tr_approved(teamrequest)
+
             except Exception as err:
                 raise ValueError("SkipPayment ON TR APPROVED {}".format(str(err)))
-
 
     if 'NEW_CONTRACT' in code:
         return NewContract(contract)        
@@ -347,3 +447,28 @@ def open_contract_flow(code, contract, revision=None):
             
     # not supported action 
     return None 
+
+from app.main.model.debt_payment import DebtPaymentContract, DebtPaymentContractRevision
+from app.main.model.appointment import Appointment
+from app.main.model.docproc import Docproc
+
+def open_task_flow(task):
+
+    if 'DebtPaymentContract' in task.object_type:
+        obj = DebtPaymentContract.query.filter_by(id=task.object_id).first()
+        if obj:
+            return ContractWorkflow(obj)
+    elif 'DebtPaymentRevision' in task.object_type:
+        obj = DebtPaymentRevision.query.filter_by(id=task.object_id).first()
+        if obj:
+            return RevisionWorkflow(obj)
+    elif 'Appointment' in task.object_type:
+        obj = Appointment.query.filter_by(id=task.object_id).first()
+        if obj:
+            return AppointmentWorkflow(obj)
+    elif 'Docproc' in task.object_type:
+        obj = Docproc.query.filter_by(id=task.object_id).first()
+        if obj:
+            return DocprocWorkflow(obj)
+
+    return None

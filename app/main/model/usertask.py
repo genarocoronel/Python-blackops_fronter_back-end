@@ -15,6 +15,7 @@ class TaskStatus(enum.Enum):
     COMPLETED = 'completed'
     MISSED = 'missed'
     CANCELED = 'canceled'
+    DECLINED = 'declined'
 
 class TaskAssignType(enum.Enum):
     AUTO = 'auto'
@@ -43,7 +44,7 @@ class UserTask(db.Model):
    
     # priority, status 
     priority = db.Column(db.Enum(TaskPriority), default=TaskPriority.LOW)
-    status = db.Column(db.Enum(TaskStatus), default=TaskStatus.NOTSTARTED)
+    status = db.Column(db.String(40), default=TaskStatus.NOTSTARTED.name)
 
     title = db.Column(db.String(120), nullable=False)
     description = db.Column(db.String(200), nullable=True)

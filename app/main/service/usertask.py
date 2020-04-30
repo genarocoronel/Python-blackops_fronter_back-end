@@ -1,6 +1,7 @@
 from app.main import db
 from app.main.model.usertask import UserTask, TaskStatus
 from app.main.model.debt_payment import DebtPaymentContract, ContractStatus, DebtPaymentContractCreditData
+from app.main.service.workflow import open_task_flow
 from datetime import datetime
 
 def fetch_user_tasks(user):
@@ -36,19 +37,12 @@ def update_user_task_status(task, status):
     if status not in TaskStatus.__members__:
         raise ValueError('Not a valid status value')
 
-    obj = None
-    task_handler = "ON_TASK_{}".format(status)
-    obj_type = task.object_type 
-    if obj_type == 'DebtPaymentContract':
-        obj = DebtPaymentContract.query.filter_by(id=task.object_id).first()
-
-    if obj is not None:        
-        try:
-            func = getattr(obj, task_handler)
+    tf = open_task_flow(task)
+    if tf is not None:
+        task_handler = "on_task_{}".format(status.lower())
+        func = getattr(tf, task_handler, None)
+        if func:
             func(task)
-        except Exception as err:
-            # state handler is not defined
-            pass
 
     task.status = status 
     db.session.commit()

@@ -17,7 +17,7 @@ from app.main.service.communication_service import parse_communication_types, da
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions,
                                                             get_security_questions, complete_signup, pull_credit_report)
-from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
+from app.main.service.debt_payment import contract_open_revision, contract_reinstate
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule

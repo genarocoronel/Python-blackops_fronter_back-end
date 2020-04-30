@@ -14,15 +14,19 @@ class AppointmentList(Resource):
     @api.marshal_list_with(_appointment, envelope='data')
     def get(self):
         """ List all appointments """
-        return get_all_appointments()
+        return AppointmentService.list()
 
     @api.response(201, 'Appointment successfully created')
     @api.doc('create new appointment')
     @api.expect(_appointment, validate=True)
+    @api.marshal_with(_appointment)
     def post(self):
-        """ Creates new Appointment """
-        data = request.json
-        return save_new_appointment(data=data)
+        try:
+            """ Creates new Appointment """
+            return AppointmentService.save(request) 
+
+        except Exception as err:
+            api.abort(500, "{}".format(str(err))) 
 
 
 @api.route('/<public_id>')
@@ -32,9 +36,21 @@ class Appointment(Resource):
     @api.doc('get appointment')
     @api.marshal_with(_appointment)
     def get(self, public_id):
-        """ Get appointment with provided identifier"""
-        appointment = get_appointment(public_id)
-        if not appointment:
-            api.abort(404)
-        else:
+        try:
+            """ Get appointment with provided identifier"""
+            appointment = AppointmentService.get(public_id)
             return appointment
+        except Exception as err:
+            api.abort(500, "{}".format(str(err))) 
+
+    @api.doc('update appointment')
+    @api.marshal_with(_appointment)
+    def put(self, public_id):
+        try:
+            print(public_id)
+            """ Update appointment service """
+            appointment = AppointmentService.update(public_id, request)
+            return appointment
+
+        except Exception as err:
+            api.abort(500, "{}".format(str(err))) 

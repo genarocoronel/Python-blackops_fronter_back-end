@@ -123,6 +123,10 @@ def update_doc(doc, data):
 
     _save_changes(doc)
 
+    ## creating tasks 
+    dwf = DocprocWorkflow(doc)
+    dwf.on_doc_update()
+
     return synth_doc(doc)
 
 

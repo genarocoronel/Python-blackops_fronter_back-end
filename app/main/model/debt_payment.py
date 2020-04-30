@@ -92,63 +92,6 @@ class DebtPaymentContract(db.Model):
     prev_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_contract_prev_id_fkey'))
     next_contract = db.relationship('DebtPaymentContract', uselist=False, remote_side=[prev_id]) 
 
-    # STATE & EVENT HANDLERS
-    def ON_TASK_COMPLETED(self, task):
-        # SIGNED state
-        if self.status == ContractStatus.SIGNED: 
-            # check for the document review task
-            if 'document for review' in task.title.lower():
-                client = self.client
-                client_keys = [client.id, ]
-                if client.co_client:
-                    client_keys.append(client.co_client.id)
-
-                debts = CreditReportData.query.outerjoin(CreditReportAccount)\
-                                              .filter(CreditReportAccount.client_id.in_(client_keys)).all()
-                for record in debts:
-                    active_debt = DebtPaymentContractCreditData.query.filter_by(contract_id=self.id,
-                                                                                debt_id=record.id).first()
-                    ## update push status
-                    if active_debt:
-                        record.push = True
-                        ## update balance 
-                        if active_debt.balance_original != record.balance_original:
-                            record.balance_original = active_debt.balance_original
-                    else:
-                        record.push = False
-                db.session.commit()
-
-                # change the current ACTIVE to REPLACED
-                active_contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                                      status=ContractStatus.ACTIVE).first() 
-                if active_contract:
-                    active_contract.status = ContractStatus.REPLACED
-                    db.session.commit()
-                    self.total_paid = active_contract.total_paid
-                    self.num_inst_completed = active_contract.num_inst_completed 
-                    self.status = ContractStatus.ACTIVE
-                    self.prev_id = active_contract.id
-                    db.session.commit()
-                # new contract
-                else:
-                    self.status = ContractStatus.ACTIVE
-                    db.session.commit()
-
-                count = 0
-                for record in active_contract.payment_schedule:
-                    count = count + 1
-                    if count > self.term:
-                        db.session.delete(record)
-                        continue
-
-                    # change the monthly fee for the EFTs not processed
-                    if record.status == DebtEftStatus.Scheduled:
-                        record.contract_id = self.id 
-                        record.amount = self.monthly_fee
-
-                db.session.commit()
-                
-
 
 class DebtPaymentContractCreditData(db.Model):
     """ DB model for storing enrolled debts for a contract """

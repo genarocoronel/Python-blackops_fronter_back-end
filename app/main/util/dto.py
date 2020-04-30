@@ -203,12 +203,12 @@ class AppointmentDto:
     api = Namespace('appointments', description='appointment related operations')
     appointment = api.model('appointment', {
         'client_id': fields.Integer(required=True, description='identifier for client'),
-        'employee_id': fields.Integer(required=True, description='identifier for employee'),
-        'datetime': fields.DateTime(required=True, description='date and time of appointment'),
+        'employee_id': fields.Integer(attribute='agent_id', required=True, description='identifier for employee'),
+        'team_manager_id': fields.Integer(description='identifier for team manager'),
+        'datetime': fields.DateTime(attribute='scheduled_at',required=True, description='date and time of appointment'),
         'summary': fields.String(required=True, description='summary of appointment'),
-        'notes': fields.String(required=False, description='notes for appointment'),
         'reminder_types': fields.String(required=True, description='type(s) of reminders to be sent to client'),
-        'status': fields.String(required=False, description='status of appointment'),
+        'status': fields.String(description='status of appointment'),
         'public_id': fields.String(description='user identifier')
     })
 
