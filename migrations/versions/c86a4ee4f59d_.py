@@ -23,6 +23,7 @@ def upgrade():
     op.add_column('voice_communications', sa.Column('public_id', sa.String(length=100), nullable=True))
     op.create_unique_constraint('voice_communications_public_id_key', 'voice_communications', ['public_id'])
 
+    op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
     op.execute("UPDATE fax_communications SET public_id = uuid_generate_v4() WHERE public_id is NULL")
     op.execute("UPDATE voice_communications SET public_id = uuid_generate_v4() WHERE public_id is NULL")
 
