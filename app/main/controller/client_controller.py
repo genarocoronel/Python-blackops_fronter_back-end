@@ -22,7 +22,7 @@ from app.main.service.debt_service import check_existing_scrape_task, get_report
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user
-from app.main.service.docproc_service import get_docs_for_client
+from app.main.service.docproc_service import get_docs_for_client, get_doc_by_pubid, stream_doc_file
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto
@@ -801,7 +801,7 @@ class ClientDocs(Resource):
     @api.marshal_list_with(_doc)
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
-        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SALES_REP])
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
     def get(self, client_id):
         """ Get Client documents """
         client, error_response = _handle_get_client(client_id)
@@ -811,3 +811,32 @@ class ClientDocs(Resource):
         docs = get_docs_for_client(client)
 
         return docs, 200
+
+
+@api.route('/<client_id>/docs/<public_id>/file/')
+@api.param('client_id', 'Client public identifier')
+@api.param('public_id', 'Doc public identifier')
+class ClientDocFile(Resource):
+    @api.doc('Get a Doc file for a given Client')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def get(self, client_id, public_id):
+        """ Get a Doc file for a given Client """
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        doc = get_doc_by_pubid(public_id)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+
+        try:
+            return stream_doc_file(doc)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to get File for Doc with ID {doc_public_id}', success=False)
