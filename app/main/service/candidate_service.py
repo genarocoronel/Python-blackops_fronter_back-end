@@ -9,6 +9,7 @@ from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
     CandidateMonthlyExpense
 from app.main.model.candidate import CandidateDisposition, CandidateDispositionType
+from app.main.model.user import UserCandidateAssignment
 from app.main.model.campaign import Campaign
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.candidate import CandidateImport, Candidate, CandidateStatus
@@ -558,6 +559,18 @@ def get_candidate_contact_by_phone(phone_no: PhoneNumber):
         .join(ContactNumber) \
         .filter(ContactNumber.phone_number == str(phone_no.national_number)).first()
     return candidate_cn
+
+
+def assign_openerrep(candidate, asignee_user):
+    """ Assigns a Opener Rep user to a Candidate """
+    assignment = UserCandidateAssignment(
+        user_id = asignee_user.id,
+        candidate_id = candidate.id
+    )
+    db.session.add(assignment)
+
+    save_changes()
+    return True
 
 
 def save_changes(*data):
