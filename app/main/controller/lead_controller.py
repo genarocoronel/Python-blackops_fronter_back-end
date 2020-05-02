@@ -145,7 +145,11 @@ class LeadAssignment(Resource):
         if not asignee:
             api.abort(404, message='That Sales Rep could not be found.', success=False)
 
-        result = assign_salesrep(lead, asignee)
+        try:
+            assign_salesrep(lead, asignee)
+
+        except Exception as e:
+            api.abort(500, message=f'Failed to assign a Sales Rep for this Lead. Error: {e}', success=False)
 
         response_object = {
             'success': True,
