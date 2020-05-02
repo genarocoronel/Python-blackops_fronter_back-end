@@ -7,7 +7,7 @@ from app.main.core.auth import Auth
 from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.candidate import Candidate
 from app.main.model.client import Client
-from app.main.model.user import User, UserClientAssignment, UserCandidateAssignment
+from app.main.model.user import User, UserClientAssignment, UserLeadAssignment, UserCandidateAssignment
 
 
 def get_request_user():
@@ -153,7 +153,14 @@ def get_client_assignments(current_user):
     return [assignment.client for assignment in client_assignments]
 
 
+def get_lead_assignments(current_user):
+    """ Gets all Leads assigned to the given User """
+    lead_assignments = UserLeadAssignment.query.join(User).filter(User.id == current_user.id).all()
+    return [assignment.client for assignment in lead_assignments]
+
+
 def get_candidate_assignments(current_user):
     candidate_assignments_filter = UserCandidateAssignment.query.join(User).filter(User.id == current_user.id)
     candidate_assignments = candidate_assignments_filter.all()
     return [assignment.candidate for assignment in candidate_assignments]
+

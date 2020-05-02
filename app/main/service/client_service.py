@@ -8,6 +8,7 @@ from app.main.model import Frequency
 from app.main.model.appointment import Appointment
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientCheckList, \
     ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
+from app.main.model.user import UserLeadAssignment
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
@@ -133,6 +134,8 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
 
 
 def get_all_clients(client_type=ClientType.client):
+    # TODO - Refactor to use user_service::get_lead_assignments(), and user_service::get_client_assignments()
+    # when frontend assigment feature ready
     return Client.query.filter_by(type=client_type).all()
 
 
@@ -323,6 +326,18 @@ def update_client(client, data, client_type=ClientType.client):
             'message': f'{client_type.name.capitalize()} not found',
         }
         return response_object, 404
+
+
+def assign_salesrep(client, asignee_user):
+    """ Assigns a Sales Rep user to a Lead """
+    assignment = UserLeadAssignment(
+        user_id = asignee_user.id,
+        client_id = client.id
+    )
+    db.session.add(assignment)
+
+    save_changes()
+    return True
 
 
 def get_client_bank_account(client):
