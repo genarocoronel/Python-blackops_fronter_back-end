@@ -8,6 +8,7 @@ from app.main.model import Frequency
 from app.main.model.appointment import Appointment
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientCheckList, \
     ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
+from app.main.model.user import UserClientAssignment
 from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
@@ -340,6 +341,18 @@ def get_client_appointments(public_id, client_type=ClientType.client):
         return Appointment.query.filter_by(client_id=client.id, type=client_type).all()
     else:
         return None
+
+
+def assign_servicerep(client, asignee_user):
+    """ Assigns a Service Rep user to a Client """
+    assignment = UserClientAssignment(
+        user_id = asignee_user.id,
+        client_id = client.id
+    )
+    db.session.add(assignment)
+
+    save_changes()
+    return True
 
 
 def save_changes(*data):

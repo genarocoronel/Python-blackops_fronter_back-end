@@ -11,7 +11,7 @@ from app.main.service.client_service import (get_all_clients, save_new_client, g
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
-                                             update_client_contact_numbers)
+                                             update_client_contact_numbers, assign_servicerep)
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
     get_client_voice_communication, create_presigned_url
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
@@ -21,7 +21,7 @@ from app.main.service.debt_payment_service import contract_open_revision, contra
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
-from app.main.service.user_service import get_request_user
+from app.main.service.user_service import get_request_user, get_a_user
 from app.main.service.docproc_service import get_docs_for_client
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
@@ -86,12 +86,42 @@ class Client(Resource):
     @api.doc('update client')
     @api.expect(_update_client, validate=True)
     def put(self, public_id):
-        """ Update client with provided identifier"""
+        """ Update client with provided identifier """
         client = get_client(public_id, client_type=CLIENT)
         if not client:
             api.abort(404)
         else:
             return update_client(client, request.json, client_type=CLIENT)
+
+
+@api.route('/<public_id>/assign/<user_public_id>/')
+@api.param('public_id', 'The Client Identifier')
+@api.response(404, 'Client not found')
+class ClientAssignment(Resource):
+    @api.doc('Assigns a Client to a Service Rep user')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SERVICE_MGR])
+    def put(self, public_id, user_public_id):
+        """ Assigns a Client to a Service Rep user """
+        client = get_client(public_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, "Client not found")
+        
+        asignee = get_a_user(user_public_id)
+        if not asignee:
+            api.abort(404, message='That Sales Rep could not be found.', success=False)
+
+        try:
+            assign_servicerep(client, asignee)
+            
+        except Exception as e:
+            api.abort(500, message=f'Failed to assign a Service Rep for this Client. Error: {e}', success=False)
+
+        response_object = {
+            'success': True,
+            'message': f'Successfully assigned this Client to Sales Rep with ID {user_public_id}.',
+        }
+        return response_object, 200
 
 
 @api.route('/<client_id>/income-sources')
