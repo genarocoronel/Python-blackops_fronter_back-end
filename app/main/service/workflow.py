@@ -201,7 +201,7 @@ class RevisionWorkflow(Workflow):
 
     def __init__(self, revision):
         assigned_to = revision.agent_id 
-        client_id = revision.client_id
+        client_id = revision.contract.client_id
         super().__init__(revision, assigned_to, client_id)
 
     def on_tr_approved(self, teamrequest): 
@@ -459,7 +459,7 @@ def open_task_flow(task):
         if obj:
             return ContractWorkflow(obj)
     elif 'DebtPaymentRevision' in task.object_type:
-        obj = DebtPaymentRevision.query.filter_by(id=task.object_id).first()
+        obj = DebtPaymentContractRevision.query.filter_by(id=task.object_id).first()
         if obj:
             return RevisionWorkflow(obj)
     elif 'Appointment' in task.object_type:
