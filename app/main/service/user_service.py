@@ -164,3 +164,23 @@ def get_candidate_assignments(current_user):
     candidate_assignments = candidate_assignments_filter.all()
     return [assignment.candidate for assignment in candidate_assignments]
 
+class DepartmentService(object):
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+
+    def members(self):
+        users = User.query.filter_by(department=self._name).all()
+        return users
+
+    @classmethod
+    def by_name(cls, name):
+        obj = cls()
+        obj.name = name
+        return obj
+

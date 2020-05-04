@@ -1,6 +1,7 @@
 from flask import current_app as app
 from app.main import db
-from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus, ContractStatus, RevisionStatus 
+from app.main.model.debt_payment import DebtPaymentSchedule, DebtPaymentContractCreditData, DebtEftStatus, ContractStatus, RevisionStatus 
+from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
@@ -45,7 +46,7 @@ class Workflow(object):
         agent_id = self.owner
         task = UserTask(assign_type=self._task_assign_type,
                         owner_id=agent_id,
-                        priority=self._task_priority,
+                        priority=self._task_priority.name,
                         title=self._task_title,
                         description= self._task_desc,
                         due_date=due,
@@ -165,10 +166,10 @@ class ContractWorkflow(Workflow):
                 if active_contract:
                     active_contract.status = ContractStatus.REPLACED
                     db.session.commit()
-                    self.total_paid = active_contract.total_paid
-                    self.num_inst_completed = active_contract.num_inst_completed
+                    self._object.total_paid = active_contract.total_paid
+                    self._object.num_inst_completed = active_contract.num_inst_completed
+                    self._object.prev_id = active_contract.id
                     self.status = ContractStatus.ACTIVE
-                    self.prev_id = active_contract.id
                     self.save()
                 # new contract
                 else:
@@ -188,7 +189,6 @@ class ContractWorkflow(Workflow):
                         record.amount = self._object.monthly_fee
 
                 db.session.commit()
-
 
             
 ## debt payment revision workflow

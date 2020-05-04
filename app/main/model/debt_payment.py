@@ -2,7 +2,6 @@ import enum
 from app.main import db
 from sqlalchemy import func
 from sqlalchemy.orm import backref
-from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority 
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from flask import current_app as app
 

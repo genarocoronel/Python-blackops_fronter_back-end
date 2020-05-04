@@ -18,7 +18,6 @@ class AppointmentList(Resource):
 
     @api.response(201, 'Appointment successfully created')
     @api.doc('create new appointment')
-    @api.expect(_appointment, validate=True)
     @api.marshal_with(_appointment)
     def post(self):
         try:

@@ -8,6 +8,8 @@ from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from dateutil.parser import parse as dt_parse
 from app.main.channels.notification import TaskChannel
 from app.main.service.workflow import Workflow
+from app.main.model.client import Client
+from app.main.service.user_service import get_request_user
 
 
 class AppointmentWorkflow(Workflow):
@@ -61,14 +63,19 @@ class AppointmentService(object):
     def save(cls, request):
         data = request.json
         status = AppointmentStatus.SCHEDULED
+        agent = get_request_user()
         note = data.get('note')
+        client = Client.query.filter_by(public_id=data.get('client_id')).first()
+        if not client:
+            raise ValueError("Client not found")
 
-        scheduled_date = dt_parse(data.get('datetime'))
+        scheduled_date = dt_parse(data.get('scheduled_on'))
         appt = Appointment(public_id=str(uuid.uuid4()),
-                           client_id=data.get('client_id'),
-                           agent_id=data.get('employee_id'),
+                           client_id=client.id,
+                           agent_id=3,
                            scheduled_at=scheduled_date,
                            summary=data.get('summary'),
+                           location=data.get('loc'),
                            status=status.name,
                            reminder_types=data.get('reminder_types'),)
         db.session.add(appt)

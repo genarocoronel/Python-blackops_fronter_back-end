@@ -3,10 +3,10 @@ from app.main import db
 from datetime import datetime
 
 class TaskPriority(enum.Enum):
-    LOW = 'low'
-    MEDIUM = 'medium'
-    HIGH = 'high'
-    CRITICAL = 'critical'
+    LOW = 'Low'
+    MEDIUM = 'Medium'
+    HIGH = 'High'
+    CRITICAL = 'Critical'
 
 class TaskStatus(enum.Enum):
     NOTSTARTED = 'not started'
@@ -18,9 +18,8 @@ class TaskStatus(enum.Enum):
     DECLINED = 'declined'
 
 class TaskAssignType(enum.Enum):
-    AUTO = 'auto'
-    USER = 'user'
-
+    AUTO = 'Automatic'
+    USER = 'Manual'
 
 class UserTask(db.Model):
     """ db model for storing user tasks"""
@@ -43,7 +42,7 @@ class UserTask(db.Model):
     client = db.relationship('Client', backref='user_tasks')
    
     # priority, status 
-    priority = db.Column(db.Enum(TaskPriority), default=TaskPriority.LOW)
+    priority = db.Column(db.String(40), default=TaskPriority.MEDIUM.name)
     status = db.Column(db.String(40), default=TaskStatus.NOTSTARTED.name)
 
     title = db.Column(db.String(120), nullable=False)

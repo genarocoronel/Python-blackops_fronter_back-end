@@ -33,6 +33,8 @@ class Appointment(db.Model):
     scheduled_at = db.Column(db.DateTime, nullable=False)
     # summary/title 
     summary = db.Column(db.String(255), nullable=False)
+    # phone number / location of meet 
+    location = db.Column(db.String(255), nullable=False)
 
     # status (appointmentstatus)
     status = db.Column(db.String(64), nullable=False)

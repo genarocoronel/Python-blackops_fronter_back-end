@@ -152,7 +152,6 @@ class UserDto:
     user = api.model('user', {
         'public_id': fields.String(description='user identifier'),
         'username': fields.String(required=True, description='user username'),
-        'password': fields.String(required=True, description='user password'),
         'email': fields.String(required=True, description='user email address'),
         'first_name': fields.String(required=True, description='user first name'),
         'last_name': fields.String(required=True, description='user last name'),
@@ -162,7 +161,8 @@ class UserDto:
         'personal_phone': fields.String(required=True, description='user personal phone number'),
         'last_4_of_phone': fields.String(required=True, description='Last 4 of user personal phone number'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
-        'rac_role': fields.String(required=False, description='RAC Role')
+        'rac_role': fields.String(required=False, description='RAC Role'),
+        'department': fields.String(required=False, description='user department'),
     })
     user_supressed = api.model('user_supressed', {
         'public_id': fields.String(description='user identifier'),
@@ -172,6 +172,7 @@ class UserDto:
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
         'rac_role': fields.String(required=False, description='RAC Role')
     })
+    
 
 
 class AuthDto:
@@ -1105,7 +1106,8 @@ class TaskDto:
         'title': fields.String(),
         'description': fields.String(),
         'requested_on': DateTimeFormatField(),
-        'status': fields.String(attribute='status.name'),
+        'priority': fields.String(attribute='priority'),
+        'status': fields.String(attribute='status'),
         'client': fields.Nested(client),
         'due_date': DateTimeFormatField(),
         'inserted_on': DateTimeFormatField(),
