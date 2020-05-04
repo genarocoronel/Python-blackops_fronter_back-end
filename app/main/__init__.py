@@ -17,6 +17,7 @@ flask_bcrypt = Bcrypt()
 # sccket io channel
 wscomm = SocketIO()
 
+
 def create_app(config_name):
     app = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -31,7 +32,7 @@ def create_app(config_name):
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.chnls_key_store = Redis.from_url(app.config['REDIS_URL'], charset="utf-8", decode_responses=True)
     app.queue = rq.Queue('default', connection=app.redis, default_timeout=3600)
-   
+
     app.cipher = Fernet(app.config['SECRET_KEY'])
 
     app.s3_bucket_voicemail = app.config['S3_BUCKET_VOICEMAIL']
@@ -39,7 +40,7 @@ def create_app(config_name):
     app.s3_bucket_docproc = app.config['S3_BUCKET_DOCPROC']
     app.jive_queue_url = app.config['JIVE_QUEUE_URL']
     app.s3_signed_url_timeout_seconds = app.config['S3_SIGNED_URL_TIMEOUT_SEC']
-    
+
     app.smart_credit_url = app.config['SMART_CREDIT_URL']
     app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']
     app.smart_credit_publisher_id = app.config['SMART_CREDIT_PUBLISHER_ID']
@@ -58,6 +59,10 @@ def create_app(config_name):
     app.bandwidth_user_id = app.config['BANDWIDTH_USER_ID']
     app.bandwidth_api_token = app.config['BANDWIDTH_API_TOKEN']
     app.bandwidth_api_secret = app.config['BANDWIDTH_API_SECRET']
+
+    app.fax_sender = app.config['FAX_SENDER']
+    app.fax_service_domain = app.config['FAX_SERVICE_DOMAIN']
+    app.fax_access_code = app.config['FAX_ACCESS_CODE']
 
     if not app.config['REQUIRE_SMS_WEBHOOK_IDS']:
         app.sms_webhook_identities = None
