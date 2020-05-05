@@ -10,7 +10,7 @@ from ..core.rac import RACRoles
 from ..service.user_service import (save_new_user, get_all_users, get_a_user, 
     update_user, get_all_users_by_role_pubid)
 from ..service.user_service import DepartmentService
-from ..service.usertask import UserTaskService
+from ..service.usertask_service import UserTaskService
 
 api = UserDto.api
 _user = UserDto.user

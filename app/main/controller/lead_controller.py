@@ -20,7 +20,7 @@ from app.main.service.communication_service import parse_communication_types, da
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions,
                                                             get_security_questions, complete_signup, pull_credit_report)
-from app.main.service.debt_payment import fetch_payment_contract, update_payment_contract, payment_contract_action, \
+from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract, payment_contract_action, \
     payment_contract_req4approve, fetch_amendment_plan, update_amendment_plan, \
     fetch_payment_schedule, update_payment_schedule
 from app.main.service.debt_service import check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \

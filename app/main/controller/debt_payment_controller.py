@@ -2,7 +2,7 @@ from flask import Flask, request
 from flask_restplus import Resource, Api
 
 from ..util.dto import DebtPaymentDto
-from ..service.debt_payment import fetch_debt_payment_stats
+from ..service.debt_payment_service import fetch_debt_payment_stats
 
 api = DebtPaymentDto.api 
 

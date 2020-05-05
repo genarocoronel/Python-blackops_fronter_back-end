@@ -5,7 +5,7 @@ from phonenumbers import PhoneNumber
 
 from app.main import db
 from app.main.model import Frequency
-from app.main.model.appointment import Appointment
+from app.main.model.appointment_service import Appointment
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientCheckList, \
     ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
 from app.main.model.user import UserClientAssignment

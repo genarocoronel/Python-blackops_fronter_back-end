@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_restplus import Resource, Api
 
-from ..service.teamrequest import fetch_team_requests, filter_team_requests, update_team_request
+from ..service.teamrequest_service import fetch_team_requests, filter_team_requests, update_team_request
 from ..util.decorator import token_required
 from ..util.dto import TeamDto
 

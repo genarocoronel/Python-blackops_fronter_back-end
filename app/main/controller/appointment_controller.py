@@ -1,7 +1,7 @@
 from flask import request
 from flask_restplus import Resource
 
-from app.main.service.appointment import AppointmentService
+from app.main.service.appointment_service import AppointmentService
 from ..util.dto import AppointmentDto
 
 api = AppointmentDto.api
