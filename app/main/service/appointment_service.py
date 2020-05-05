@@ -38,7 +38,7 @@ class AppointmentWorkflow(Workflow):
         self._task_title = 'Incomplete Appointment'
         self._task_desc = 'Appointment marked Incomplete - Action Required'
 
-        if self.status == AppointmentStatus.SCHEDULED:
+        if self.status == AppointmentStatus.SCHEDULED.name:
             self.status = AppointmentStatus.INCOMPLETE.name
             appt = self._object
             self.owner = appt.agent_id 
