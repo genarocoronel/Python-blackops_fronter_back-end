@@ -320,12 +320,12 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
             raise NotFoundError('could not find a known Client for that outbound SMS message. Not sent.')
         
         for number_item in client.contact_numbers:
-            if number_item.contact_number.preferred:
+            if number_item.contact_number.contact_number_type.name == 'Mobile phone number':
                 destination_phone = number_item.contact_number.phone_number
                 break
     
     if not destination_phone:
-        raise Exception(f'Could not determine phone number to send the SMS message to for Client with ID {client_public_id}')
+        raise Exception(f'Could not determine a mobile phone number to send the SMS message to for Client with ID {client_public_id}')
     
     try:
         crm_mssg_data = sms_send(from_phone, destination_phone, message_body)
