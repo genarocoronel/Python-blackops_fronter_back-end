@@ -22,7 +22,7 @@ from app.main.service.debt_service import check_existing_scrape_task, get_report
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user
-from app.main.service.docproc_service import get_docs_for_client, get_doc_by_pubid, stream_doc_file
+from app.main.service.docproc_service import get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto
@@ -47,6 +47,7 @@ _new_credit_report_account = ClientDto.new_credit_report_account
 _update_credit_report_account = ClientDto.update_credit_report_account
 _credit_account_verification_answers = ClientDto.account_verification_answers
 _doc = ClientDto.doc
+_doc_update = ClientDto.doc_update
 
 CLIENT = ClientType.client
 
@@ -839,4 +840,37 @@ class ClientDocFile(Resource):
         except NotFoundError as e:
             api.abort(404, message='Error getting File for Doc, {}'.format(str(e)), success=False)
         except Exception as e:
-            api.abort(500, message=f'Failed to get File for Doc with ID {doc_public_id}', success=False)
+            api.abort(500, message=f'Failed to get File for Doc with ID {public_id}', success=False)
+
+
+@api.route('/<client_id>/docs/<public_id>/')
+@api.param('client_id', 'Client public identifier')
+@api.param('public_id', 'Doc public identifier')
+class ClientDocUpdate(Resource):
+    @api.doc('Updates a Doc')
+    @api.expect(_doc_update, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def put(self, client_id, public_id):
+        """ Updates a Doc """
+        request_data = request.json
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        doc = get_doc_by_pubid(public_id)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+
+        try:
+            updated_doc = update_doc(doc, request_data)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error updating doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error updating doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to update Doc with ID {public_id}', success=False)
+
+        return updated_doc, 200
