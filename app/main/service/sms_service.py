@@ -320,7 +320,7 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
             raise NotFoundError('could not find a known Client for that outbound SMS message. Not sent.')
         
         for number_item in client.contact_numbers:
-            if number_item.contact_number.contact_number_type.name == 'Mobile phone number':
+            if number_item.contact_number.contact_number_type.name == 'Cell Phone':
                 destination_phone = number_item.contact_number.phone_number
                 break
     
