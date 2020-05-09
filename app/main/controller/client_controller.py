@@ -22,7 +22,8 @@ from app.main.service.debt_service import check_existing_scrape_task, get_report
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user
-from app.main.service.docproc_service import get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc
+from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc,
+    create_doc_manual)
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto
@@ -47,6 +48,7 @@ _new_credit_report_account = ClientDto.new_credit_report_account
 _update_credit_report_account = ClientDto.update_credit_report_account
 _credit_account_verification_answers = ClientDto.account_verification_answers
 _doc = ClientDto.doc
+_doc_create = ClientDto.doc_create
 _doc_update = ClientDto.doc_update
 
 CLIENT = ClientType.client
@@ -794,7 +796,6 @@ class ClientReinstate(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
-
 @api.route('/<client_id>/docs')
 @api.param('client_id', 'Client public identifier')
 class ClientDocs(Resource):
@@ -812,6 +813,31 @@ class ClientDocs(Resource):
         docs = get_docs_for_client(client)
 
         return docs, 200
+
+    @api.doc('Creates a Doc')
+    @api.expect(_doc_create, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def post(self, client_id):
+        """ Creates a Doc manually """
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        request_data = request.json
+
+        try:
+            doc = create_doc_manual(request_data, client)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error creating doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error creating doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to create Doc', success=False)
+
+        return doc, 200
 
 
 @api.route('/<client_id>/docs/<public_id>/file/')
