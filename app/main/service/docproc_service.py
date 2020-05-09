@@ -156,7 +156,7 @@ def stream_doc_file(doc):
     return stream_file(upload_location, doc.file_name, as_attachment=False, mimetype=mime)
 
 
-def create_doc_manual(data):
+def create_doc_manual(data, client = None):
     """ Creates a new Doc manually """
     curr_user = get_request_user()
 
@@ -183,9 +183,12 @@ def create_doc_manual(data):
             
             else:
                 setattr(doc, attr, data.get(attr))
-
-    db.session.add(doc)
-    _save_changes()
+    
+    if client:
+        move_to_client_dossier(doc, client)
+    else:
+        db.session.add(doc)
+        _save_changes()
 
     return synth_doc(doc)
 
