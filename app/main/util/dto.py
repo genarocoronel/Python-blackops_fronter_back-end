@@ -461,7 +461,8 @@ class ClientDto:
         'author': fields.Nested(doc_user),
         'inserted_on': fields.DateTime(required=False),
         'updated_on': fields.DateTime(required=False),
-    })  
+    })
+    doc_upload = parsers.doc_upload
     doc = api.model('doc', {
         'public_id': fields.String(required=False),
         'file_name': fields.String(required=False),
