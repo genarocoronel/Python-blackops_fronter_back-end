@@ -23,7 +23,7 @@ from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user
 from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc,
-    create_doc_manual)
+    allowed_doc_file_kinds, create_doc_manual, attach_file_to_doc)
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto
@@ -49,6 +49,7 @@ _update_credit_report_account = ClientDto.update_credit_report_account
 _credit_account_verification_answers = ClientDto.account_verification_answers
 _doc = ClientDto.doc
 _doc_create = ClientDto.doc_create
+_doc_upload = ClientDto.doc_upload
 _doc_update = ClientDto.doc_update
 
 CLIENT = ClientType.client
@@ -899,4 +900,47 @@ class ClientDocUpdate(Resource):
         except Exception as e:
             api.abort(500, message=f'Failed to update Doc with ID {public_id}', success=False)
 
+        return updated_doc, 200
+
+
+@api.route('/<client_id>/docs/<doc_public_id>/upload/')
+@api.param('client_id', 'Client public identifier')
+@api.param('doc_public_id', 'Doc public identifier')
+class DocUpload(Resource):
+    @api.doc('Uploads a File to a Doc')
+    @api.expect(_doc_upload, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def post(self, client_id, doc_public_id):
+        """ Uploads a File to a Doc """
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        doc = get_doc_by_pubid(doc_public_id)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+
+        args = _doc_upload.parse_args()
+        file = args['doc_file']
+        
+        if not file:
+            api.abort(400, message='Doc file is missing from the request.', success=False)
+        elif file.filename == '':
+            api.abort(400, message='No Doc file was selected.', success=False)
+
+        if not allowed_doc_file_kinds(file.filename):
+            api.abort(400, message='That Doc file kind is not allowed. Try PDF, PNG, JPG, JPEG, or GIF.', success=False)
+        
+        try:
+            updated_doc = attach_file_to_doc(doc, file)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error uploading file for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error uploading file for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to upload File for Doc with ID {doc_public_id}', success=False)
+        
         return updated_doc, 200
