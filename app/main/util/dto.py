@@ -462,6 +462,9 @@ class ClientDto:
         'inserted_on': fields.DateTime(required=False),
         'updated_on': fields.DateTime(required=False),
     })
+    doc_note_create = api.model('doc_note_create', {
+        'content': fields.String(required=True, example='This is a cool note for this Doc')
+    })
     doc_upload = parsers.doc_upload
     doc = api.model('doc', {
         'public_id': fields.String(required=False),
