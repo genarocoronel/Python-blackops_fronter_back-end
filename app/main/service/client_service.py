@@ -330,13 +330,18 @@ def update_client(client, data, client_type=ClientType.client):
 
 def assign_salesrep(client, asignee_user):
     """ Assigns a Sales Rep user to a Lead """
-    assignment = UserLeadAssignment(
-        user_id = asignee_user.id,
-        client_id = client.id
-    )
-    db.session.add(assignment)
+    assignment = UserLeadAssignment.query.filter_by(client_id=client.id).first()
+    if assignment:
+        assignment.user_id = asignee_user.id
+    else:
+        assignment = UserLeadAssignment(
+            user_id = asignee_user.id,
+            client_id = client.id
+        )
 
+    db.session.add(assignment)
     save_changes()
+    
     return True
 
 

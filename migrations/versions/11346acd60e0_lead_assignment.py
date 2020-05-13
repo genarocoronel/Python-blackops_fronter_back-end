@@ -22,8 +22,16 @@ def upgrade():
     sa.Column('client_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('user_id', 'client_id')
+    sa.PrimaryKeyConstraint('user_id', 'client_id'),
+    sa.UniqueConstraint('client_id')
     )
 
-def downgrade():  
+    op.create_unique_constraint(None, 'user_candidate_assignments', ['candidate_id'])
+    op.create_unique_constraint(None, 'user_client_assignments', ['client_id'])
+
+def downgrade():
+    op.drop_constraint(None, 'user_client_assignments', type_='unique')
+    op.drop_constraint(None, 'user_candidate_assignments', type_='unique')
+    
     op.drop_table('user_lead_assignments')
+    
