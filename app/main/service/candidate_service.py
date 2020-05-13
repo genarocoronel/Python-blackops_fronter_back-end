@@ -563,13 +563,18 @@ def get_candidate_contact_by_phone(phone_no: PhoneNumber):
 
 def assign_openerrep(candidate, asignee_user):
     """ Assigns a Opener Rep user to a Candidate """
-    assignment = UserCandidateAssignment(
-        user_id = asignee_user.id,
-        candidate_id = candidate.id
-    )
-    db.session.add(assignment)
+    assignment = UserCandidateAssignment.query.filter_by(client_id=client.id).first()
+    if assignment:
+        assignment.user_id = asignee_user.id
+    else:
+        assignment = UserCandidateAssignment(
+            user_id = asignee_user.id,
+            candidate_id = candidate.id
+        )
 
+    db.session.add(assignment)
     save_changes()
+    
     return True
 
 
