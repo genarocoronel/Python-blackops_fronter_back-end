@@ -80,6 +80,14 @@ class CreditReportData(db.Model):
 
     # foreign keys
     account_id = db.Column(db.Integer, db.ForeignKey('credit_report_accounts.id', name='fk_credit_report_data'))
+    # current debt collector
+    collector_id = db.Column(db.Integer, db.ForeignKey('debt_collectors.id', name='fk_credit_report_data_collector_id'))
+    prev_collector_id = db.Column(db.Integer, db.ForeignKey('debt_collectors.id', name='fk_credit_report_data_prev_collector_id'))
+
+    # relationship
+    debt_collector = db.relationship('DebtCollector', backref='active_debts', foreign_keys=[collector_id])
+    prev_debt_collector = db.relationship('DebtCollector', backref='old_debts', foreign_keys=[prev_collector_id])
+    
 
     # fields
     debt_name = db.Column(db.String(100), nullable=True)
@@ -88,8 +96,6 @@ class CreditReportData(db.Model):
     account_number = db.Column(db.String(25), nullable=True)
     account_type = db.Column(db.String(25), nullable=False, default='other')
     push = db.Column(db.Boolean, nullable=True, default=False)
-    last_collector = db.Column(db.String(100), nullable=True)
-    collector_account = db.Column(db.String(100), nullable=True)
     last_debt_status = db.Column(db.String(100), nullable=True)
     bureaus = db.Column(db.String(100), nullable=True)
     days_delinquent = db.Column(db.String(20), nullable=True)

@@ -101,8 +101,6 @@ class CreditReportPipeline(object):
                 graduation=graduation,
                 last_update=datetime.datetime.utcnow(),
                 push=False,
-                last_collector=None,
-                collector_account=None,
                 last_debt_status=None,
                 bureaus=None,
             )

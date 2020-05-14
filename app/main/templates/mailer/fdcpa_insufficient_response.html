@@ -1,0 +1,63 @@
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		<p>
+			{% if is_via_fax %}
+			VIA FAX (<strong>{{debt.debt_collector.fax}}</strong>)</p>
+			{% endif %}
+		<p>
+			<strong>{{debt.debt_collector.name}}</strong></p>
+		<p align="left">
+			<strong>{{debt.debt_collector.address}}</strong></p>
+		<p align="left">
+			<strong>{{debt.debt_collector.city}}, {{debt.debt_collector.state}} {{debt.debt_collector.zip}}</strong></p>
+		<p style="margin-left:109.4pt;">
+			&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;RE:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{client.first_name}} {{client.last_name}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			Your reference/account number:&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{debt.account_number}}#</strong></p>
+		<p style="margin-left:1.4pt;">
+			Date: &nbsp;&nbsp;<strong>{{date_now}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			Your reference/account number:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{debt.debt_collector.account_number}}</strong></p>
+		<h1>
+			&nbsp;</h1>
+		<h3 style="text-align: center;">
+			<strong>THIRD NOTICE OF INSUFFICIENT RESPONSE</strong></h3>
+		<p align="left">
+			In response to our NOTICE OF INSUFFICIENT RESPONSE, you have indicated that you have done what you are required to do under the FDCPA.</p>
+		<p>
+			Again, we remind you that an FDCPA validation request was only a part of our request.</p>
+		<p>
+			Our full request including a request for needed information &ndash; not simply an FDCPA request.</p>
+		<p>
+			As stated previously, your claim will be accepted as valid and binding only upon receipt of a certified proof of a valid, legally binding obligation legitimately owed by us, that is without fraud, and without deceptive billing practices or misrepresentations.</p>
+		<p>
+			Please refer to our original REQUEST and my subsequent NOTICE OF INSUFFICIENT RESPONSE.</p>
+		<p>
+			We expect a written response within 10 days from your receipt of this letter to return the documentation requested, and proof of the debt. &nbsp;Failure to provide the documents will be treated as a waiver of all claims that you might have, and an acknowledgement that there may be violations of consumer protection laws.&nbsp;&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			Sincerely,</p>
+		<p style="margin-left:1.4pt;">
+			&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			&nbsp; &nbsp;</p>
+		<p>
+			C/O:</p>
+			<p>
+				<strong>{{client.first_name}} {{client.last_name}}</strong>
+			</p>
+			<p>
+				<strong>{{client.address}}</strong>
+			</p>
+			<p>
+				<strong>{{client.city}}, {{client.state}} {{client.zip}}</strong>
+			</p>
+			<p>
+			&nbsp;
+		  </p>
+	</body>
+</html>

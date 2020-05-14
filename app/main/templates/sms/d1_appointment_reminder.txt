@@ -1,0 +1,1 @@
+Appointment Reminder: Tomorrow at {{appointment.schedule}}.  No response needed unless you need to reschedule.  Look forward to speaking to you.  Thanks, {{account_manager.full_name}}

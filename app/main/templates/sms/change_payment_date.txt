@@ -1,0 +1,1 @@
+Payment Date Change:  I have received and processed your change of payment date request. Your next payment will draft on {{payment.due_date}}.  Thanks, {{account_manager.full_name}}

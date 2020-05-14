@@ -1,0 +1,61 @@
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		<p>
+			{% if is_via_fax %}
+			VIA FAX (<strong>{{debt.debt_collector.fax}}#</strong>)</p>
+			{% endif %}
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.name}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.address}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.city}}, {{debt.debt_collector.state}} {{debt.debt_collector.zip}}</strong></p>
+		<p>
+			&nbsp;</p>
+		<p style="margin-left:109.4pt;">
+			RE:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>{{client.first_name}} {{client.last_name}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			Your reference/account number:&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{debt.account_number}}#</strong></p>
+		<p style="margin-left:1.4pt;">
+			Date: &nbsp;<strong>{{date_now}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			Your reference/account number:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{debt.debt_collector.account_number}}</strong></p>
+		<p>
+			&nbsp;</p>
+		<h4 style="text-align: center;">
+			<strong>NOTICE OF FAILURE TO RESPOND</strong></h4>
+		<p style="margin-left:.85pt;">
+			On <strong>{{date_p1_receipt}}</strong>, we sent you a letter and <em>Demand the Debt be Verified and Proved</em> via fax. We have attached a copy of that letter and a copy of the proof of successful fax transmission.</p>
+		<p style="margin-left:.85pt;">
+			That letter demanded a response within 30 days, including the ability to ask for additional time to comply. Our correspondence made it clear that ignoring that request, made under a variety of laws, would deem the debt invalid. Because you chose not to respond, we now deem the debt to be invalid.</p>
+		<p style="margin-left:.85pt;">
+			Accordingly, if you have reported anything to a credit reporting agency, please remove any negative or derogatory remarks immediately.</p>
+		<p style="margin-left:1.4pt;">
+			<strong>As a courtesy, We are alerting you to the fact that <u>we have received nothing from you.</u>&nbsp; </strong></p>
+		<p style="margin-left:1.4pt;">
+			&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			We urge you to send your response in a trackable way such as certified mail or fax within 15 days of receipt of this letter.</p>
+		<p style="margin-left:1.4pt;">
+			&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			Sincerely,</p>
+		<p style="margin-left:1.4pt;">
+			&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			&nbsp; &nbsp;</p>
+		<p>
+			C/O:</p>
+			<p>
+				<strong>{{client.first_name}} {{client.last_name}}</strong>
+			</p>
+				<strong>{{client.address}}</strong></p>
+			<p>
+				<strong>{{client.city}}, {{client.state}} {{client.zip}}</strong></p>
+			<p>
+			&nbsp;</p>
+	</body>
+</html>

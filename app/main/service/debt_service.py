@@ -3,6 +3,7 @@ import datetime
 from app.main import db
 from app.main.model.task import ScrapeTask
 from app.main.model.credit_report_account import CreditReportData, CreditReportAccount
+from app.main.model.collector import DebtCollector
 
 def scrape_credit_report(account: CreditReportAccount, task_message='Capture credit report debts'):
     """ Pulls credit report debts by queueing scrape job """
@@ -46,6 +47,20 @@ def get_report_data(account, data_public_id=None):
 
 def save_new_debt(data, account):
     data['last_update'] = datetime.datetime.utcnow()
+
+    # debt collectors
+    coll_id = None 
+    prev_coll_id = None
+    collector = data.get('collector_account')
+    last_collector = data.get('last_collector')
+
+    if collector:
+        dc = DebtCollector.query.filter_by(account_number=collector).first()
+        coll_id = dc.id
+    if last_collector:
+        dc = DebtCollector.query.filter_by(account_number=last_collector).first()
+        prev_coll_id = dc.id
+
     debt_data = CreditReportData(
         account_id=account.id,
         public_id=str(uuid.uuid4()),
@@ -55,8 +70,8 @@ def save_new_debt(data, account):
         account_number=data.get('account_number'),
         account_type=data.get('account_type'),
         push=data.get('push'),
-        last_collector=data.get('last_collector'),
-        collector_account=data.get('collector_account'),
+        collector_id=coll_id,
+        prev_collector_id=prev_coll_id,
         last_debt_status=data.get('last_debt_status'),
         bureaus=data.get('bureaus'),
         days_delinquent=data.get('days_delinquent'),

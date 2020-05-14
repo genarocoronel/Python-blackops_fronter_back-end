@@ -1,0 +1,1 @@
+The draft of your monthly payment was unsuccessful. Please contact me as soon as possible to avoid any delay in service. Thanks, {{account_manager.full_name}}

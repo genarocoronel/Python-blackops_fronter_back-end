@@ -1,0 +1,2 @@
+I received your cancellation request. Please give me a call.
+Thanks {{account_manager.full_name}}
