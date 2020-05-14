@@ -2,8 +2,10 @@ from flask import current_app as app
 from flask import request
 from flask_restplus import Resource
 
+from app.main.util.decorator import (token_required, enforce_rac_policy, enforce_rac_required_roles)
 from app.main.controller import _handle_get_client, _handle_get_credit_report, _convert_payload_datetime_values, _parse_datetime_values
 from app.main.core.errors import (BadRequestError, ServiceProviderError, ServiceProviderLockedError)
+from app.main.core.rac import RACRoles
 from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.seed import DATAX_ERROR_CODES_MANAGER_OVERRIDABLE, DATAX_ERROR_CODES_SALES_OVERRIDABLE
@@ -12,7 +14,7 @@ from app.main.service.client_service import get_all_clients, save_new_client, ge
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
     get_client_addresses, update_client_addresses, get_co_client, update_co_client, get_client_checklist, update_client_checklist, \
-    update_notification_pref, fetch_client_combined_debts
+    update_notification_pref, fetch_client_combined_debts, assign_salesrep
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
     get_client_voice_communication, create_presigned_url
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
@@ -23,7 +25,7 @@ from app.main.service.debt_payment_service import fetch_payment_contract, update
     fetch_payment_schedule, update_payment_schedule
 from app.main.service.debt_service import check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
-from app.main.service.user_service import get_request_user
+from app.main.service.user_service import get_request_user, get_a_user
 from app.main.util.decorator import token_required
 from ..util.dto import LeadDto, ClientDto
 from ..util.parsers import filter_request_parse
@@ -124,6 +126,36 @@ class Lead(Resource):
                 api.abort(400, "DOB: {}".format(str(err)))
 
             return update_client(lead, data, client_type=LEAD)
+
+
+@api.route('/<public_id>/assign/<user_public_id>/')
+@api.param('public_id', 'The Client Identifier')
+@api.response(404, 'Lead not found')
+class LeadAssignment(Resource):
+    @api.doc('Assigns a Lead to a Sales Rep user')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_MGR])
+    def put(self, public_id, user_public_id):
+        """ Assigns a Lead to a Sales Rep user """
+        lead = get_client(public_id, client_type=LEAD)
+        if not lead:
+            api.abort(404, "Lead not found")
+        
+        asignee = get_a_user(user_public_id)
+        if not asignee:
+            api.abort(404, message='That Sales Rep could not be found.', success=False)
+
+        try:
+            assign_salesrep(lead, asignee)
+
+        except Exception as e:
+            api.abort(500, message=f'Failed to assign a Sales Rep for this Lead. Error: {e}', success=False)
+
+        response_object = {
+            'success': True,
+            'message': f'Successfully assigned this Lead to Sales Rep with ID {user_public_id}.',
+        }
+        return response_object, 200
 
 
 @api.route('/<lead_id>/income-sources')
