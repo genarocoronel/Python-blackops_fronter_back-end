@@ -66,3 +66,20 @@ def token_required(f):
         return f(*args, **kwargs)
 
     return decorated
+
+
+def portal_token_required(f):
+    """ Decorator to enforce Client Portal Authenticated session """
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        data, status = Auth.get_portal_authenticated_user(request)
+        curr_user = data.get('data')
+
+        if not curr_user:
+            api.abort(status, data.get('message'))
+  
+
+        g.current_portal_user = curr_user
+        return f(*args, **kwargs)
+
+    return decorated

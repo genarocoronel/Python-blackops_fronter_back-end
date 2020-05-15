@@ -10,6 +10,7 @@ from app.main.config import key
 from ..service.blacklist_service import save_token
 from app.main.service.sms_service import sms_send_raw
 from app.main.model.user import User, UserPasswordReset
+from app.main.model.portal_user import PortalUser
 from app.main.util.validate import is_email
 from app.main.model.blacklist import BlacklistToken
 from flask import current_app as app
@@ -254,6 +255,80 @@ class Auth():
                 'message': 'Invalid password reset request'
             }
             return response_object, 404
+            
+        
+    @staticmethod
+    def login_portal_user(data):
+        """ Logs in a Portal User for a given credential pair """
+        try:
+            puser = PortalUser.query.filter_by(username=data.get('username')).first()
+            if puser and puser.check_password(data.get('password')):
+                auth_token = Auth.encode_auth_token(puser.id)
+
+                if auth_token:
+                    response_object = {
+                        'status': 'success',
+                        'message': 'Successfully logged in.',
+                        'user': {
+                            'public_id': puser.public_id,
+                            'username': puser.username,
+                            'password': None,
+                            'email': puser.email,
+                            'require_2fa': puser.require_2fa,
+                            'token': auth_token.decode()
+                        }
+                    }
+                    return response_object, 200
+            else:
+                response_object = {
+                    'status': 'fail',
+                    'message': 'username or password does not match.'
+                }
+                return response_object, 401
+
+        except Exception as e:
+            print(e)
+            response_object = {
+                'status': 'fail',
+                'message': 'Try again'
+            }
+            return response_object, 500
+
+
+    @staticmethod
+    def get_portal_authenticated_user(new_request):
+        """ Gets the authenticated Portal User """
+        auth_token = new_request.headers.get('Authorization')
+        if auth_token and len(auth_token) > 0:
+            resp = Auth.decode_auth_token(auth_token)
+
+            if not isinstance(resp, str):
+                puser = PortalUser.query.filter_by(id=resp).first()
+                response_object = {
+                    'status': 'success',
+                    'data': {
+                        'public_id': puser.public_id,
+                        'user_id': puser.id,
+                        'username': puser.username,
+                        'email': puser.email,
+                        'client_id': puser.client_id,
+                        'registered_on': str(puser.registered_on)
+                    }
+                }
+                return response_object, 200
+            
+            response_object = {
+                'status': 'fail',
+                'message': resp
+            }
+            return response_object, 401
+        else:
+            response_object = {
+                'status': 'fail',
+                'message': 'Provide a valid auth token.'
+            }
+            return response_object, 401
+
     
     @staticmethod
     def encode_auth_token(user_id):
