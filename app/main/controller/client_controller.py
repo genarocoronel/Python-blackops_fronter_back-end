@@ -22,7 +22,8 @@ from app.main.service.debt_service import check_existing_scrape_task, get_report
 from app.main.service.debt_service import scrape_credit_report
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user, get_a_user
-from app.main.service.docproc_service import get_docs_for_client
+from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc,
+    allowed_doc_file_kinds, create_doc_manual, attach_file_to_doc, create_doc_note)
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto
@@ -47,6 +48,10 @@ _new_credit_report_account = ClientDto.new_credit_report_account
 _update_credit_report_account = ClientDto.update_credit_report_account
 _credit_account_verification_answers = ClientDto.account_verification_answers
 _doc = ClientDto.doc
+_doc_create = ClientDto.doc_create
+_doc_upload = ClientDto.doc_upload
+_doc_update = ClientDto.doc_update
+_doc_note_create = ClientDto.doc_note_create
 
 CLIENT = ClientType.client
 
@@ -823,7 +828,6 @@ class ClientReinstate(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
-
 @api.route('/<client_id>/docs')
 @api.param('client_id', 'Client public identifier')
 class ClientDocs(Resource):
@@ -831,7 +835,7 @@ class ClientDocs(Resource):
     @api.marshal_list_with(_doc)
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
-        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SALES_REP])
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
     def get(self, client_id):
         """ Get Client documents """
         client, error_response = _handle_get_client(client_id)
@@ -841,3 +845,167 @@ class ClientDocs(Resource):
         docs = get_docs_for_client(client)
 
         return docs, 200
+
+    @api.doc('Creates a Doc')
+    @api.expect(_doc_create, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def post(self, client_id):
+        """ Creates a Doc manually """
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        request_data = request.json
+
+        try:
+            doc = create_doc_manual(request_data, client)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error creating doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error creating doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to create Doc', success=False)
+
+        return doc, 200
+
+
+@api.route('/<client_id>/docs/<public_id>/file/')
+@api.param('client_id', 'Client public identifier')
+@api.param('public_id', 'Doc public identifier')
+class ClientDocFile(Resource):
+    @api.doc('Get a Doc file for a given Client')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def get(self, client_id, public_id):
+        """ Get a Doc file for a given Client """
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        doc = get_doc_by_pubid(public_id)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+
+        try:
+            return stream_doc_file(doc)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to get File for Doc with ID {public_id}', success=False)
+
+
+@api.route('/<client_id>/docs/<public_id>/')
+@api.param('client_id', 'Client public identifier')
+@api.param('public_id', 'Doc public identifier')
+class ClientDocUpdate(Resource):
+    @api.doc('Updates a Doc')
+    @api.expect(_doc_update, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def put(self, client_id, public_id):
+        """ Updates a Doc """
+        request_data = request.json
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        doc = get_doc_by_pubid(public_id)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+
+        try:
+            updated_doc = update_doc(doc, request_data)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error updating doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error updating doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to update Doc with ID {public_id}', success=False)
+
+        return updated_doc, 200
+
+
+@api.route('/<client_id>/docs/<doc_public_id>/upload/')
+@api.param('client_id', 'Client public identifier')
+@api.param('doc_public_id', 'Doc public identifier')
+class ClientDocUpload(Resource):
+    @api.doc('Uploads a File to a Doc')
+    @api.expect(_doc_upload, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def post(self, client_id, doc_public_id):
+        """ Uploads a File to a Doc """
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        doc = get_doc_by_pubid(doc_public_id)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+
+        args = _doc_upload.parse_args()
+        file = args['doc_file']
+        
+        if not file:
+            api.abort(400, message='Doc file is missing from the request.', success=False)
+        elif file.filename == '':
+            api.abort(400, message='No Doc file was selected.', success=False)
+
+        if not allowed_doc_file_kinds(file.filename):
+            api.abort(400, message='That Doc file kind is not allowed. Try PDF, PNG, JPG, JPEG, or GIF.', success=False)
+        
+        try:
+            updated_doc = attach_file_to_doc(doc, file)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error uploading file for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error uploading file for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to upload File for Doc with ID {doc_public_id}', success=False)
+        
+        return updated_doc, 200
+
+
+@api.route('/<client_id>/docs/<doc_public_id>/note/')
+@api.param('client_id', 'Client public identifier')
+@api.param('doc_public_id', 'Doc public identifier')
+class ClientDocNote(Resource):
+    @api.doc('Creates a Doc Note')
+    @api.expect(_doc_note_create, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def post(self, client_id, doc_public_id):
+        """ Creates a Doc Note """
+        request_data = request.json
+
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+
+        doc = get_doc_by_pubid(doc_public_id)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+        
+        try:
+            updated_doc = create_doc_note(doc, request_data['content'])
+
+        except BadRequestError as e:
+            api.abort(400, message='Error creating a Note for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error creating a Note for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to create Note for Doc with ID {doc_public_id}', success=False)
+        
+        return updated_doc, 200

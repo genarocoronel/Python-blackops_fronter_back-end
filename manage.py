@@ -8,11 +8,13 @@ from flask_script import Manager
 from flask import current_app
 
 from app import blueprint
+from app import portal_blueprint
 from app.main import create_app, db, wscomm
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.seed.admins import create_super_admin
 
 from app.main.model import *
+from app.main.model.portal_user import PortalUser
 from app.main.background.worker import run_worker
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
 from app.main.seed.client_dispositions import seed_client_disposition_values
@@ -31,6 +33,7 @@ from app.main.seed.collector import seed_debt_collectors
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
+app.register_blueprint(portal_blueprint, url_prefix='/portal-api/v1')
 app.app_context().push()
 
 manager = Manager(app)

@@ -48,6 +48,11 @@ class Config:
     BANDWIDTH_API_TOKEN = os.environ.get('BANDWIDTH_API_TOKEN', None)
     BANDWIDTH_API_SECRET = os.environ.get('BANDWIDTH_API_SECRET', None)
 
+    # JIVE config
+    FAX_SENDER = os.environ.get('FAX_SENDER', None)
+    FAX_SERVICE_DOMAIN = os.environ.get('FAX_SERVICE_DOMAIN', None)
+    FAX_ACCESS_CODE = os.environ.get('FAX_ACCESS_CODE', None)
+
     # Our own tokens to identify which provider is calling our /sms/register-message webhook API
     # If we change them, we must change the webhook endpoint with corresponding SMS Providers
     REQUIRE_SMS_WEBHOOK_IDS = _convert_bool(os.environ.get('REQUIRE_SMS_WEBHOOK_IDS', True))

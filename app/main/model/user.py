@@ -127,18 +127,29 @@ class UserCandidateAssignment(db.Model):
     __tablename__ = "user_candidate_assignments"
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidates.id'), primary_key=True, unique=True)
 
     # relationships
     user = db.relationship('User', backref='candidate_assignment_user_assoc')
     candidate = db.relationship('Candidate', backref='user_candidate_assignment_assoc')
 
 
+class UserLeadAssignment(db.Model):
+    __tablename__ = "user_lead_assignments"
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True, unique=True)
+
+    # relationships
+    user = db.relationship('User', backref='lead_assignment_user_assoc')
+    client = db.relationship('Client', backref='user_lead_assignment_assoc')
+
+
 class UserClientAssignment(db.Model):
     __tablename__ = "user_client_assignments"
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True, unique=True)
 
     # relationships
     user = db.relationship('User', backref='client_assignment_user_assoc')

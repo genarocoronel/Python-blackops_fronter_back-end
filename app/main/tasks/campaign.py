@@ -32,8 +32,8 @@ def generate_mailer_file(campaign_id):
 
     candidates = campaign.candidates.all()
 
-    mapping = {'candidate.first_name': 'first', 'candidate.last_name': 'last', 'candidate.address': 'address',
-               'candidate.city': 'city', 'candidate.state': 'st', 'candidate.zip5': 'zip',
+    mapping = {'candidate.first_name': 'first', 'candidate.last_name': 'last', 'address.address1': 'address',
+               'address.city': 'city', 'address.state': 'st', 'address.zip_code': 'zip',
                'campaign.phone': 'phone_numb', 'campaign.job_number': 'job_number',
                'campaign.mailing_date': 'mailing_da', 'campaign.offer_expire_date': 'offer_expi',
                'candidate.prequal_number': 'prequal', 'candidate.estimated_debt': 'debt', 'candidate.debt3': 'debt3',
@@ -82,6 +82,13 @@ def generate_mailer_file(campaign_id):
                             record[key] = _filter(filters, key, getattr(candidate, attr, 'MISSING_VALUE'))
                         elif model == 'campaign':
                             record[key] = _filter(filters, key, getattr(campaign, attr, 'MISSING_VALUE'))
+                        elif model == 'address' and candidate.addresses:
+                            first_address = candidate.addresses[0]
+                            if attr == 'address1' and first_address.address2:
+                                combined_address = '{}, {}'.format(first_address.address1, first_address.address2)
+                                record[key] = combined_address
+                            else:
+                                record[key] = _filter(filters, key, getattr(first_address, attr, 'MISSING_VALUE'))
                         else:
                             record[key] = 'UNKNOWN_SOURCE_VALUE'
 

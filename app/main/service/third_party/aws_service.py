@@ -1,9 +1,10 @@
 import boto3
 from botocore.exceptions import ClientError
 
+from flask import current_app as app
 from app.main.core.errors import BadRequestError, ServiceProviderError, ConfigurationError
 from app.main.core.io import open_file
-from flask import current_app as app
+from app.main.service.docproc_service import DocprocChannel
 
 
 def upload_to_docproc(src_filepath, desired_obj_name, desired_metadata=None):
@@ -33,13 +34,21 @@ def upload_to_docproc(src_filepath, desired_obj_name, desired_metadata=None):
     return True
 
 
-def download_from_docproc(obj_name, dest_filepath):
+def download_from_docproc(src_channel, obj_name, dest_filepath):
     """ Gets the requested Object from Docproc (Client docs dossier) S3 Bucket """
-    if not app.s3_bucket_docproc:
-        raise ConfigurationError('The app is missing DocProc bucket configuration. Please rectify and try again.')
+    bucket = None
+    if src_channel == DocprocChannel.MAIL.value:
+        if not app.s3_bucket_docproc:
+            raise ConfigurationError('The app is missing DocProc bucket configuration. Please rectify and try again.')
+        bucket = app.s3_bucket_docproc
+
+    if src_channel == DocprocChannel.FAX.value:
+        if not app.s3_bucket_fax:
+            raise ConfigurationError('The app is missing Fax bucket configuration. Please rectify and try again.')
+        bucket = app.s3_bucket_fax
     
-    if not does_bucket_exist(app.s3_bucket_docproc):
-        raise ServiceProviderError('That bucket {app.s3_bucket_docproc} does not exist at Service Provider.')
+    if not does_bucket_exist(bucket):
+        raise ServiceProviderError('That bucket {bucket} does not exist at Service Provider.')
 
     if not obj_name:
         raise BadRequestError('Object name cannot be empty. Please correct this and try again.')
@@ -49,20 +58,9 @@ def download_from_docproc(obj_name, dest_filepath):
     
     s3 = boto3.client('s3')
     with open_file(dest_filepath, 'wb') as data:
-        s3.download_fileobj(app.s3_bucket_docproc, obj_name, data)
+        s3.download_fileobj(bucket, obj_name, data)
 
     return True
-
-
-def copy_docproc_from_fax(src_obj_name, dest_obj_name):
-    """ Copies a Fax object to Docproc """
-    if not does_bucket_exist(app.s3_bucket_fax):
-        raise ServiceProviderError('That bucket {app.s3_bucket_fax} does not exist at Service Provider.')
-
-    if not does_bucket_exist(app.s3_bucket_docproc):
-        raise ServiceProviderError('That bucket {app.s3_bucket_docproc} does not exist at Service Provider.')
-
-    return copy_object(src_obj_name, app.s3_bucket_fax, dest_obj_name, app.s3_bucket_docproc)
 
 
 def copy_object(src_obj_name, src_bucket, dest_obj_name, dest_bucket):
