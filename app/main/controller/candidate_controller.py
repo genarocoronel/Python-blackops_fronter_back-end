@@ -5,9 +5,11 @@ from flask import request
 from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
+from app.main.util.decorator import (token_required, enforce_rac_policy, enforce_rac_required_roles)
 from app.main.config import upload_location
 from app.main.controller import _convert_payload_datetime_values
 from app.main.core.errors import (BadRequestError, ServiceProviderError, ServiceProviderLockedError)
+from app.main.core.rac import RACRoles
 from app.main.core.types import CustomerType
 from app.main.model.candidate import CandidateImport
 from app.main.service.candidate_service import (save_new_candidate_import, save_changes, get_all_candidate_imports,
@@ -17,8 +19,8 @@ from app.main.service.candidate_service import (save_new_candidate_import, save_
                                                 update_candidate_income_sources, get_candidate_monthly_expenses,
                                                 update_candidate_monthly_expenses,
                                                 get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead,
-                                                delete_candidates,
-                                                candidate_filter)
+                                                delete_candidates, candidate_filter, assign_openerrep)
+from app.main.service.user_service import get_a_user
 from app.main.service.communication_service import parse_communication_types, date_range_filter, \
     get_communication_records, get_candidate_voice_communication, create_presigned_url
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
@@ -128,6 +130,36 @@ class UpdateCandidate(Resource):
         data = request.json
         _convert_payload_datetime_values(data, 'dob')
         return update_candidate(candidate_id, data)
+
+
+@api.route('/<public_id>/assign/<user_public_id>/')
+@api.param('public_id', 'The Candidate Identifier')
+@api.response(404, 'Candidate not found')
+class CandidateAssignment(Resource):
+    @api.doc('Assigns a Candidate to a Opener Rep user')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR])
+    def put(self, public_id, user_public_id):
+        """ Assigns a Candidate to a Opener Rep user """
+        candidate, error_response = _handle_get_candidate(public_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        
+        asignee = get_a_user(user_public_id)
+        if not asignee:
+            api.abort(404, message='That Opener Rep could not be found.', success=False)
+
+        try:
+            assign_openerrep(candidate, asignee)
+
+        except Exception as e:
+            api.abort(500, message=f'Failed to assign a Opener Rep for this Candidate. Error: {e}', success=False)
+
+        response_object = {
+            'success': True,
+            'message': f'Successfully assigned this Candidate to Opener Rep with ID {user_public_id}.',
+        }
+        return response_object, 200
 
 
 @api.route('/<candidate_id>/income-sources')
