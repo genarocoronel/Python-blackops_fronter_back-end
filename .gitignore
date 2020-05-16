@@ -27,3 +27,4 @@ vagrant
 
 docker/api.env
 docker/_data
+docsign/rsa_private.key
