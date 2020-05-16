@@ -40,9 +40,6 @@ class DocDto:
         'collector_name': fields.String(required=False),
         'status': fields.String(required=False),
         'is_published': fields.Boolean(required=False),
-        'accmgr_user': fields.Nested(doc_user),
         'inserted_on': fields.DateTime(required=False),
-        'created_by_username': fields.String(required=False),
-        'updated_on': fields.DateTime(required=False),
-        'updated_by_username': fields.String(required=False),
+        'updated_on': fields.DateTime(required=False)
     })

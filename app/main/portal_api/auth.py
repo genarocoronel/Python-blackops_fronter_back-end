@@ -24,6 +24,5 @@ class LogoutAPI(Resource):
     """ Logs out a Portal User """
     @api.doc('logout a Portal User')
     def post(self):
-        # get auth token
         auth_header = request.headers.get('Authorization')
         return Auth.logout_user(data=auth_header)
