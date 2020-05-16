@@ -51,6 +51,20 @@ def get_docs_for_client(client):
     return docs
 
 
+def get_docs_for_portal_user():
+    """ Gets Docs for current Portal User """
+    docs = []
+    doc_records = Docproc.query.filter_by(client_id=g.current_portal_user['client_id'], 
+                                            is_published=True).all()
+
+    if doc_records:
+        for doc_item in doc_records:
+            tmp_doc = synth_portal_doc(doc_item)
+            docs.append(tmp_doc)
+
+    return docs
+
+
 def get_doc_by_pubid(public_id):
     """ Gets a Doc by Public ID """
     return Docproc.query.filter_by(public_id=public_id).first()
@@ -294,6 +308,35 @@ def synth_doc(doc):
             'updated_on': doc.updated_on.strftime(datetime_format),
         }
         doc_synth['notes'].append(tmp_note)
+
+    if doc.type:
+        doc_synth['type'] = {
+            'public_id': doc.type.public_id,
+            'name': doc.type.name,
+        }
+
+    return doc_synth
+
+
+def synth_portal_doc(doc):
+    """ Synthesizes Docs for Client Portal """
+    datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+    correspondence_date_format = '%Y-%m-%d'
+    doc_synth = {
+        'public_id': doc.public_id,
+        'file_name': doc.file_name,
+        'doc_name': doc.doc_name,
+        'source_channel': doc.source_channel,
+        'correspondence_date': doc.correspondence_date.strftime(correspondence_date_format) if doc.correspondence_date else None,
+        'from_who': doc.from_who,
+        'debt_name': doc.debt_name,
+        'creditor_name': doc.creditor_name,
+        'collector_name': doc.collector_name,
+        'status': doc.status,
+        'is_published': doc.is_published,
+        'inserted_on': doc.inserted_on.strftime(datetime_format),
+        'updated_on': doc.updated_on.strftime(datetime_format),
+    }
 
     if doc.type:
         doc_synth['type'] = {

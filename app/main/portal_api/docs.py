@@ -3,6 +3,7 @@ from flask_restplus import Resource
 
 from app.main.util.portal_dto import DocDto
 from app.main.util.decorator import portal_token_required
+from app.main.service.docproc_service import get_docs_for_portal_user
 from flask import current_app as app
 
 api = DocDto.api
@@ -15,4 +16,6 @@ class Doc(Resource):
     @portal_token_required
     def get(self):
         """ Gets a list of Docs """
-        return "Right on, man!", 200
+        docs = get_docs_for_portal_user()
+
+        return docs, 200
