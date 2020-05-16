@@ -26,3 +26,4 @@ vagrant
 # Secrets file
 
 docker/api.env
+docker/_data
