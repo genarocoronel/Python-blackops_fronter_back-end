@@ -56,7 +56,10 @@ def seed_templates():
 
       # When Service user or doc processor clicks on Green Send CP login button on the main tab. 
       { 'title': 'Client Portal Login EDMS (Email)', 'action': 'CLIENT_PORTAL_LOGIN', 'path': 'client_portal_login.html', 'editable': True, 'desc': 'When Service user or doc processor clicks on Green Send CP login button on the main tab.', 'subject': 'Client Portal Information'},
-
+      { 'title': 'Spanish Welcome Letter', 'action': 'SPANISH_WELCOME_LETTER', 'path': 'edms_brochure_esp.html', 'editable': False, 'desc': 'Spanish Welcome letter', 'subject': 'Paquete de bienvenida del programa Elite DMS', 'attachment': 'edms_brochure_esp.pdf'},
+      { 'title': 'Welcome Letter', 'action': 'WELCOME_LETTER', 'path': 'edms_welcome_package.html', 'editable': False, 'desc': 'Welcome letter', 'subject': 'Elite DMS program Welcome Package', 'attachment': 'edms_welcome_package.pdf'},
+      { 'title': 'Privacy Policy', 'action': 'PRIVACY_POLICY', 'path': 'privacy_policy.html', 'editable': False, 'desc': 'EliteDMS Private policy', 'subject': 'Elite DMS Privacy Policy', 'attachment': 'privacy_policy.pdf' },
+     
       # Send FAX when Changing status to "Initial Dispute Sent"  
       { 'title': 'Initial Dispute Mail', 'action': 'INITIAL_DISPUTE_MAIL', 'path': 'initial_dispute_mail.html', 'editable': True, 'medium': 'FAX', 'desc': 'Send FAX when Changing status to Initial Dispute Sent'},
       # Send fax when changing status to "Sold Package Sent"  and there IS a FAX number in the 3rd party debt collector "fax number" box
@@ -78,6 +81,7 @@ def seed_templates():
             editable = False
             description = ''
             subject = ''
+            attachment = None
 
             action = record['action']
             if action not in TemplateAction.__members__:
@@ -94,12 +98,15 @@ def seed_templates():
                 description = record['desc']
             if 'subject' in record:
                 subject = record['subject']
+            if 'attachment' in record:
+                attachment = record['attachment']
 
             tmpl = Template(action=action,
                             title=record['title'],
                             description=description,
                             subject=subject,
                             fname=record['path'],
+                            attachment=attachment,
                             medium=medium,
                             is_editable=editable,
                             trigger_mode=mode)

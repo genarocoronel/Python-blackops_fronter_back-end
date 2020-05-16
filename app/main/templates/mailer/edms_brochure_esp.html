@@ -1,0 +1,19 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Welcome Letter</title>
+  </head>
+  <body style="font-size: 110%; padding-top: 10px; padding-left: 10px">
+     <p>Hello {{client.first_name}},</p>
+     <p> Please see the attachment for more information about or program and call me with any questions.  </p>
+     <p></br></p>
+     <p>Thanks and have a great day.</p>
+     <p><strong>{{account_manager.full_name}}</strong></p>
+     <p> Account Manager</p>
+     <p>P: {{account_manager.phone}}  F: {{account_manager.fax}}</p>
+     <p>
+       <a href="{{org.url}}"><img src="{{org.logo_url}}"/></a></p>
+     </p>
+     <strong>Click </strong><a href="{{org.client_portal}}"><strong>here</strong></a><strong> to log into your client portal.</strong></p>
+  </body>
+</html>

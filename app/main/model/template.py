@@ -67,6 +67,8 @@ class Template(db.Model):
     description = db.Column(db.Text, nullable=True)
     # path -- file name 
     fname = db.Column(db.String(100), unique=True, nullable=False)
+    # atatched document/pdf 
+    attachment = db.Column(db.String(100), nullable=True)
     # template action
     action = db.Column(db.String(100), nullable=False)
     # mail subject

@@ -8,10 +8,15 @@ from app.main.model.organization import Organization
 from app.main.model.debt_payment import DebtPaymentSchedule
 from app.main.model.address import Address, AddressType
 from datetime import datetime
+from app.main.service.email_service import *
+from headless_pdfkit import generate_pdf
 
 
 class TemplateMailManager(object):
     BASE_MAILER_TMPL_PATH = "mailer"
+    MAILER_UPLOAD_DIR = "/home/duminda/hydra/works/app/main/templates/mailer"
+    TMP_DOC_DIR = "/home/duminda/hydra/works/app/main/files"
+    FROM_MAILBOX = 'support@thedeathstarco.com'
     _tmpl = None 
     _client = None
     _account_manager = None
@@ -107,34 +112,61 @@ class TemplateMailManager(object):
             # debt collector
             if not self.debt.debt_collector:
                 raise ValueError("Debt Collector not present for the debt")
-
-            self.client = self.debt.credit_report_account.client
-
+            # fax or post
             if self.debt.debt_collector.fax:
                 self._is_via_fax = True
 
-            dest = self.client.email
-            params = self._to_dict()
+            self.client = self.debt.credit_report_account.client
             template_file_path = "{}/{}".format(self.BASE_MAILER_TMPL_PATH, self._tmpl.fname)
+            
+            params = self._to_dict()
             html = render_template(template_file_path, **params)
+            ts = int(datetime.now().timestamp())            
+            doc_name = "{}_{}_{}.pdf".format(self._tmpl.action.lower(), # action
+                                             self.client.id, # client id
+                                             ts)  # timestamp
 
-            ## test send mail
-            test_send_email(dest, self._tmpl.subject, html)
+            pdfdoc = "{}/{}".format(self.TMP_DOC_DIR, # directory path for the document
+                                       doc_name)            
 
+            buff = generate_pdf(html)
+            with open(pdfdoc, 'wb') as fd:
+                fd.write(buff)
+
+            app.logger.info("Sending fax to client({}) doc({})".format(self.client.id, pdfdoc))
+            # send through fax 
+            if self._is_via_fax:
+                attachments = [pdfdoc, ]
+                #send_fax(self.debt.debt_collector.fax,
+                #         self._tmpl.subject,
+                #         attachments)             
+
+                # only for testing 
+                send_mail(self.FROM_MAILBOX, 
+                          [self.client.email,] , 
+                          self._tmpl.action.lower(), 
+                          html='<html><p>Fax send to debt collector attached.</p></html>', 
+                          attachments=attachments)
+                
         elif transport == MailTransport.EMAIL.name or transport == MailTransport.EMAIL_SMS.name:
             # check client is set or not
             if not self.client:
                 raise ValueError("Client is not set for the mail manager")
-            dest = self.client.email
 
-            params = self._to_dict()
+            dest = self.client.email
+            attachments = []
+
+            if self._tmpl.attachment:
+                att_path = "{}/{}".format(self.MAILER_UPLOAD_DIR, self._tmpl.attachment)
+                attachments = [att_path, ]
+ 
             template_file_path = "{}/{}".format(self.BASE_MAILER_TMPL_PATH, self._tmpl.fname) 
+            params = self._to_dict()
             html = render_template(template_file_path, **params)        
         
-            # print(html)
-
+            send_mail(self.FROM_MAILBOX, [dest,] , self._tmpl.subject, html=html, attachments=attachments)
             ## test send mail
-            test_send_email(dest, self._tmpl.subject, html)
+            #test_send_email(dest, self._tmpl.subject, html)
 
 
 # PAYMENT_REMINDER
@@ -389,7 +421,7 @@ def send_initial_dispute_mail(client_id, debt_id):
                   **kwargs)
     
 
-def send_sold_package_mail():
+def send_sold_package_mail(client_id, debt_id):
     """
     Send sold package mail
     : param int client_id: Client Identifier (required)
@@ -397,6 +429,21 @@ def send_sold_package_mail():
     """
     kwargs = { 'client_id': client_id, 'debt_id': debt_id }
     send_template(TemplateAction.SOLD_PACKAGE_MAIL.name,
+                  **kwargs)
+
+def send_spanish_welcome_letter(client_id):
+    kwargs = { 'client_id': client_id }
+    send_template(TemplateAction.SPANISH_WELCOME_LETTER.name,
+                  **kwargs)
+
+def send_welcome_letter(client_id):
+    kwargs = { 'client_id': client_id }
+    send_template(TemplateAction.WELCOME_LETTER.name,
+                  **kwargs)
+
+def send_privacy_policy(client_id):
+    kwargs = { 'client_id': client_id }
+    send_template(TemplateAction.PRIVACY_POLICY.name,
                   **kwargs)
 
 def send_delete_document_notice():
@@ -483,8 +530,10 @@ def send_template(action, **kwargs):
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+import os
 
-def test_send_email(dest, subject, html):
+def test_send_email(dest, subject, html, attachments=[]):
     msg = MIMEMultipart()
     msg.set_unixfrom('author')
     msg['From'] = 'support@pitzlabs.com'
@@ -499,6 +548,15 @@ def test_send_email(dest, subject, html):
     # the HTML message, is best and preferred.
     #msg.attach(part1)
     msg.attach(part2)
+
+    for f in attachments:
+        with open(f, "rb") as fd:
+            att_part = MIMEApplication(
+                fd.read(),
+                Name=os.path.basename(f)
+            )
+        att_part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(f)
+        msg.attach(att_part)
     
     mailserver = smtplib.SMTP_SSL('smtp.sendgrid.net', '465')
     #mailserver.starttls()
