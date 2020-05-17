@@ -234,7 +234,7 @@ def send_change_payment_date(client_id, pymt_id, appt_id):
                   **kwargs)
 
 # DAY1_APPOINTMENT_REMINDER
-def send_hour1_appointment_reminder(client_id, appt_id):
+def send_day1_appointment_reminder(client_id, appt_id):
     """
     Send 1 day appointment reminder to client
     : param int client_id: Client Identifier (required)

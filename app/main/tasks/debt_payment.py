@@ -5,6 +5,7 @@ from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, Debt
 from app.main.model.contact_number import ContactNumberType
 from app.main.model.address import Address, AddressType
 from datetime import datetime, date, timedelta
+from app.main.tasks.mailer import send_payment_reminder, send_nsf_draft_issue
 from sqlalchemy import func
 
 import logging
@@ -164,6 +165,7 @@ def check_eft_status():
         # fetch all the EFT transactions
         payments = DebtPaymentSchedule.query.filter_by(status=DebtEftStatus.Processed).all()
         for payment in payments:
+            client = payment.contract.client
             #fetch transaction
             print(payment.id)
             eft_transaction = payment.transaction
@@ -175,10 +177,14 @@ def check_eft_status():
                     eft_transaction.message = eft.message
                     if eft.status == EftStatus.Failed or eft.status == EftStatus.Error:
                         payment.status = DebtEftStatus.Failed
-                    elif eft.status == EftStatus.Settled:
-                        payment.status = DebtEftStatus.Settled
+                        # send NSF draft issue notice
+                        send_nsf_draft_issue(client.id)
                     elif eft.status == EftStatus.Returned or eft.status == EftStatus.Voided:
                         payment.status = DebtEftStatus.Failed
+                        # send NSF draft issue notice
+                        send_nsf_draft_issue(client.id)
+                    elif eft.status == EftStatus.Settled:
+                        payment.status = DebtEftStatus.Settled
                       
             # db session commit
             db.session.commit()
@@ -186,3 +192,25 @@ def check_eft_status():
     except Exception as err:    
         logging.warning("Check EFT Status issue {}".format(str(err)))
         
+
+
+def process_upcoming_payments():
+    """
+    task routine to send payment reminder to clients
+    @@ params: None
+    @@ result: send payment reminder notification to client
+    """
+    
+    ## 5 day advance notice
+    d5_adv_date = date.today() + timedelta(days=5) 
+    payments = DebtPaymentSchedule.query.filter(func.date(DebtPaymentSchedule.due_date)==d5_adv_date).all()
+    for payment in payments:
+        try:
+            contract = payment.contract
+            # send 5 day payment reminder notice
+            send_payment_reminder(contract.client_id,
+                                  payment.id)
+        except Exception:
+            continue 
+    
+

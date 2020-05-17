@@ -10,6 +10,8 @@ from app.main.channels.notification import TaskChannel
 from app.main.service.workflow import Workflow
 from app.main.model.client import Client
 from app.main.service.user_service import get_request_user
+from app.main.model import Language
+from flask import current_app as app
 
 
 class AppointmentWorkflow(Workflow):
@@ -45,6 +47,21 @@ class AppointmentWorkflow(Workflow):
             self._create_task()
             self.save()
 
+    def on_completed(self):
+        if self.status == AppointmentStatus.SCHEDULED.name:
+            self.status = AppointmentStatus.COMPLETED.name 
+            self.save()
+
+            # send 
+            appt = self._object
+            client = appt.client
+            if client.language == Language.SPANISH.name:
+                app.queue.enqueue('app.main.tasks.mailer.send_spanish_general_call',  # task routine
+                                  client.id) # client id
+            else:
+                app.queue.enqueue('app.main.tasks.mailer.send_general_call_edms',  # task routine
+                                  client.id) # client id 
+
 class AppointmentService(object):
     allowed_roles = [RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP]
     #serializer_class = TeamDto.team_request
@@ -63,7 +80,8 @@ class AppointmentService(object):
     def save(cls, request):
         data = request.json
         status = AppointmentStatus.SCHEDULED
-        agent = get_request_user()
+        # fetch the account_manager for the client
+
         note = data.get('note')
         client = Client.query.filter_by(public_id=data.get('client_id')).first()
         if not client:
@@ -129,4 +147,3 @@ class AppointmentService(object):
         return appt
 
      
-

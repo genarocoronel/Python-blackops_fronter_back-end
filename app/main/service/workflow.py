@@ -7,6 +7,8 @@ from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
 from sqlalchemy import desc, asc, and_
 from datetime import datetime, timedelta
+from app.main.tasks.debt_payment import register_customer
+from app.main.tasks.mailer import send_welcome_letter, send_spanish_welcome_letter, send_privacy_policy
 
 """
 Base Workflow class
@@ -230,6 +232,7 @@ def open_contract_flow(code, contract, revision=None):
             pass
         def on_tr_declined(self, teamrequest):
             pass
+        ## called from task routine
         def on_signed(self):
             if self.status == ContractStatus.APPROVED:
                 # create payment schedule
@@ -238,9 +241,14 @@ def open_contract_flow(code, contract, revision=None):
                 self.save()
                 # add epps customer
                 # register client with EPPS provider
-                func = 'register_customer'
-                app.queue.enqueue('app.main.tasks.debt_payment.{}'.format(func), self._client_id)
-
+                register_customer(self._client_id)
+               
+                ## send email  
+                ## welcome letter
+                send_welcome_letter(self._client_id)
+                ## privacy policy
+                send_privacy_policy(self._client_id)
+              
     class TermChange(ContractWorkflow): 
         _rsign_worker_func = 'send_term_change_for_signature'
 
@@ -362,6 +370,8 @@ def open_contract_flow(code, contract, revision=None):
                 self._task_desc = 'Change Draft date Approved.\
                                    Please communicate with your client.' 
                 super().on_tr_approved(teamrequest)
+                # send change draft date notice to client
+
             except Exception as err:
                 raise ValueError("ChangeDraftDate TR APPROVED handler issue")
 

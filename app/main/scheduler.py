@@ -34,6 +34,13 @@ def register_jobs(scheduler):
                        description='kron: check_eft_status',
                        repeat=None)
 
+        # every day 12 PM, send payment reminders
+        scheduler.cron('0 20 * * *',
+                       func='app.main.tasks.debt_payment.process_upcoming_payments',
+                       args=[],
+                       description='kron: process_upcoming_payments',
+                       repeat=None)
+
     except Exception as err:
         app.logger.warning("Schudler Init issue {}".format(str(err)))
 
