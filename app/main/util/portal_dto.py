@@ -1,5 +1,13 @@
 from flask_restplus import Namespace, fields
 
+from app.main.model import Frequency
+
+class FrequencyTypeField(fields.String):
+    def format(self, value):
+        if isinstance(value, Frequency):
+            return value.name
+        else:
+            return 'UNKNOWN'
 
 class AuthDto:
     api = Namespace('auth', description='authentication related operations')
@@ -42,4 +50,18 @@ class DocDto:
         'is_published': fields.Boolean(required=False),
         'inserted_on': fields.DateTime(required=False),
         'updated_on': fields.DateTime(required=False)
+    })
+
+class BudgetDto:
+    api = Namespace('budgets', description='Client Budget related operations')
+    income_source = api.model('client_income', {
+        'income_type_id': fields.Integer(required=True),
+        'income_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
+        'frequency': FrequencyTypeField(required=True),
+    })
+    monthly_expense = api.model('client_monthly_expense', {
+        'expense_type_id': fields.Integer(required=True),
+        'expense_type': fields.String(required=True),
+        'value': fields.Integer(required=True),
     })

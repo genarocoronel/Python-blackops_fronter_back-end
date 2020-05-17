@@ -22,6 +22,7 @@ from .main.controller.docproc_controller import api as docproc_ns
 from .main.controller.collector_controller import api as collector_ns
 from .main.portal_api.auth import api as portal_auth_ns
 from .main.portal_api.docs import api as portal_doc_ns
+from .main.portal_api.budget import api as portal_budget_ns
 
 
 blueprint = Blueprint('api', __name__)
@@ -70,3 +71,4 @@ portal_api = Api(portal_blueprint,
 
 portal_api.add_namespace(portal_auth_ns)
 portal_api.add_namespace(portal_doc_ns)
+portal_api.add_namespace(portal_budget_ns)
