@@ -2,7 +2,7 @@ from flask_restplus import Resource
 
 from app.main.util.portal_dto import AppointmentDto
 from app.main.util.decorator import portal_token_required
-from app.main.service.appointment_service import get_all_appointments
+from app.main.service.appointment_service import AppointmentService
 
 api = AppointmentDto.api
 _appointment = AppointmentDto.appointment
@@ -14,6 +14,6 @@ class ClientAppointments(Resource):
     @portal_token_required
     def get(self):
         """ Gets Appointments """
-        appointments = get_all_appointments()
+        appointments = AppointmentService.list()
 
         return appointments, 200
