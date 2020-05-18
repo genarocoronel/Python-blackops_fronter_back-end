@@ -10,6 +10,7 @@ from app.main.model.address import Address, AddressType
 from app.main.model.contact_number import ContactNumberType
 from app.main.model.debt_payment import DebtPaymentContract, ContractAction, ContractStatus, DebtPaymentContractCreditData, \
                                         DebtPaymentSchedule, DebtEftStatus
+from app.main.service.workflow import open_contract_flow
 
 from sqlalchemy import or_, and_, desc, asc
 
@@ -81,7 +82,11 @@ def check_sessions():
                 elif new_status == DocusignSessionStatus.VOIDED:
                     contract.status = ContractStatus.VOID
                 elif new_status == DocusignSessionStatus.COMPLETED:
-                    contract.ON_SIGNED()
+                    code = contract.current_action.name
+                    wf = open_contract_flow(code,  
+                                            contract,
+                                            None)
+                    wf.on_signed()
 
                 session.status = new_status
                 db.session.commit()

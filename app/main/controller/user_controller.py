@@ -4,17 +4,20 @@ from flask_restplus import Resource
 from ..core.errors import BadRequestError
 from ..util.decorator import (token_required, enforce_rac_policy, 
         enforce_rac_same_user_policy, enforce_rac_required_roles)
-from ..util.dto import UserDto
+from ..util.dto import UserDto, TaskDto
 from ..core.auth import Auth
 from ..core.rac import RACRoles
 from ..service.user_service import (save_new_user, get_all_users, get_a_user, 
     update_user, get_all_users_by_role_pubid)
+from ..service.user_service import DepartmentService
+from ..service.usertask_service import UserTaskService
 
 api = UserDto.api
 _user = UserDto.user
 _user_supressed = UserDto.user_supressed
 _new_user = UserDto.new_user
 _update_user = UserDto.update_user
+_task = TaskDto.user_task
 
 
 @api.route('')
@@ -128,3 +131,34 @@ class UpdateUser(Resource):
     def put(self, user_id):
         """Update User Account"""
         return update_user(user_id, request.json)
+
+@api.route('/<dept_name>/members')
+@api.param('dept_name', 'Department name')
+class UsersByDept(Resource):
+
+    #@token_required
+    @api.marshal_list_with(_user_supressed) 
+    def get(self, dept_name):
+        try:
+            dept = DepartmentService.by_name(dept_name)
+            return dept.members()
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))
+
+@api.route('/<user_id>/tasks')
+@api.param('user_id', 'User Identifier')
+class UserTasks(Resource):
+
+    @token_required
+    @api.marshal_list_with(_task)
+    def get(self, user_id): 
+        try:
+            if 'all' in user_id:
+                service = UserTaskService.request() 
+            else:
+                service = UserTaskService.request_user(user_id)
+            return service.list()
+
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))
+

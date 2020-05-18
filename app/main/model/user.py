@@ -9,6 +9,7 @@ class Department(enum.Enum):
     OPENERS = 'openers'
     SALES = 'sales'
     SERVICE = 'service'
+    DOCPROC = 'docproc'
 
 
 class User(db.Model):
@@ -29,7 +30,7 @@ class User(db.Model):
     require_2fa = db.Column(db.Boolean, default=True)
     title = db.Column(db.String(100), nullable=True)
     language = db.Column(db.String(25), nullable=False)
-    department = db.Column(db.Enum(Department), nullable=True)
+    department = db.Column(db.String(20), nullable=True)
     personal_phone = db.Column(db.String(25), nullable=False)
     voip_route_number = db.Column(db.String(50), nullable=True)
     pbx_mailbox_id = db.Column(db.String(25), nullable=True, unique=True)

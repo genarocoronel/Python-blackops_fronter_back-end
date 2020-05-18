@@ -1,7 +1,7 @@
 from flask import Flask, request
 from flask_restplus import Resource, Api
 
-from ..service.task_service import fetch_user_tasks, update_user_task
+from ..service.usertask_service import UserTaskService, update_user_task
 from ..service.user_service import get_request_user
 from ..util.dto import TaskDto
 from app.main.util.decorator import token_required
@@ -20,12 +20,15 @@ class TaskList(Resource):
             user = get_request_user()
             if user is None:
                 api.abort(404, 'User not found')
-            tasks = fetch_user_tasks(user)
+
+            # fetch owned tasks
+            service = UserTaskService.request()
+            tasks = service.list()
+
             return tasks
 
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
-
 
 @api.route('/filter')
 class TaskFilter(Resource): 

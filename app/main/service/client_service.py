@@ -18,6 +18,7 @@ from app.main.model.credit_report_account import CreditReportAccount, CreditRepo
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
+from app.main.model.usertask import UserTask
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
@@ -358,7 +359,7 @@ def get_client_bank_account(client):
 def get_client_appointments(public_id, client_type=ClientType.client):
     client = get_client(public_id)
     if client:
-        return Appointment.query.filter_by(client_id=client.id, type=client_type).all()
+        return Appointment.query.filter_by(client_id=client.id).all()
     else:
         return None
 
@@ -747,3 +748,12 @@ def fetch_client_combined_debts(client):
 
     except Exception as err:
         raise ValueError("Fetch Combined debts error")
+
+# fetch client tasks
+def fetch_client_tasks(client):
+    try:
+        tasks = UserTask.query.filter_by(client_id=client.id).all()
+        return tasks
+
+    except Exception as err:
+        raise ValueError("Fetch client tasks error {}".format(str(err))) 

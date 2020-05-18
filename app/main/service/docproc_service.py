@@ -17,6 +17,7 @@ from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus,
 from app.main.service.user_service import get_user_by_id, get_request_user
 from app.main.service.client_service import get_client_by_id
 from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc)
+from app.main.service.workflow import DocprocWorkflow
 
 ALLOWED_DOC_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
@@ -122,6 +123,10 @@ def update_doc(doc, data):
                 setattr(doc, attr, data.get(attr))
 
     _save_changes(doc)
+
+    ## creating tasks 
+    dwf = DocprocWorkflow(doc)
+    dwf.on_doc_update()
 
     return synth_doc(doc)
 
