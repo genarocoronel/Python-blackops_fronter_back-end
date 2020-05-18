@@ -15,6 +15,8 @@ class PortalUser(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(100))
     challenge_2fa = db.Column(db.String(10))
+    invite_token = db.Column(db.String(128))
+    is_claimed = db.Column(db.Boolean, default=False)
     is_disabled = db.Column(db.Boolean, default=False)
 
     # relationships
