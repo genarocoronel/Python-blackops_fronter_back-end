@@ -97,3 +97,30 @@ class AppointmentDto:
         'status': fields.String(required=False, description='status of appointment'),
         'public_id': fields.String(description='user identifier')
     })
+
+class CallsheetDto:
+    api = Namespace('callsheets', description='Callsheet related operations')
+    callsheet = api.model('callsheet', {
+        'public_id': fields.String(required=False, description='The Callsheet public ID'),
+        'is_orig_creditor': fields.Boolean(required=True, description='Flag indicating whether caller was original creditor'),
+        'is_hardship_call': fields.Boolean(required=True, description='Flag indicating if this was a hardship call. Default false.'),
+        'debt_name': fields.String(required=True, description='The name of the debt'),
+        'creditor_name': fields.String(required=True, description='The name of the creditor'),
+        'collector_name': fields.String(required=True, description='The name of the collector'),
+        'received_from_phone_number': fields.String(required=True, description='The phone number from which call originated'),
+        'received_on_phone_type': fields.String(required=True, description='The Client phone type receiving collecotr call. Valid values: cell, home, work'),
+        'notes': fields.String(required=False, description='Optional Notes, if any'),
+        'is_file_attached': fields.Boolean(required=False, description='Flag indicating if a file was attached with Callsheet. Default false'),
+        'inserted_on': fields.DateTime(required=False),
+        'updated_on': fields.DateTime(required=False)
+    })
+    callsheet_create = api.model('callsheet_create', {
+        'is_orig_creditor': fields.Boolean(required=True, description='Flag indicating whether caller was original creditor'),
+        'is_hardship_call': fields.Boolean(required=True, description='Flag indicating if this was a hardship call. Default false.'),
+        'debt_name': fields.String(required=True, description='The name of the debt'),
+        'creditor_name': fields.String(required=True, description='The name of the creditor'),
+        'collector_name': fields.String(required=True, description='The name of the collector'),
+        'received_from_phone_number': fields.String(required=True, description='The phone number from which call originated'),
+        'received_on_phone_type': fields.String(required=True, description='The Client phone type receiving collecotr call. Valid values: cell, home, work'),
+        'notes': fields.String(required=False, description='Optional Notes, if any')
+    })
