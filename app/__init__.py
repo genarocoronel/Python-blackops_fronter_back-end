@@ -24,6 +24,7 @@ from .main.portal_api.auth import api as portal_auth_ns
 from .main.portal_api.docs import api as portal_doc_ns
 from .main.portal_api.budget import api as portal_budget_ns
 from .main.portal_api.appointments import api as portal_appointment_ns
+from .main.portal_api.messages import api as portal_messages_ns
 
 
 blueprint = Blueprint('api', __name__)
@@ -74,3 +75,4 @@ portal_api.add_namespace(portal_auth_ns)
 portal_api.add_namespace(portal_doc_ns)
 portal_api.add_namespace(portal_budget_ns)
 portal_api.add_namespace(portal_appointment_ns)
+portal_api.add_namespace(portal_messages_ns)
