@@ -12,7 +12,7 @@ def get_portal_user_by_id(id):
 
 
 def get_portal_user_by_pubid(public_id):
-    return PortalUser.query.filter_by(public_id=id).first()
+    return PortalUser.query.filter_by(public_id=public_id).first()
 
 
 def get_portal_user_by_email(email):

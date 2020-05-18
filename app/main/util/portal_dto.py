@@ -55,6 +55,22 @@ class DocDto:
         'updated_on': fields.DateTime(required=False)
     })
 
+class MessageDto:
+    api = Namespace('messages', description='Message related operations')
+    message = api.model('message', {
+        'public_id': fields.String(required=False),
+        'portal_user_public_id': fields.String(required=False),
+        'content': fields.String(required=False),
+        'direction': fields.String(required=False),
+        'author_public_id': fields.String(required=False),
+        'author_name': fields.String(required=False),
+        'is_viewed': fields.Boolean(required=False),
+        'inserted_on': fields.DateTime(required=False)
+    })
+    message_create = api.model('message_create', {
+        'content': fields.String(required=False)
+    })
+
 class BudgetDto:
     api = Namespace('budgets', description='Client Budget related operations')
     income_source = api.model('client_income', {
