@@ -24,6 +24,9 @@ class AuthDto:
     password_reset = api.model('password_reset', {
         'password': fields.String(required=True, description='new password for password reset request')
     })
+    claim_invite = api.model('claim_invite', {
+        'desired_password': fields.String(required=True, description='The desired password to set for this account')
+    })
 
 class DocDto:
     api = Namespace('docs', description='Doc related operations')
