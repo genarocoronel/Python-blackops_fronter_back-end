@@ -17,6 +17,7 @@ from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus,
 from app.main.service.user_service import get_user_by_id, get_request_user
 from app.main.service.client_service import get_client_by_id
 from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc)
+from app.main.service.workflow import DocprocWorkflow
 
 ALLOWED_DOC_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
