@@ -32,6 +32,8 @@ from app.main.tasks import jive_listener
 from app.main.seed.team import seed_team_request_types
 from app.main.seed.docproc import seed_docproc_types
 from app.main.seed.collector import seed_debt_collectors
+from app.main.seed.organization import seed_organizations
+from app.main.seed.template import seed_templates
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -63,6 +65,8 @@ def seed():
     seed_team_request_types()
     seed_docproc_types()
     seed_debt_collectors()
+    seed_organizations()
+    seed_templates()
 
 ## launching development server
 ## uses eventlet library for websocket support

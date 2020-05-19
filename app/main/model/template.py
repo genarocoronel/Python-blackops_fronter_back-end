@@ -86,3 +86,39 @@ class Template(db.Model):
 
     uploaded_on = db.Column(db.DateTime, nullable=True) 
 
+
+# mail storage
+class MailBox(db.Model):
+    """ db model for storing mails send out by the system"""
+    __tablename__ = "mailbox"
+
+    # primary key
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)   
+
+    # mail send timestamp
+    timestamp = db.Column(db.DateTime, nullable=False)
+    
+    # client to/for which communication is masde
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='mailbox_client_id_fkey'))
+    # template used for creating the message
+    template_id = db.Column(db.Integer, db.ForeignKey('templates.id', name='mailbox_template_id_fkey'))
+
+    # relationship
+    client = db.relationship('Client', backref='mails')
+    template = db.relationship('Template', backref='mails')
+
+    # from address
+    from_addr = db.Column(db.String(200), nullable=True)
+    # to address
+    to_addr = db.Column(db.String(200), nullable=True)
+    # mail body 
+    body = db.Column(db.Text,  nullable=True)
+
+    # communication channel
+    channel = db.Column(db.String(20), default=TemplateMedium.EMAIL.name) 
+ 
+    # attachments - path & name in json format
+    # [{'name': 'xyz.doc', 'path': 'https://xyz.com/docs/'}]    
+    attachments = db.Column(db.JSON, default={})
+
+

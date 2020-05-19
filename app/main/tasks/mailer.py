@@ -2,20 +2,21 @@ from flask import Flask, render_template
 from flask import current_app as app
 from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditReportData
-from app.main.model.template import TemplateAction, Template
+from app.main.model.template import TemplateAction, Template, MailBox
 from app.main.model.template import TemplateMedium as MailTransport
 from app.main.model.organization import Organization
 from app.main.model.debt_payment import DebtPaymentSchedule
 from app.main.model.address import Address, AddressType
+from app.main import db
 from datetime import datetime
-from app.main.service.email_service import *
+from app.main.service.email_service import send_mail
+from app.main.service.fax_service import send_fax
+from app.main.service.sms_service import send_message_to_client
 from headless_pdfkit import generate_pdf
+from app.main.service.third_party.aws_service import upload_to_docproc
 
 
 class TemplateMailManager(object):
-    BASE_MAILER_TMPL_PATH = "mailer"
-    MAILER_UPLOAD_DIR = "/home/duminda/hydra/works/app/main/templates/mailer"
-    TMP_DOC_DIR = "/home/duminda/hydra/works/app/main/files"
     FROM_MAILBOX = 'support@thedeathstarco.com'
     _tmpl = None 
     _client = None
@@ -117,7 +118,10 @@ class TemplateMailManager(object):
                 self._is_via_fax = True
 
             self.client = self.debt.credit_report_account.client
-            template_file_path = "{}/{}".format(self.BASE_MAILER_TMPL_PATH, self._tmpl.fname)
+            tmpl_base_dir = 'mailer'
+            if 'TMPL_BASE_EMAIL_PATH' in app.config:
+                tmpl_base_dir = app.config['TMPL_BASE_EMAIL_PATH']
+            template_file_path = "{}/{}".format(tmpl_base_dir, self._tmpl.fname)
             
             params = self._to_dict()
             html = render_template(template_file_path, **params)
@@ -126,27 +130,44 @@ class TemplateMailManager(object):
                                              self.client.id, # client id
                                              ts)  # timestamp
 
-            pdfdoc = "{}/{}".format(self.TMP_DOC_DIR, # directory path for the document
-                                       doc_name)            
+            upload_dir_path = app.config['UPLOAD_LOCATION']
+            pdfdoc = "{}/{}".format(upload_dir_path, # directory path for the document
+                                    doc_name)            
 
             buff = generate_pdf(html)
             with open(pdfdoc, 'wb') as fd:
                 fd.write(buff)
 
             app.logger.info("Sending fax to client({}) doc({})".format(self.client.id, pdfdoc))
+            to_addr = ''
             # send through fax 
             if self._is_via_fax:
                 attachments = [pdfdoc, ]
-                #send_fax(self.debt.debt_collector.fax,
-                #         self._tmpl.subject,
-                #         attachments)             
+                # to address
+                to_addr = self.debt.debt_collector.fax
+                send_fax(self.debt.debt_collector.fax,
+                         self._tmpl.subject,
+                         attachments)             
 
                 # only for testing 
-                send_mail(self.FROM_MAILBOX, 
-                          [self.client.email,] , 
-                          self._tmpl.action.lower(), 
-                          html='<html><p>Fax send to debt collector attached.</p></html>', 
-                          attachments=attachments)
+                #send_mail(app.config['TMPL_DEFAULT_FROM_EMAIL'], 
+                #          [self.client.email,] , 
+                #          self._tmpl.action.lower(), 
+                #          html='<html><p>Fax send to debt collector attached.</p></html>', 
+                #          attachments=attachments)
+
+            # upload files to S3
+            upload_to_docproc(pdfdoc, doc_name) 
+            doc_info = [{'name': doc_name, 'path': ''}, ]          
+ 
+            mbox = MailBox(timestamp=datetime.now(),
+                           client_id=self.client.id,
+                           template_id=self._tmpl.id,
+                           to_addr=to_addr,
+                           channel=MailTransport.FAX.name,
+                           attachments=doc_info) 
+            db.session.add(mbox)
+            db.session.commit()
                 
         elif transport == MailTransport.EMAIL.name or transport == MailTransport.EMAIL_SMS.name:
             # check client is set or not
@@ -156,17 +177,58 @@ class TemplateMailManager(object):
             dest = self.client.email
             attachments = []
 
+            att_dir_path = app.config['TMPL_ATTACHMENT_DOC_LOCATION'] 
             if self._tmpl.attachment:
-                att_path = "{}/{}".format(self.MAILER_UPLOAD_DIR, self._tmpl.attachment)
+                att_path = "{}/{}".format(att_dir_path, self._tmpl.attachment)
                 attachments = [att_path, ]
- 
-            template_file_path = "{}/{}".format(self.BASE_MAILER_TMPL_PATH, self._tmpl.fname) 
+
+            tmpl_base_dir = 'mailer'
+            if 'TMPL_BASE_EMAIL_PATH' in app.config:
+                tmpl_base_dir = app.config['TMPL_BASE_EMAIL_PATH']
+            
+            template_file_path = "{}/{}".format(tmpl_base_dir, self._tmpl.fname) 
             params = self._to_dict()
             html = render_template(template_file_path, **params)        
         
-            send_mail(self.FROM_MAILBOX, [dest,] , self._tmpl.subject, html=html, attachments=attachments)
+            send_mail(app.config['TMPL_DEFAULT_FROM_EMAIL'], 
+                      [dest,] , 
+                      self._tmpl.subject, 
+                      html=html, 
+                      attachments=attachments)
             ## test send mail
             #test_send_email(dest, self._tmpl.subject, html)
+            mbox = MailBox(timestamp=datetime.now(),
+                           client_id=self.client.id,
+                           template_id=self._tmpl.id,
+                           body=html,
+                           to_addr=dest,
+                           channel=transport)
+            db.session.add(mbox)
+            db.session.commit()
+
+        elif transport == MailTransport.SMS.name:
+            dest = self.client.email 
+            tmpl_base_dir = 'sms'
+            if 'TMPL_BASE_SMS_PATH' in app.config:
+                tmpl_base_dir = app.config['TMPL_BASE_SMS_PATH']
+
+            template_file_path = "{}/{}".format(tmpl_base_dir, self._tmpl.fname)
+            params = self._to_dict()
+            msg_body = render_template(template_file_path, **params)
+            # send SMS 
+            send_message_to_client(client_public_id=self.client.public_id,
+                                   from_phone=app.config['TMPL_DEFAULT_FROM_SMS'], # from,
+                                   message_body=msg_body,
+                                   to_phone=None) 
+
+            mbox = MailBox(timestamp=datetime.now(),
+                           client_id=self.client.id,
+                           template_id=self._tmpl.id,
+                           body=html,
+                           to_addr=dest,
+                           channel=transport)
+            db.session.add(mbox)
+            db.session.commit() 
 
 
 # PAYMENT_REMINDER
@@ -451,6 +513,21 @@ def send_delete_document_notice():
 
 def send_add_document_notice():
     pass
+
+# SMS 
+# text messaging
+def send_day3_reminder(client_id):
+    kwargs = { 'client_id': client_id }
+    send_template(TemplateAction.DAY3_REMINDER.name,
+                  **kwargs)
+
+def send_day3_spanish_reminder(client_id):
+    kwargs = { 'client_id': client_id }
+    send_template(TemplateAction.DAY3_REMINDER_SPANISH.name,
+                  **kwargs)
+
+
+
 
 
 def send_template(action, **kwargs):
