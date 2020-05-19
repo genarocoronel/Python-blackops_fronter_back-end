@@ -32,6 +32,7 @@ def create_callsheet(data):
         callsheet = PortalCallsheet(
             public_id = str(uuid.uuid4()),
             portal_user_id = puser.id,
+            callsheet_date = data['callsheet_date'],
             is_orig_creditor = data['is_orig_creditor'] if 'is_orig_creditor' in data else False,
             is_hardship_call = data['is_hardship_call'] if 'is_hardship_call' in data else False,
             debt_name = data['debt_name'],

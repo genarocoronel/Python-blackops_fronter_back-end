@@ -11,6 +11,7 @@ class PortalCallsheet(db.Model):
     inserted_on = db.Column(db.DateTime)
     updated_on = db.Column(db.DateTime)
     
+    callsheet_date = db.Column(db.DateTime, nullable=False)
     is_orig_creditor = db.Column(db.Boolean, default=False)
     is_hardship_call = db.Column(db.Boolean, default=False)
     debt_name = db.Column(db.String(75))

@@ -115,6 +115,7 @@ class CallsheetDto:
         'updated_on': fields.DateTime(required=False)
     })
     callsheet_create = api.model('callsheet_create', {
+        'callsheet_date': fields.DateTime(required=True, description='Date of receiving a call from collection company'),
         'is_orig_creditor': fields.Boolean(required=True, description='Flag indicating whether caller was original creditor'),
         'is_hardship_call': fields.Boolean(required=True, description='Flag indicating if this was a hardship call. Default false.'),
         'debt_name': fields.String(required=True, description='The name of the debt'),
