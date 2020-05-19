@@ -102,6 +102,7 @@ class CallsheetDto:
     api = Namespace('callsheets', description='Callsheet related operations')
     callsheet = api.model('callsheet', {
         'public_id': fields.String(required=False, description='The Callsheet public ID'),
+        'callsheet_date': fields.DateTime(required=True, description='Date of receiving a call from collection company'),
         'is_orig_creditor': fields.Boolean(required=True, description='Flag indicating whether caller was original creditor'),
         'is_hardship_call': fields.Boolean(required=True, description='Flag indicating if this was a hardship call. Default false.'),
         'debt_name': fields.String(required=True, description='The name of the debt'),
