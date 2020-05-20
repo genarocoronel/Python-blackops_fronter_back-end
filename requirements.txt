@@ -64,3 +64,4 @@ scrapy-splash
 pySqsListener==0.8.7
 phonenumbers==8.11.4
 pytimeparse==1.1.8
+headless-pdfkit==0.1.5
