@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 from flask import current_app as app
 from app.main.core.errors import BadRequestError, ServiceProviderError, ConfigurationError
 from app.main.core.io import open_file
-from app.main.service.docproc_service import DocprocChannel
+from app.main.model.docproc import DocprocChannel
 
 
 def upload_to_docproc(src_filepath, desired_obj_name, desired_metadata=None):

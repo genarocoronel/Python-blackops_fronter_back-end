@@ -72,6 +72,13 @@ class Config:
     EPPS_USERNAME = os.getenv('EPPS_USERNAME', 'ASOL_API')
     EPPS_PASSWORD = os.getenv('EPPS_PASSWORD', 'b075f05e-79ed-11ea-a215-005056a3526c')
 
+    # Templating module
+    TMPL_BASE_EMAIL_PATH = os.getenv('TMPL_BASE_EMAIL_PATH', 'mailer')
+    TMPL_BASE_SMS_PATH = os.getenv('TMPL_BASE_SMS_PATH', 'sms')
+    TMPL_ATTACHMENT_DOC_LOCATION = os.getenv('TMPL_ATTACHMENT_DOC_LOCATION', f'{basedir}/templates/mailer')
+    TMPL_DEFAULT_FROM_EMAIL = os.getenv('TMPL_DEFAULT_FROM_EMAIL', 'support@thedeathstarco.com')
+    TMPL_DEFAULT_FROM_SMS = os.getenv('TMPL_DEFAULT_FROM_SMS', '')
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

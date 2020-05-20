@@ -1,0 +1,23 @@
+<html lang="en">
+	<body style="font-size: 110%; padding-top: 10px; padding-left: 10px">
+		<p>Hola {{client.first_name}} </p>
+		<p>
+			Fue un placer haber hablado contigo hoy. Busca las cartas de las agencias de cobranza que te vayan llegando por el correo y env�amelas. Es muy importante que yo las reciba de inmediato.
+		</p>
+		<p>
+			Si tienes alguna pregunta no dudes en llamarme en cualquier momento.
+		</p>
+		<p><br></p>
+		<p>
+			Sinceramente,
+		</p>
+		<p ><strong>{{account_manager.full_name}}</strong></p>
+		<p >Elite DMS Team</p>
+		<p >P: {{account_manager.phone}}  F: {{account_manager.fax}}</p>
+		<p>
+			<a href="{{org.url}}"><img src="{{org.logo_url}}"/></a></p>
+
+		<p>
+			<strong>Click </strong><a href="{{org.client_portal}}"><strong>aqui</strong></a><strong> para ingresar al portal del cliente.</strong></p>
+	</body>
+</html>

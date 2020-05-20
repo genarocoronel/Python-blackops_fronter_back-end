@@ -41,6 +41,8 @@ class Appointment(db.Model):
     # reminder options
     # TODO change to relational object
     reminder_types = db.Column(db.String(64), nullable=True)
+    # revision fields
+    reminder_status = db.Column(db.JSON, default={'h1': False, 'd1': False})
 
 class AppointmentNote(db.Model):
     """ db model for storing appointment notes"""

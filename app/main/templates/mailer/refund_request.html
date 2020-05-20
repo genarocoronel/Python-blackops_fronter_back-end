@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+</head>
+    <body>
+        <div style="width: 700px;">
+            <div style="text-align: center; padding-bottom: 15px; font-size: 24px;">Refund Request</div>
+            <table style="width: 100%; font-family: Arial; border: 1px solid #000; border-spacing: 0px; border-collapse: collapse; ">
+                <tbody>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td colspan="2" style="padding: 6px 4px;">Program Name: <b>{{program_name}}</b></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+						<td colspan="2" style="padding: 6px 4px;">Customer's Name: <b>{{customer_name}}</b></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding: 6px 4px 0px 4px;">Customer ID Number: <b>{{customer_id}}</b></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td colspan="2" style="padding: 6px 4px;">Trust Account <input type="checkbox" {% if trust_account %}checked{% endif %} /></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td colspan="2" style="padding: 6px 4px;">
+                            Type of Refund and Fee:
+							<br />
+							<input type="checkbox" {% if refund_type == 'ACH' %}checked{% endif %}/> ACH - $15.00
+							<br />
+							<input type="checkbox" {% if refund_type == 'CHECK' %}checked{% endif %} /> Check - $15.50
+							<br />
+							<input type="checkbox" {% if refund_type == 'WIRE' %}checked{% endif %} /> Wire - $35.00
+							<br />
+							<input type="checkbox" {% if refund_type == 'OVERNIGHT' %}checked{% endif %} /> Overnight - $65.00
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding: 6px 4px;">
+                            Amount of Refund: <b>{{ refund_amount }}</b>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td colspan="2" style="padding: 6px 4px;">
+                            Account Status:
+                            <input type="checkbox" {% if account_status == 'ACTIVE' %}checked{% endif %}/> Keep Active
+                            <input type="checkbox" {% if account_status == 'DEACTIVATE' %}checked{% checked %} /> Deactivate
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td colspan="2" style="padding: 6px 4px;">
+                            Refund Fee to be paid by:
+                            <input type="checkbox" {% if fee_paid_by == 'PROGRAM' %}checked{% endif %}/> Program
+                            <input type="checkbox" {% if fee_paid_by == 'CUSTOMER' %}checked{% endif %}} /> Customer
+                        </td>
+                    </tr>
+					<tr style="border-bottom: 1px solid #000;">
+						<td style="width: 50%; padding: 6px 4px; border-right: 1px solid #000;">
+							<b>ACH</b> Routing Number <b>{{bank_routing_num}}</b>
+						</td>
+						<td rowspan="2" style="padding: 6px 4px;">
+							Bank Account Number: <b>{{bank_account_num}}</b>
+						</td>
+					</tr>
+					<tr style="border-bottom: 1px solid #000;">
+						<td style="width: 50%; padding: 6px 4px; border-right: 1px solid #000;">
+							<b>Wire</b> Routing Number <b>{{wire_routing_num}}</b>
+						</td>
+					</tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td style="padding: 6px 4px;" colspan="2">Bank Name: (No acronyms ex: B of A) <b>{{bank_name}}</b></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td style="padding: 6px 4px;" colspan="2">
+							<div style="float: left; margin-right: 15px;">
+								Bank’s City and State from routing number:
+								<span style="display: block;font-size: 11px;">(can be found by putting the routing number into the search engine)</span>
+							</div>
+							<b>{{bank_city}}, {{bank_state}}</b>
+						</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td style="padding: 6px 4px;" colspan="2">
+                            <b>
+                                If a debit has not settled at the time of the refund request, the request will be delayed until the
+                                debit settles. All fees will be brought current before the refund is completed. If a refund check
+                                request is via FedEx overnight delivery there is a $65.00 fee. Please indicate which party will pay
+                                this fee.
+                            </b>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td colspan="2" style="background-color: #7F7F7F; text-align: center; padding: 6px;">
+                            <b>Internal Use Only</b>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td style="padding: 6px 4px;" colspan="2">Amount to be deducted from FTF or Debt Program Fees: <b>{{etf_amount}}</b></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td colspan="2">
+                            <table style="border-spacing: 0px; border-collapse: collapse;">
+                                <tbody>
+                                    <tr>
+                                        <td style="padding: 6px 4px 3px 4px; width: 210px;">Portal Notes Entered <input type="checkbox" {% if portal_notes_entered %}checked{% endif %} /></td>
+                                        <td rowspan="2" style="vertical-align: top; width: 160px; border-left: 1px solid #000; border-right: 1px solid #000; padding: 6px 4px; ">Date Wired/Mailed: <b>{{date_wired}}</b></td>
+                                        <td rowspan="2" style="vertical-align: top; padding: 6px 4px;">Wire Control Number or Check Number: <b>{{wire_control_num}}</b></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 3px 4px;">Account Deactivated <input type="checkbox" {% if account_deactivted %}{% endif %}/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td style="padding: 6px 4px; border-right: 1px solid #000; ">Refund Requested by: <b>{{refund_requested_by}}/b></td>
+                        <td style="padding: 6px 4px;">Refund Processed by: <b>{{refund_processed_by}}</b></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <td style="padding: 6px 4px;" colspan="2">
+                          Additional Fees: <input type="checkbox" {% if additional_fees == 'STOP' %}checked{% endif %}/>
+                          Stop Payment <input type="checkbox" {% if additional_fees == 'RETURN' %}checked{% endif %}/>
+                          Return Wire Amount <b>{{wire_amount}}</b></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 4px;" colspan="2">
+                            Notes:<b>{{notes}}</b>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,84 @@
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		<p>
+			{% if is_via_fax %}
+			VIA FAX (<strong>{{debt.debt_collector.fax}}</strong>)
+			{% endif %}
+		</p>
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.name}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.address}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.city}}, {{debt.debt_collector.state}} {{debt.debt_collector.zip}}</strong></p>
+		<p>
+			&nbsp;</p>
+		<p style="margin-left:109.4pt;">
+			RE:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{client.first_name}} {{client.last_name}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			Your reference/account number:&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{debt.account_number}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			Date: &nbsp;<strong>{{date_now}}</strong>&nbsp;&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			Your reference/account number:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{debt.debt_collector.account_number}}</strong></p>
+		<p>
+			&nbsp;</p>
+		<h4 style="text-align: center;">
+			<strong>NOTICE OF INSUFFICIENT RESPONSE</strong></h4>
+		<p style="margin-left:4.7pt;">
+			We are in receipt of your most recent response to our request for validation. &nbsp;Among other things, our letter was also a request for verification of the legality of an alleged debt. &nbsp;</p>
+		<p style="margin-left:4.7pt;">
+			As stated previously, your claim will be accepted as valid and binding only upon receipt of a certified proof of a valid, legally binding obligation legitimately owed by us, that is without fraud, and without deceptive billing practices or misrepresentations.</p>
+		<p style="margin-left:4.7pt;">
+			BILL OF SALE. 
+{% if debt.prev_debt_collector %}
+&nbsp;The &ldquo;Bill of Sale&rdquo; does not specify that our account was sold to <strong>{{debt.prev_debt_collector.name}}</strong>. 
+{% endif %}
+&nbsp;We do not see where our names or account was included in purported sale of our account. &nbsp;Further, you have failed to provide any copy of the contract with the alleged original creditor bearing our signatures, and proving that the agreement allows for the sale of the alleged debt without our permission.</p>
+		<p style="margin-left:4.7pt;">
+			While you did mail something to us, you failed to send us the documentation requested. &nbsp;For example, naked copies of statements do NOT constitute <u>an accounting</u>. &nbsp;As you should be aware, recent settlements in court have been made by both debt collection companies and financial institutions claiming to be the alleged creditor, for fraudulent billing, etc.</p>
+		<p>
+			We are forced to reiterate our request for the following information:</p>
+		<ol>
+			<li>
+				A copy of the original contract with original signatures;</li>
+			<li>
+				Name and address of the original creditor;</li>
+			<li>
+				A certified copy of any judgment, if there is one;</li>
+			<li>
+				Identity of the claimed creditor for whom you are is collecting the alleged debt, and the signature of the person making claim, with an official declaration that the signature binds you in your official and personal capacity;</li>
+			<li>
+				Proof that you are licensed to collect the alleged debt, including the date of the license, the name on the license, the license number, and the name, address and telephone number of the state agency issuing the license. If no licensing is required, please so indicate, including the relevant statute or regulation upon which you are relying;</li>
+			<li>
+				A certified, true copy of a complete accounting of the sum certain amount allegedly owed and an accounting from the inception of the account of all goods and services received by Purported Debtor, regarding the alleged debt&mdash;with corresponding monetary amounts for which Purported Debtor is in default of payment;</li>
+			<li>
+				Copies of all agreements of assignment, negotiation, transfer of rights, and-the-like, which verify that you are the current owner, assignee, holder, or owner of the debt &mdash; this requires you to provide the complete chain of title;</li>
+			<li>
+				All relative commercial instruments, contracts, and-the-like containing our bona fide signature;</li>
+			<li>
+				All other documentary evidence between us and you or your Principal upon which you rely for making your presumptive claim.</li>
+		</ol>
+		<p>
+			Your response was terribly incomplete. &nbsp;Our request was pertinent under the FDCPA, the FCRA, TILA, among many other federal and local statutes.</p>
+		<p style="margin-left:4.7pt;">
+			We expect a written response within 10 days from your receipt of this letter to return the documentation requested, and proof of the debt. &nbsp;Failure to provide the documents will be treated as a waiver of all claims that you might have, and an acknowledgement that there may be violations of consumer protection laws.</p>
+		<p style="margin-left:1.4pt;">
+			Sincerely,</p>
+                <p style="margin-left:1.4pt;">
+                        &nbsp;</p>
+		<p>
+			C/O:</p>
+		<p>
+			<strong>{{client.first_name}} {{client.last_name}}</strong>
+		</p>
+			<strong>{{client.address}}</strong></p>
+		<p>
+			<strong>{{client.city}}, {{client.zip}}</strong></p>
+		<p>
+			&nbsp;</p>
+	</body>
+</html>

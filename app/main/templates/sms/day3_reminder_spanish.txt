@@ -1,0 +1,1 @@
+Hola {{client.first_name}}, Su control de credito ha sido configurado! Revisaremos cualquier posible discrepancia o actividad de recopilacion y lo discutiremos en nuestra proxima cita por telephono. Que tenga un hermoso dia! {{client.account_manager.full_name}} EDMS

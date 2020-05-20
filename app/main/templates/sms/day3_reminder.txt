@@ -1,0 +1,1 @@
+Hello {{client.first_name}}, Your credit monitoring has been set up and is active! We will review your credit report for any potential inaccuracies and discuss during our next appointment. Have a great day! {{account_manager.full_name}} Elite DMS 

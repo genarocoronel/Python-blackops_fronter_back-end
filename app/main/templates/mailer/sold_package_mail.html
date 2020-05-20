@@ -1,0 +1,74 @@
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		{% if is_via_fax %}
+		<p>
+			VIA FAX (<strong>{{debt.debt.collector.fax}}</strong>)</p>
+		{% endif %}
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.name}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.address}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			<strong>{{debt.debt_collector.city}}, {{debt.debt_collector.state}} {{debt.debt_collector.zip}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			&nbsp;</p>
+		<p style="margin-left:109.4pt;">
+			RE:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{client.full_name}}</strong></p>
+		<p style="margin-left:1.4pt;">
+			Your reference/account number:&nbsp;&nbsp;&nbsp;&nbsp; <strong>{{debt.account_number}}#</strong></p>
+		<p>
+			&nbsp;</p>
+		<p>
+			&nbsp;</p>
+		<h4 align="center">
+			NOTICE OF PREVIOUSLY DISPUTED DEBT</h4>
+		<h4 align="center">
+			DISPUTE AND REQUEST FOR VALIDATION</h4>
+		<p style="margin-left:4.7pt;">
+			<strong>We are in receipt of your letter indicating that you are the new account owner or collector on this account.&nbsp;&nbsp; </strong></p>
+		<p style="margin-left:4.7pt;">
+			There was another debt buyer or collector on this account.&nbsp; During the 30-day window provided for under the Fair Debt Collection Practices Act (&ldquo;FDCPA&rdquo;) at 15 USC &sect; 1692 (g), we faxed a Dispute and Request for Validation.&nbsp; There was no response.&nbsp; After more than a month had passed, we sent yet another notice indicating that no response was received, and we therefore considered the debt invalid.&nbsp; We have proof that the documents were sent and received.</p>
+		<p style="margin-left:4.7pt;">
+			It would have been your predecessor&rsquo;s responsibility to let you know about our representation, that the account was disputed and a request for validation was made, that no response was provided, and that under the FDCPA, no further collection attempts could be made unless and until there was a response to the dispute and request for validation.&nbsp; We hold you responsible for any and all violations.</p>
+		<p style="margin-left:4.7pt;">
+			15 USC &sect; 1692 (e)(8) provides:</p>
+		<p style="margin-left:.5in;">
+			Communicating or threatening to communicate to any person credit information which is known or which should be known to be false, including the failure to communicate that a disputed debt is disputed, is a violation&hellip;</p>
+		<p>
+			&nbsp;</p>
+		<p style="margin-left:4.7pt;">
+			Attempting to collect on a disputed debt, or on a debt which is void given the failure to respond to the dispute and the request for validation, is a violation of the above-cited provision.</p>
+		<p style="margin-left:4.7pt;">
+			If you provide us with acknowledgement within 30 days of this letter that you consider the alleged debt to be void, and that you have or will remove any trade lines that you may have placed on our credit reports, we will consider this matter resolved. &nbsp;Furthermore, we are incorporating our dispute and request for validation into this letter which is now directed to you.</p>
+		<p style="margin-left:4.7pt;">
+			<strong>We are attaching copies of the correspondence sent and received by your predecessor. &nbsp;If you are not considering the account void, the same demands and disputes in the attached correspondence are now being directed to you.</strong></p>
+		<p style="margin-left:1.4pt;">
+			Until you prove that the debt is unquestionably valid, that it is properly collectable, and that you have authority to collect the alleged debt, you must cease all collection activities including calls, letters, or derogatory reporting to credit bureaus.</p>
+		<p>
+			&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			We strongly recommend that any response to this letter and the attachment be in a traceable manner such as certified mail.</p>
+		<p>
+			&nbsp;</p>
+		<p style="margin-left:1.4pt;">
+			Sincerely,</p>
+		<p style="margin-left:1.4pt;">
+			&nbsp;&nbsp;&nbsp;</p>
+		<p>
+			&nbsp;</p>
+		<p>
+			C/O:</p>
+		<p>
+			<strong>{{client.full_name}}</strong></p>
+			<strong>[Client Address]</strong></p>
+		<p>
+			<strong>{{client.city}}, {{client.state}} {{client.zip}}</strong></p>
+		<p>
+			&nbsp;</p>
+		<p>
+			&nbsp;</p>
+	</body>
+</html>
