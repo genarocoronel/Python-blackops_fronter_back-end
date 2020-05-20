@@ -56,6 +56,7 @@ def synth_callsheet(callsheet):
     
     callsheet_synth = {
         'public_id': callsheet.public_id,
+        'callsheet_date': callsheet.callsheet_date.strftime(datetime_format),
         'portal_user_public_id': puser.public_id,
         'is_orig_creditor': callsheet.is_orig_creditor,
         'is_hardship_call': callsheet.is_hardship_call,
