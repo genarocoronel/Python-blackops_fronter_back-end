@@ -88,6 +88,8 @@ class CreditReportData(db.Model):
     debt_collector = db.relationship('DebtCollector', backref='active_debts', foreign_keys=[collector_id])
     prev_debt_collector = db.relationship('DebtCollector', backref='old_debts', foreign_keys=[prev_collector_id])
     
+    # debt collector reference number for the debt
+    collector_ref_no = db.Column(db.String(100), nullable=True)
 
     # fields
     debt_name = db.Column(db.String(100), nullable=True)

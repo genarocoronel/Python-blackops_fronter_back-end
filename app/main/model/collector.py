@@ -19,5 +19,3 @@ class DebtCollector(db.Model):
     state = db.Column(db.String(50))
     zip_code = db.Column(db.String(5))
 
-    # collector's account number 
-    account_number = db.Column(db.String(100), nullable=True)
