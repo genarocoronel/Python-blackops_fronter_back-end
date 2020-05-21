@@ -8,6 +8,7 @@ class DocprocChannel(enum.Enum):
     EMAIL = 'Email'
     FAX = 'Fax'
     SMS = 'SMS'
+    PORTAL = 'Portal'
     OTHER = 'Other'
 
 class DocprocStatus(enum.Enum):
