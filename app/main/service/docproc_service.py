@@ -177,7 +177,15 @@ def stream_doc_file(doc):
 
 def create_doc_manual(data, client = None):
     """ Creates a new Doc manually """
-    curr_user = get_request_user()
+    is_published = False
+    curr_user = None
+    
+    if data['source_channel'] == DocprocChannel.PORTAL.value:
+        is_published = True
+        curr_username = 'system'
+    else:
+        curr_user = get_request_user()
+        curr_username = curr_user.username
 
     doc = Docproc(
         public_id = str(uuid.uuid4()),
@@ -185,9 +193,10 @@ def create_doc_manual(data, client = None):
         source_channel=DocprocChannel.MAIL.value,
         status=DocprocStatus.NEW.value,
         inserted_on=datetime.datetime.utcnow(),
-        created_by_username = curr_user.username,
+        created_by_username = curr_username,
         updated_on=datetime.datetime.utcnow(),
-        updated_by_username=curr_user.username
+        updated_by_username=curr_username,
+        is_published = is_published
     )
 
     for attr in data:

@@ -1,5 +1,6 @@
 from flask_restplus import Namespace, fields
 
+from app.main.util import parsers
 from app.main.model import Frequency
 
 class FrequencyTypeField(fields.String):
@@ -28,8 +29,18 @@ class AuthDto:
         'desired_password': fields.String(required=True, description='The desired password to set for this account')
     })
 
+class ConfigDto:
+    api = Namespace('config', description="Config related operations")
+    docproc_types = api.model('docproc_types', {
+        'public_id': fields.String(required=True),
+        'name': fields.String(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'updated_on': fields.DateTime(required=True),
+    })
+
 class DocDto:
     api = Namespace('docs', description='Doc related operations')
+    doc_upload = parsers.doc_upload
     doc_type = api.model('doc_type', {
         'public_id': fields.String(required=False),
         'name': fields.String(required=False)
@@ -53,6 +64,16 @@ class DocDto:
         'is_published': fields.Boolean(required=False),
         'inserted_on': fields.DateTime(required=False),
         'updated_on': fields.DateTime(required=False)
+    })
+    doc_create = api.model('doc_create', {
+        'source_channel': fields.String(required=False, example='One of: Mail, Fax, SMS, Email, Portal'),
+        'doc_name': fields.String(required=True, example='CITI Collection Letter'),
+        'type': fields.Nested(doc_type),
+        'correspondence_date': fields.String(required=False, example='2020-04-15'),
+        'from_who': fields.String(required=False, example='Some Collection Firm'),
+        'debt_name': fields.String(required=False, example='ZYZ Bank Visa'),
+        'creditor_name': fields.String(required=False, example='ZYZ Bank'),
+        'collector_name': fields.String(required=False, example='Zoo, Collection Firm')
     })
 
 class MessageDto:

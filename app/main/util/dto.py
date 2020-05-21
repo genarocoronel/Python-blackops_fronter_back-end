@@ -1046,7 +1046,7 @@ class DocprocDto:
     })
     doc_upload = parsers.doc_upload
     doc_create = api.model('doc_create', {
-        'source_channel': fields.String(required=False, example='One of: Mail, Fax, SMS, Email'),
+        'source_channel': fields.String(required=False, example='One of: Mail, Fax, SMS, Email, Portal'),
         'doc_name': fields.String(required=True, example='CITI Collection Letter'),
         'type': fields.Nested(doc_type),
         'correspondence_date': fields.String(required=False, example='2020-04-15'),
