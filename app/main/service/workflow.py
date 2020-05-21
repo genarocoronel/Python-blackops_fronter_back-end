@@ -3,6 +3,7 @@ from app.main import db
 from app.main.model.debt_payment import DebtPaymentSchedule, DebtPaymentContractCreditData, DebtEftStatus, ContractStatus, RevisionStatus 
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
+from app.main.model.docproc import DocprocStatus
 from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
 from sqlalchemy import desc, asc, and_
