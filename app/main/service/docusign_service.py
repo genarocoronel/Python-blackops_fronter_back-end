@@ -284,12 +284,21 @@ class DocuSign(object):
 
     def download_documents(self, envelope_id):
         try:
+            result = []
             envelope_api = EnvelopesApi(self._client)
             docs_result = envelope_api.list_documents(self._ACCOUNT_ID, envelope_id=envelope_id)
+           
             for env_doc in docs_result.envelope_documents:
-                doc_file = envelope_api.get_document(self._ACCOUNT_ID, env_doc.document_id, envelope_id=envelope_id)
-            
+                # if summary, skip
+                if 'summary' in env_doc.type:
+                    continue
 
+                doc_file = envelope_api.get_document(self._ACCOUNT_ID, 
+                                                     env_doc.document_id, 
+                                                     envelope_id=envelope_id)
+                result.append(doc_file)
+
+            return result 
         except Exception as err:
             print("Error in download documents {}".format(str(err)))
 

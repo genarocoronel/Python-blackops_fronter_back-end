@@ -36,7 +36,8 @@ def upload_to_docproc(src_filepath, desired_obj_name, desired_metadata=None):
 
 def download_from_docproc(src_channel, obj_name, dest_filepath):
     """ Gets the requested Object from Docproc (Client docs dossier) S3 Bucket """
-    bucket = None
+    ## tmp: set default bucket
+    bucket = app.s3_bucket_docproc
     if src_channel == DocprocChannel.MAIL.value:
         if not app.s3_bucket_docproc:
             raise ConfigurationError('The app is missing DocProc bucket configuration. Please rectify and try again.')

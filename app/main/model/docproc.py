@@ -58,6 +58,7 @@ class Docproc(db.Model):
     type = db.relationship('DocprocType', backref='docproc')
     doc_notes = db.relationship('DocprocNote', backref='docproc')
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_docproc_client_id'), nullable=True)
+    client = db.relationship('Client', backref='documents')
     docproc_user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='fk_docproc_user_id'), nullable=True)
     accmgr_user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='fk_docproc_accmgr_user_id'), nullable=True)
 

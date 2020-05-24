@@ -788,6 +788,7 @@ class LeadCreditReportUpdateDebt(Resource):
 #@api.param('override', 'Override use of invalid/failing bank information')
 @api.response(404, 'Client not found')
 class LeadBankAccount(Resource):
+    @token_required
     @api.doc('create payment information')
     @api.expect(_new_bank_account, validate=True)
     def post(self, lead_id):
@@ -796,13 +797,8 @@ class LeadBankAccount(Resource):
         if not client:
             api.abort(404)
         else:
-            #override_arg = request.args.get('override')
-            #override = True if override_arg.lower() == 'true' else False
-            override = False
-
-            overridable_codes = _get_codes_for_current_user()
-            result, error = create_bank_account(client, request.json, override=override,
-                                                overridable_codes=overridable_codes)
+            result, error = create_bank_account(client, 
+                                                request.json)
             if error:
                 api.abort(500, **error)
             else:
@@ -893,16 +889,6 @@ class LeadNotificationPrefs(Resource):
                 return prefs
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
-
-
-def _get_codes_for_current_user():
-    # TODO: accept a query param for 'override' which will persist the banking information regardless of failure
-    # TODO: from the datax service. This 'override' should only be allowed by an ADMIN though
-    is_admin = True
-    if is_admin:
-        return DATAX_ERROR_CODES_MANAGER_OVERRIDABLE
-    else:
-        return DATAX_ERROR_CODES_SALES_OVERRIDABLE
 
 
 @api.route('/<lead_id>/payment/plan')
