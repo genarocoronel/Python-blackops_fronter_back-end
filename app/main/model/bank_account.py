@@ -66,7 +66,7 @@ class BankAccountValidationHistory(db.Model):
     
     # whether overriden or not
     overuled = db.Column(db.Boolean, default=False) 
-    overuled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    overuled_by = db.Column(db.Integer, db.ForeignKey('users.id', name='bank_account_validation_history_overruled_by_fkey'))
 
     overruler = db.relationship("User", backref="overruled_history")
    
