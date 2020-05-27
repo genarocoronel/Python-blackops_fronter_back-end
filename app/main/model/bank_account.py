@@ -64,5 +64,9 @@ class BankAccountValidationHistory(db.Model):
     routing_number = db.Column(db.String(9), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False) 
     
+    # whether overriden or not
+    overuled = db.Column(db.Boolean, default=False) 
+    overuled_by = db.Column(db.Integer, db.ForeignKey('users.id', name='bank_account_validation_history_overruled_by_fkey'))
 
+    overruler = db.relationship("User", backref="overruled_history")
    

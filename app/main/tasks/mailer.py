@@ -14,6 +14,10 @@ from app.main.service.fax_service import send_fax
 from app.main.service.sms_service import send_message_to_client
 from headless_pdfkit import generate_pdf
 from app.main.service.third_party.aws_service import upload_to_docproc
+from app.main.model.docproc import Docproc
+from app.main.core import io
+import uuid
+
 
 
 class TemplateMailManager(object):
@@ -158,6 +162,7 @@ class TemplateMailManager(object):
 
             # upload files to S3
             upload_to_docproc(pdfdoc, doc_name) 
+
             doc_info = [{'name': doc_name, 'path': ''}, ]          
  
             mbox = MailBox(timestamp=datetime.now(),
@@ -168,6 +173,8 @@ class TemplateMailManager(object):
                            attachments=doc_info) 
             db.session.add(mbox)
             db.session.commit()
+            # delete file
+            io.delete_file(pdfdoc)
                 
         elif transport == MailTransport.EMAIL.name or transport == MailTransport.EMAIL_SMS.name:
             # check client is set or not
@@ -195,8 +202,34 @@ class TemplateMailManager(object):
                       self._tmpl.subject, 
                       html=html, 
                       attachments=attachments)
+
+            ts = int(datetime.now().timestamp())            
+            doc_name = "{}_{}_{}.pdf".format(self._tmpl.action.lower(), # action
+                                             self.client.id, # client id
+                                             ts)  # timestamp
+
+            upload_dir_path = app.config['UPLOAD_LOCATION']
+            pdfdoc = "{}/{}".format(upload_dir_path, # directory path for the document
+                                    doc_name)            
+
+            buff = generate_pdf(html)
+            with open(pdfdoc, 'wb') as fd:
+                fd.write(buff)
+
+            # upload to AWS S3
+            upload_to_docproc(pdfdoc, doc_name) 
+           
+            # Add to the document store
+            docproc = Docproc(public_id=str(uuid.uuid4()),
+                              inserted_on=datetime.now(),
+                              updated_on=datetime.now(),
+                              client_id=self.client.id,
+                              file_name=doc_name,
+                              doc_name=self._tmpl.action.lower(),
+                              is_published=True)
+            db.session.add(docproc)
+
             ## test send mail
-            #test_send_email(dest, self._tmpl.subject, html)
             mbox = MailBox(timestamp=datetime.now(),
                            client_id=self.client.id,
                            template_id=self._tmpl.id,
@@ -205,6 +238,8 @@ class TemplateMailManager(object):
                            channel=transport)
             db.session.add(mbox)
             db.session.commit()
+            # delete file
+            io.delete_file(pdfdoc)
 
         elif transport == MailTransport.SMS.name:
             dest = self.client.email 
@@ -525,9 +560,6 @@ def send_day3_spanish_reminder(client_id):
     kwargs = { 'client_id': client_id }
     send_template(TemplateAction.DAY3_REMINDER_SPANISH.name,
                   **kwargs)
-
-
-
 
 
 def send_template(action, **kwargs):

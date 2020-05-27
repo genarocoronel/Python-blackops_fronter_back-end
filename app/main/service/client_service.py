@@ -376,6 +376,9 @@ def assign_servicerep(client, asignee_user):
         )
 
     db.session.add(assignment)
+    # tmp: support for legacy features
+    client.account_manager_id = asignee_user.id 
+
     save_changes()
     
     return True

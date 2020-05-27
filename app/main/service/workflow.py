@@ -10,6 +10,7 @@ from sqlalchemy import desc, asc, and_
 from datetime import datetime, timedelta
 from app.main.tasks.debt_payment import register_customer
 from app.main.tasks.mailer import send_welcome_letter, send_spanish_welcome_letter, send_privacy_policy
+from app.main.tasks import docusign
 
 """
 Base Workflow class
@@ -80,8 +81,8 @@ class DocprocWorkflow(Workflow):
         self._task_desc = 'Document Review - Action Required'
         if self.status == DocprocStatus.NEW.value:
             self.status = DocprocStatus.WAIT_AM_REVIEW.value
-            docproc = self._object
-            self.owner = docproc.accmgr_user_id
+            client = self._object.client
+            self.owner = client.account_manager_id
             self._create_task() 
             self.save()
 
@@ -193,6 +194,9 @@ class ContractWorkflow(Workflow):
 
                 db.session.commit()
 
+                # download the signed document
+                docusign.download_documents(self._object)                
+
             
 ## debt payment revision workflow
 class RevisionWorkflow(Workflow):
@@ -243,12 +247,13 @@ def open_contract_flow(code, contract, revision=None):
                 # add epps customer
                 # register client with EPPS provider
                 register_customer(self._client_id)
-               
                 ## send email  
                 ## welcome letter
                 send_welcome_letter(self._client_id)
                 ## privacy policy
                 send_privacy_policy(self._client_id)
+                # download the signed document
+                docusign.download_documents(self._object) 
               
     class TermChange(ContractWorkflow): 
         _rsign_worker_func = 'send_term_change_for_signature'

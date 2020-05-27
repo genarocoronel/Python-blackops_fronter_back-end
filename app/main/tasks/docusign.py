@@ -10,7 +10,7 @@ from app.main.model.address import Address, AddressType
 from app.main.model.contact_number import ContactNumberType
 from app.main.model.debt_payment import DebtPaymentContract, ContractAction, ContractStatus, DebtPaymentContractCreditData, \
                                         DebtPaymentSchedule, DebtEftStatus
-from app.main.service.workflow import open_contract_flow
+from app.main.service import workflow
 
 from sqlalchemy import or_, and_, desc, asc
 
@@ -39,13 +39,12 @@ def sync_templates():
                 db.session.commit()
                 #print(ds_tmpl.id)
     except Exception as err:
-        print("sync_templates task {}".format(str(err)))
+        app.logger.warning('Error in Sync templates {}'.format(str(err)))
 
 # periodic task
 # update signature status
 def check_sessions():
     try:
-        print("Inside Check Sessions")
         _docusign = DocuSign()
         _docusign.authorize()
 
@@ -83,16 +82,16 @@ def check_sessions():
                     contract.status = ContractStatus.VOID
                 elif new_status == DocusignSessionStatus.COMPLETED:
                     code = contract.current_action.name
-                    wf = open_contract_flow(code,  
-                                            contract,
-                                            None)
+                    wf = workflow.open_contract_flow(code,  
+                                                     contract,
+                                                     None)
                     wf.on_signed()
 
                 session.status = new_status
                 db.session.commit()
                      
     except Exception as err:
-        print("Update signature status {}".format(str(err)))
+        app.logger.warning('Update signature status {}'.format(str(err)))
 
 
 def _to_status(status_txt):
@@ -360,7 +359,7 @@ def send_contract_for_signature(client_id):
         #db.session.commit()
 
     except Exception as err:
-        print("Error in sending contract {}".format(str(err))) 
+        app.logger.warning('Error in sending contract {}'.format(str(err)))
 
 
 def send_additional_debts_for_signature(client_id):
@@ -503,7 +502,7 @@ def send_additional_debts_for_signature(client_id):
 
 
     except Exception as err:
-        print("Error in sending add debts contract {}".format(str(err)))
+        app.logger.warning('Sending Add debts failed {}'.format(str(err)))
 
 def send_removal_debts_for_signature(client_id):
     try:
@@ -657,7 +656,7 @@ def _handle_removal_debts(client_id,
         db.session.commit()
 
     except Exception as err:
-        print("Error in sending add debts contract {}".format(str(err)))
+        app.logger.warning('Sending Remove debts failed {}'.format(str(err)))
 
 def send_modify_debts_for_signature(client_id):
     try:
@@ -802,7 +801,7 @@ def send_modify_debts_for_signature(client_id):
         # add client disposition
 
     except Exception as err:
-        print("Error in send modify debts {}".format(str(err)))
+        app.logger.warning('Sending Modify debts failed {}'.format(str(err)))
 
 def send_term_change_for_signature(client_id):
     try:
@@ -918,7 +917,7 @@ def send_term_change_for_signature(client_id):
         db.session.commit()
 
     except Exception as err:
-        print("Error in send modify debts {}".format(str(err)))
+        app.logger.warning('Sending Term change failed {}'.format(str(err)))
         
 def send_eft_authorization_for_signature(client_id):
 
@@ -1032,7 +1031,7 @@ def send_eft_authorization_for_signature(client_id):
         db.session.commit()
 
     except Exception as err:
-        print("Error in send EFT Authorization {}".format(str(err)))
+        app.logger.warning('Send EFT Authorization failed {}'.format(str(err)))
 
 def send_add_coclient_for_signature(client_id):
     try:
@@ -1184,7 +1183,7 @@ def send_add_coclient_for_signature(client_id):
 
 
     except Exception as err:
-        print("Error in send Add CoClient {}".format(str(err)))
+        app.logger.warning('Send Add Co-client failed {}'.format(str(err)))
 
 def send_remove_coclient_for_signature(client_id):
     try:
@@ -1334,4 +1333,49 @@ def send_remove_coclient_for_signature(client_id):
 
 
     except Exception as err:
-        print("Error in send Add CoClient {}".format(str(err)))
+        app.logger.warning('Send Remove Co-client failed {}'.format(str(err)))
+
+import os
+import uuid
+from app.main.service.third_party.aws_service import upload_to_docproc
+from app.main.model.docproc import Docproc
+
+def download_documents(contract):
+    """
+    Download documents for a given contract.
+    """
+    if contract is None:
+        raise ValueError("Contract is not valid")
+
+    # find the docusign session
+    session = DocusignSession.query.filter_by(contract_id=contract.id).first()
+    if not session:
+        raise ValueError("Docusign session not found for the contract")
+
+    ds = DocuSign()
+    ds.authorize()
+    docs = ds.download_documents(session.envelope_id) 
+    for doc in docs:
+        ts = int(datetime.now().timestamp())
+        base=os.path.basename(doc)
+        toks = base.split('.') 
+        doc_name = "{}_{}_{}.{}".format(toks[0], # action
+                                        contract.client.id, # client id
+                                        ts,
+                                        toks[-1])  # timestamp
+        upload_to_docproc(doc, doc_name)
+        # Add to the document store       
+        docproc = Docproc(public_id=str(uuid.uuid4()),
+                          inserted_on=datetime.now(),
+                          updated_on=datetime.now(),
+                          client_id=contract.client.id,
+                          file_name=doc_name,
+                          doc_name=toks[0],
+                          is_published=True)
+        db.session.add(docproc)
+        db.session.commit()
+
+        # delete the tmp file
+        
+
+ 
