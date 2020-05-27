@@ -127,6 +127,9 @@ class CampaignDto(object):
 
 class UserDto:
     api = Namespace('users', description='user related operations')
+    rac_role = api.model('rac_role', {
+        'value': fields.String(required=False)
+    })
     new_user = api.model('new_user', {
         'email': fields.String(required=True, description='user email address'),
         'username': fields.String(required=True, description='user username'),
@@ -134,6 +137,7 @@ class UserDto:
         'first_name': fields.String(required=True, description='user first name'),
         'last_name': fields.String(required=True, description='user last name'),
         'title': fields.String(required=True, description='user title', example='Opener Rep'),
+        'rac_role': fields.Nested(rac_role),
         'language': fields.String(required=True, description='user language preference', example='en'),
         'personal_phone': fields.String(required=True, description='user personal phone number'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number')
