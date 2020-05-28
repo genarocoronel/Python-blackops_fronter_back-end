@@ -9,6 +9,9 @@ from app.main.model.candidate import Candidate
 from app.main.model.client import Client
 from app.main.model.user import User, UserClientAssignment, UserLeadAssignment, UserCandidateAssignment
 
+class Struct:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
 
 def get_request_user():
     # TODO: should modify flask context to set the 'current_user' to a User model instance
@@ -51,7 +54,7 @@ def save_new_user(data, desired_role: RACRoles = None):
         )
 
         if desired_role:
-            new_user = RACMgr.assign_role_to_user(desired_role, new_user)
+            new_user = RACMgr.assign_role_to_user(Struct(**desired_role), new_user)
 
         save_changes(new_user)
         return generate_token(new_user)

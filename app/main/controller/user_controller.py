@@ -31,8 +31,12 @@ class UserList(Resource):
         """Creates a new User """
         data = request.json
         try:
-            new_user_response = save_new_user(data=data)
-            return sms_message, 200
+            new_user_response = save_new_user(data=data, desired_role = data.get('rac_role'))
+            response_object = {
+                'success': True,
+                'data': new_user_response
+            }
+            return response_object, 200
         except BadRequestError as e:
             api.abort(400, message='Error creating new user, {}'.format(str(e)), success=False)
         except Exception as e:
