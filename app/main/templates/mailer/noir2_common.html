@@ -3,10 +3,11 @@
 		<title></title>
 	</head>
 	<body>
+		{% if is_via_fax %}
 		<p>
-			{% if is_via_fax %}
-			VIA FAX (<strong>{{debt_collector.fax}}</strong>)</p>
-			{% endif %}
+			VIA FAX (<strong>{{debt_collector.fax}}</strong>)
+                </p>
+                {% endif %}
 		<p style="margin-left:1.4pt;">
 			<strong>{{debt_collector.name}}</strong></p>
 		<p style="margin-left:1.4pt;">

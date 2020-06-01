@@ -86,11 +86,14 @@ class AppointmentService(object):
         client = Client.query.filter_by(public_id=data.get('client_id')).first()
         if not client:
             raise ValueError("Client not found")
+   
+        # assign to the service user in client file.
+        agent_id = client.account_manager_id
 
         scheduled_date = dt_parse(data.get('scheduled_on'))
         appt = Appointment(public_id=str(uuid.uuid4()),
                            client_id=client.id,
-                           agent_id=3,
+                           agent_id=agent_id,
                            scheduled_at=scheduled_date,
                            summary=data.get('summary'),
                            location=data.get('loc'),

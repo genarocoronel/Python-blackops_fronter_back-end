@@ -14,7 +14,7 @@ from app.main.service.fax_service import send_fax
 from app.main.service.sms_service import send_message_to_client
 from headless_pdfkit import generate_pdf
 from app.main.service.third_party.aws_service import upload_to_docproc
-from app.main.model.docproc import Docproc
+from app.main.model.docproc import DocprocChannel, Docproc
 from app.main.core import io
 import uuid
 
@@ -110,6 +110,7 @@ class TemplateMailManager(object):
     def send(self):
         app.logger.info('executing Mail Manager send')
 
+        ts = int(datetime.now().timestamp())            
         # check the mail transport 
         transport = self._tmpl.medium
         ## fax
@@ -129,7 +130,6 @@ class TemplateMailManager(object):
             
             params = self._to_dict()
             html = render_template(template_file_path, **params)
-            ts = int(datetime.now().timestamp())            
             doc_name = "{}_{}_{}.pdf".format(self._tmpl.action.lower(), # action
                                              self.client.id, # client id
                                              ts)  # timestamp
@@ -144,8 +144,10 @@ class TemplateMailManager(object):
 
             app.logger.info("Sending fax to client({}) doc({})".format(self.client.id, pdfdoc))
             to_addr = ''
+            send_channel = DocprocChannel.MAIL.value
             # send through fax 
             if self._is_via_fax:
+                send_channel = DocprocChannel.FAX.value
                 attachments = [pdfdoc, ]
                 # to address
                 to_addr = self.debt.debt_collector.fax
@@ -162,6 +164,16 @@ class TemplateMailManager(object):
 
             # upload files to S3
             upload_to_docproc(pdfdoc, doc_name) 
+            # Add to the document store
+            docproc = Docproc(public_id=str(uuid.uuid4()),
+                              inserted_on=datetime.now(),
+                              updated_on=datetime.now(),
+                              client_id=self.client.id,
+                              file_name=doc_name,
+                              doc_name=self._tmpl.action.lower(),
+                              source_channel=send_channel,
+                              is_published=True)
+            db.session.add(docproc)
 
             doc_info = [{'name': doc_name, 'path': ''}, ]          
  
@@ -176,7 +188,7 @@ class TemplateMailManager(object):
             # delete file
             io.delete_file(pdfdoc)
                 
-        elif transport == MailTransport.EMAIL.name or transport == MailTransport.EMAIL_SMS.name:
+        elif transport == MailTransport.EMAIL.name:
             # check client is set or not
             if not self.client:
                 raise ValueError("Client is not set for the mail manager")
@@ -203,7 +215,6 @@ class TemplateMailManager(object):
                       html=html, 
                       attachments=attachments)
 
-            ts = int(datetime.now().timestamp())            
             doc_name = "{}_{}_{}.pdf".format(self._tmpl.action.lower(), # action
                                              self.client.id, # client id
                                              ts)  # timestamp
@@ -226,6 +237,7 @@ class TemplateMailManager(object):
                               client_id=self.client.id,
                               file_name=doc_name,
                               doc_name=self._tmpl.action.lower(),
+                              source_channel=DocprocChannel.EMAIL.value,
                               is_published=True)
             db.session.add(docproc)
 
@@ -241,13 +253,25 @@ class TemplateMailManager(object):
             # delete file
             io.delete_file(pdfdoc)
 
-        elif transport == MailTransport.SMS.name:
+
+        send_sms = False
+        sms_tmpl_file = ""
+        if transport == MailTransport.SMS.name:
+            send_sms = True
+            sms_tmpl_file = self._tmpl.fname
+        elif transport == MailTransport.EMAIL_SMS.name:
+            toks = self._tmpl.fname.split('.')
+            if len(toks) > 0:
+                send_sms = True
+                sms_tmpl_file = "{}.txt".format(toks[0])
+       
+        if send_sms is True:
             dest = self.client.email 
             tmpl_base_dir = 'sms'
             if 'TMPL_BASE_SMS_PATH' in app.config:
                 tmpl_base_dir = app.config['TMPL_BASE_SMS_PATH']
 
-            template_file_path = "{}/{}".format(tmpl_base_dir, self._tmpl.fname)
+            template_file_path = "{}/{}".format(tmpl_base_dir, sms_tmpl_file)
             params = self._to_dict()
             msg_body = render_template(template_file_path, **params)
             # send SMS 
@@ -255,6 +279,32 @@ class TemplateMailManager(object):
                                    from_phone=app.config['TMPL_DEFAULT_FROM_SMS'], # from,
                                    message_body=msg_body,
                                    to_phone=None) 
+            
+            # upload to AWS and add to document store
+            doc_name = "{}_{}_{}.txt".format(self._tmpl.action.lower(), # action
+                                             self.client.id, # client id
+                                             ts)  # timestamp
+
+            upload_dir_path = app.config['UPLOAD_LOCATION']
+            upfile = "{}/{}".format(upload_dir_path, # directory path for the document
+                                    doc_name)
+            # write the sms msg to the file
+            with open(upfile, 'wb') as fd:
+                fd.write(msg_body)
+ 
+            # upload to AWS S3
+            upload_to_docproc(upfile, doc_name)
+
+            # Add to the document store
+            docproc = Docproc(public_id=str(uuid.uuid4()),
+                              inserted_on=datetime.now(),
+                              updated_on=datetime.now(),
+                              client_id=self.client.id,
+                              file_name=doc_name,
+                              doc_name=self._tmpl.action.lower(),
+                              source_channel=DocprocChannel.SMS.value,
+                              is_published=True)
+            db.session.add(docproc)
 
             mbox = MailBox(timestamp=datetime.now(),
                            client_id=self.client.id,
@@ -392,6 +442,18 @@ def send_noir_notice(client_id, debt_id):
     """
     kwargs = { 'client_id': client_id, 'debt_id': debt_id }
     send_template(TemplateAction.NOIR_NOTICE.name,
+                  **kwargs)
+
+# NOIR_2_NOTICE
+# FAX
+def send_noir_2_notice(client_id, debt_id):
+    """
+    Send noir2 notice to debt collector
+    : param int client_id: Client Identifier (required)
+    : param int debt_id: Debt Identifier (required)
+    """
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id }
+    send_template(TemplateAction.NOIR_2_NOTICE.name,
                   **kwargs)
 
 # NON_RESPONSE_NOTICE
@@ -561,7 +623,6 @@ def send_day3_spanish_reminder(client_id):
     send_template(TemplateAction.DAY3_REMINDER_SPANISH.name,
                   **kwargs)
 
-
 def send_template(action, **kwargs):
     """
     Send a message for a given action using the templates.
@@ -634,43 +695,4 @@ def send_template(action, **kwargs):
     # send the mail
     mail_mgr.send()
 
-
-
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
-import os
-
-def test_send_email(dest, subject, html, attachments=[]):
-    msg = MIMEMultipart()
-    msg.set_unixfrom('author')
-    msg['From'] = 'support@pitzlabs.com'
-    msg['To'] = dest
-    msg['Subject'] = subject
-
-    # part1 = MIMEText(text, 'plain')
-    part2 = MIMEText(html, 'html')
-
-    # Attach parts into message container.
-    # According to RFC 2046, the last part of a multipart message, in this case
-    # the HTML message, is best and preferred.
-    #msg.attach(part1)
-    msg.attach(part2)
-
-    for f in attachments:
-        with open(f, "rb") as fd:
-            att_part = MIMEApplication(
-                fd.read(),
-                Name=os.path.basename(f)
-            )
-        att_part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(f)
-        msg.attach(att_part)
-    
-    mailserver = smtplib.SMTP_SSL('smtp.sendgrid.net', '465')
-    #mailserver.starttls()
-    mailserver.login('apikey', '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')
-    mailserver.sendmail('support@pitzlabs.com', dest, msg.as_string())
-
-    mailserver.quit()
 

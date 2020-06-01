@@ -1,4 +1,5 @@
 from app.main.model.template import *
+import uuid
 
 
 def seed_templates():
@@ -27,6 +28,8 @@ def seed_templates():
       { 'title': 'Spanish Intro', 'action': 'SPANISH_INTRO', 'path': 'spanish_intro.html', 'editable': True, 'desc': 'Spanish Client only. Send when 15 day call is marked as "Complete" in the clients CS Schedule', 'subject': 'Información de contacto del gerente de cuenta Elite DMS'},
       # Send when Changing status to "NOIR Sent", send through fax if there IS a FAX number in the 3rd party debt collector fax number box else POST.
       { 'title': 'NOIR EDMS Notice', 'action': 'NOIR_NOTICE', 'path': 'noir_common.html', 'medium': 'FAX', 'editable': True, 'desc': 'Send when Changing status to NOIR Sent, send through fax if there IS a FAX number in the 3rd party debt collector fax number box else POST.'},
+      # 
+      { 'title': 'NOIR2 EDMS Notice', 'action': 'NOIR_2_NOTICE', 'path': 'noir_2_notice.html', 'medium': 'FAX', 'editable': True, 'desc': 'Send when Changing status to NOIR2 Sent, send through fax if there IS a FAX number in the 3rd party debt collector fax number box else POST.'},
       # Send fax when changing status to "Non-Response Sent" automatically after 50 days from the date the P1 dispute letter is sent and 
       # there IS a fax number in the 3rd party debt collector "fax number" box
       { 'title': 'Non Response EDMS Notice', 'action': 'NON_RESPONSE_NOTICE', 'path': 'non_response_notice.html', 'medium': 'FAX', 'editable': True, 'desc': 'Send when changing status to Non-Response Sent automatically after 50 days from the date the P1 dispute letter is sent'},
@@ -72,6 +75,7 @@ def seed_templates():
       # Send 3 days after the client enrolls in the program preferably around 12-1PM
       { 'title': 'EDMS_3 Day Text (SMS)', 'action': 'DAY3_REMINDER', 'path': 'day3_reminder.txt', 'medium': 'SMS',  'editable': True, 'desc': 'Send 3 days after the client enrolls in the program preferably around 12-1PM'},
     ]
+   
 
     for record in records:
         tmpl = Template.query.filter_by(action=record['action']).first()
@@ -101,7 +105,8 @@ def seed_templates():
             if 'attachment' in record:
                 attachment = record['attachment']
 
-            tmpl = Template(action=action,
+            tmpl = Template(public_id=str(uuid.uuid4()),
+                            action=action,
                             title=record['title'],
                             description=description,
                             subject=subject,
@@ -112,5 +117,9 @@ def seed_templates():
                             trigger_mode=mode)
 
             db.session.add(tmpl)
+        else:
+            # missed to add public_id in base version
+            if tmpl.public_id is None:
+                tmpl.public_id = str(uuid.uuid4())
 
         db.session.commit()

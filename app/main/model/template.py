@@ -28,6 +28,7 @@ class TemplateAction(enum.Enum):
     DAY15_CALL_ACK = "day15_call_ack" # d15_call_ack.html 
     SPANISH_INTRO   = "spanish_intro" # spanish_intro.html
     NOIR_NOTICE = "noir_notice"  # noir_common.html
+    NOIR_2_NOTICE = "noir_2_notice"  # noir_2_notice.html
     NON_RESPONSE_NOTICE = "non_response_notice"  # non_response_notice.html
     NOIR_FDCPA_NOTICE = "noir_fdcpa_notice" # fdcpa_insufficient_response.html
     # NOTIFICATION_EPPS_PAYMENT ="Notifiction EPPS Payment"

@@ -341,6 +341,9 @@ def assign_salesrep(client, asignee_user):
             client_id = client.id
         )
 
+    # existing field
+    client.opener_id = asignee_user.id
+
     db.session.add(assignment)
     save_changes()
     

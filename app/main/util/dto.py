@@ -50,6 +50,13 @@ class DateFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y")
 
+## temp
+from datetime import timedelta
+class ScheduleEndField(fields.String):
+    def format(self, value):
+        result = value + timedelta(hours=1)
+        return result.strftime("%m-%d-%Y %H:%M")
+
 
 # set the current address
 class CurrentAddressField(fields.Raw):
@@ -206,15 +213,25 @@ class AuthDto:
 
 class AppointmentDto:
     api = Namespace('appointments', description='appointment related operations')
+    client = api.model('clients', {
+        'public_id': fields.String(attribute='public_id'),
+        'name': fields.String(attribute='full_name'),
+        'disposition': fields.String(attribute='disposition.value')
+    })
+    user = api.model('users', {
+        'public_id': fields.String(attribute='public_id'),
+        'name': fields.String(attribute='full_name'),
+    })
     appointment = api.model('appointment', {
-        'client_id': fields.Integer(required=True, description='identifier for client'),
-        'employee_id': fields.Integer(attribute='agent_id', required=True, description='identifier for employee'),
-        'team_manager_id': fields.Integer(description='identifier for team manager'),
-        'datetime': fields.DateTime(attribute='scheduled_at',required=True, description='date and time of appointment'),
+        'public_id': fields.String(),
+        'client': fields.Nested(client),
+        'agent': fields.Nested(user),
+        'scheduled_at': DateTimeFormatField(attribute='scheduled_at'),
+        'end_at': ScheduleEndField(attribute='scheduled_at'),
         'summary': fields.String(required=True, description='summary of appointment'),
+        'location': fields.String(),
         'reminder_types': fields.String(required=True, description='type(s) of reminders to be sent to client'),
         'status': fields.String(description='status of appointment'),
-        'public_id': fields.String(description='user identifier')
     })
 
 
