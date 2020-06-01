@@ -73,6 +73,7 @@ class Config:
     EPPS_PASSWORD = os.getenv('EPPS_PASSWORD', 'b075f05e-79ed-11ea-a215-005056a3526c')
 
     # Templating module
+    TMPL_BASE_DIR = os.getenv('TMPL_DIR', f'{basedir}/templates')
     TMPL_BASE_EMAIL_PATH = os.getenv('TMPL_BASE_EMAIL_PATH', 'mailer')
     TMPL_BASE_SMS_PATH = os.getenv('TMPL_BASE_SMS_PATH', 'sms')
     TMPL_ATTACHMENT_DOC_LOCATION = os.getenv('TMPL_ATTACHMENT_DOC_LOCATION', f'{basedir}/templates/mailer')
