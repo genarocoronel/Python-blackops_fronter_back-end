@@ -16,11 +16,7 @@ class TaskList(Resource):
     @api.marshal_list_with(_task)
     def get(self):
         try:
-            """ List all clients """
-            user = get_request_user()
-            if user is None:
-                api.abort(404, 'User not found')
-
+            """ Fetch all tasks """
             # fetch owned tasks
             service = UserTaskService.request()
             tasks = service.list()
@@ -30,6 +26,19 @@ class TaskList(Resource):
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
 
+    @token_required
+    @api.doc('create a new task and assign to the user')
+    @api.marshal_with(_task)
+    def put(self):
+        try:
+            task = UserTaskService.new_task(request.json)
+            return task
+
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))
+    
+
+
 @api.route('/filter')
 class TaskFilter(Resource): 
     @api.doc('Filter the task resultset')
@@ -37,8 +46,7 @@ class TaskFilter(Resource):
     def get(self):
         try:
             """ Filter user tasks based on field val """
-            tasks = filter_user_tasks()
-            return tasks
+            return "Success", 200
 
         except Exception as err:
             api.abort(500, "{}".format(str(err)))

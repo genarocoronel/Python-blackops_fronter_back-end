@@ -1,11 +1,12 @@
 from app.main import db
-from app.main.model.usertask import UserTask, TaskStatus
+from app.main.model.usertask import UserTask, TaskStatus, TaskAssignType, TaskPriority
 from app.main.model.debt_payment import DebtPaymentContract, ContractStatus, DebtPaymentContractCreditData
 from app.main.service.workflow import open_task_flow
 from app.main.model.user import User, Department
 from app.main.core.rac import RACRoles, RACMgr
 from flask import g
 from app.main.service.user_service import get_request_user
+from app.main.channels.notification import TaskChannel
 from datetime import datetime
 
 
@@ -51,6 +52,45 @@ class UserTaskService(object):
         obj._qs = UserTask.query.filter_by(id=id)
         return obj
 
+    @staticmethod
+    def new_task(data):
+        user = get_request_user()
+
+        # agent id
+        agent_public_id = data.get('assigned_to')
+        agent = User.query.filter_by(public_id=agent_public_id).first()       
+        if not agent:
+            raise ValueError("Assigned to user not found")
+
+        client_id = None
+        client_key = data.get('client')
+        if client_key:
+            client = Client.query.filter_by(public_id=client_key).first()
+            client_id = client.id if client else None
+
+        title = data.get('title')
+        desc = data.get('description')
+        
+        due = 24 ## task expiry in hours
+        assign_type = TaskAssignType.USER
+        priority = TaskPriority.MEDIUM
+        task = UserTask(assign_type=assign_type,
+                        creator_id=user.id,
+                        owner_id=agent.id,
+                        priority=priority,
+                        title=title,
+                        description=desc,
+                        due_date=due,
+                        client_id=client_id,
+                        object_type=None,
+                        object_id=None) 
+
+        db.session.add(task)
+        db.session.commit()
+        # notify
+        TaskChannel.send(agent.id,
+                         task)
+        return task                          
 
 def update_user_task(task_id, data):
     # fetch the task 

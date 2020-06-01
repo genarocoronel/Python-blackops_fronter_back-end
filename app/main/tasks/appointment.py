@@ -24,11 +24,11 @@ def process_scheduled_appointments():
         
 
 
-def trigger_payment_reminders():
+def trigger_appointment_reminders():
     """
-    Trigger payment reminders
-    1H Payment reminder  -- sends 1H prior to appointment 
-    1D Payment reminder  -- sends 24H prior to appointment
+    Trigger appointment reminders
+    1H Appointment reminder  -- sends 1H prior to appointment 
+    1D Appointment reminder  -- sends 24H prior to appointment
     """
     current_time = datetime.now().replace(second=0, microsecond=0)
     start = current_time + timedelta(minutes=60)

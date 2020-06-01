@@ -572,6 +572,9 @@ def assign_openerrep(candidate, asignee_user):
             candidate_id = candidate.id
         )
 
+    # existing field
+    candidate.opener_id = asignee_user.id
+
     db.session.add(assignment)
     save_changes()
     
