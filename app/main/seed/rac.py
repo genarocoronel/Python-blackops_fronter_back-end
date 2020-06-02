@@ -38,6 +38,11 @@ def seed_rac_roles():
             'description': 'Sales Manager Role'
         },
         {
+            'name': 'sales_admin',
+            'name_friendly': 'Sales Admin',
+            'description': 'Sales Admin Role'
+        },
+        {
             'name': 'service_rep',
             'name_friendly': 'Service Rep',
             'description': 'Service Representative Role'
@@ -46,6 +51,11 @@ def seed_rac_roles():
             'name': 'service_mgr',
             'name_friendly': 'Service Mgr',
             'description': 'Service Manager Role'
+        },
+        {
+            'name': 'service_admin',
+            'name_friendly': 'Service Admin',
+            'description': 'Service Admin Role'
         },
         {
             'name': 'doc_process_rep',

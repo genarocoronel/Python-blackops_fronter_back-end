@@ -12,8 +12,10 @@ class RACRoles(enum.Enum):
     OPENER_MGR = "opener_mgr"
     SALES_REP = "sales_rep"
     SALES_MGR = "sales_mgr"
+    SALES_ADMIN = "sales_admin"
     SERVICE_REP = "service_rep"
     SERVICE_MGR = "service_mgr"
+    SERVICE_ADMIN = "service_admin"
     DOC_PROCESS_REP = "doc_process_rep"
     DOC_PROCESS_MGR = "doc_process_mgr"
 
