@@ -1,5 +1,6 @@
 
 import uuid
+import datetime
 
 from app.main import db
 from app.main.core.rac import RACMgr, RACRoles
@@ -78,6 +79,27 @@ def seed_users_with_roles():
         svc_mgr2 = RACMgr.assign_role_to_user(RACRoles.SERVICE_MGR, svc_mgr2)
         db.session.add(svc_mgr2)
     svc_mgr2.department = Department.SERVICE.name
+
+    svc_admin_email = 'serviceadmin.dstar@localhost.com'
+    svc_admin = User.query.filter_by(email=svc_admin_email).first()
+    if not svc_admin:
+        svc_admin = User(
+            public_id=str(uuid.uuid4()),
+            email=svc_admin_email,
+            username= 'serviceadmin',
+            password= 'password',
+            first_name= 'Hillary',
+            last_name= 'Trump',
+            title= 'Service Admin',
+            language='en',
+            personal_phone='',
+            voip_route_number='',
+            department=Department.SERVICE.name,
+            registered_on= datetime.datetime.utcnow()
+        )
+        svc_admin = RACMgr.assign_role_to_user(RACRoles.SERVICE_MGR, svc_admin)
+        db.session.add(svc_admin)
+    svc_admin.department = Department.SERVICE.name
 
     svc_rep_email2 = 'servicerep.dstar@localhost.com'
     svc_rep2 = User.query.filter_by(email=svc_rep_email2).first()
@@ -163,6 +185,27 @@ def seed_users_with_roles():
         sales_mgr2 = RACMgr.assign_role_to_user(RACRoles.SALES_MGR, sales_mgr2)
         db.session.add(sales_mgr2)
     sales_mgr2.department = Department.SALES.name
+
+    sales_admin_email = 'salesadmin@localhost.com'
+    sales_admin = User.query.filter_by(email=sales_admin_email).first()
+    if not sales_admin:
+        sales_admin = User(
+            public_id=str(uuid.uuid4()),
+            email=sales_admin_email,
+            username= 'kimy',
+            password= 'password',
+            first_name= 'Kim',
+            last_name= 'Yuno',
+            title= 'Sales Admin',
+            language='en',
+            personal_phone='',
+            voip_route_number='',
+            department=Department.SALES.name,
+            registered_on= datetime.datetime.utcnow()
+        )
+        sales_admin = RACMgr.assign_role_to_user(RACRoles.SALES_ADMIN, sales_admin)
+        db.session.add(sales_admin)
+    sales_admin.department = Department.SALES.name
 
     sales_rep_email2 = 'salesrep.dstar@localhost.com'
     sales_rep2 = User.query.filter_by(email=sales_rep_email2).first()
