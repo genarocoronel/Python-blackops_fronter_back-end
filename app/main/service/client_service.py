@@ -155,7 +155,8 @@ def client_filter(limit=25, sort_col='id', order="desc",
         query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition) \
             .outerjoin(CreditReportAccount) \
             .outerjoin(Address) \
-            .outerjoin(ClientContactNumber)
+            # .outerjoin(ClientContactNumber)
+        # print("this is query", query)
         # search fields
         if search_fields is not None:
             _or_filts = []

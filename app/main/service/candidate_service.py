@@ -448,7 +448,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                                .outerjoin(Campaign)\
                                .outerjoin(CreditReportAccount)\
                                .outerjoin(Address)\
-                               .outerjoin(CandidateContactNumber)
+                            #    .outerjoin(CandidateContactNumber)
         # search fields
         if search_fields is not None:
             _or_filts = []
@@ -537,6 +537,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
         query = query.order_by(sort).paginate(pageno, limit, False)
 
         candidates = query.items
+        # print("query,", query)
         return {"candidates": candidates, "page_number": pageno, "total_number_of_records": total, "limit": limit}
 
     except Exception as err:

@@ -609,7 +609,7 @@ class LeadDto:
         'last_name': fields.String(description='lead last name'),
         'estimated_debt': fields.Integer(description='client estimated_debt'),
         'email': fields.String(description='lead email address'),
-        'dob': fields.DateTime(),
+        'dob': DateFormatField(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(description='lead phone number'),
         'type': ClientTypeField(description='client type')

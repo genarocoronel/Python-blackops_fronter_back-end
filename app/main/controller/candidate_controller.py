@@ -78,7 +78,6 @@ class GetCandidates(Resource):
             kwargs['order'] = order
         if pagenum is not None:
             kwargs['pageno'] = int(pagenum)
-
         result = candidate_filter(**kwargs)
         return result, 200
 
@@ -108,6 +107,7 @@ class CandidateFilter(Resource):
         """ Get filtered Candidates """
         # filter args
         fargs = filter_request_parse(request)
+        print("======", fargs)
         result = candidate_filter(**fargs)
         return result, 200
 
