@@ -177,7 +177,7 @@ def pull_credit_report(creport_account):
     app.logger.info("Pulling Credit Report")
     if not creport_account.registered_fraud_insurance:
         app.logger.info("Also registering for fraud insurance with external service")
-        password = current_app.cipher.decrypt(creport_account.password.encode()).decode()
+        password = app.cipher.decrypt(creport_account.password.encode()).decode()
         activate_smart_credit_insurance(creport_account.email, password)
 
     creport_account.registered_fraud_insurance = True
