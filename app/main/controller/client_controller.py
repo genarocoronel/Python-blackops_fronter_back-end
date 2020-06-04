@@ -61,6 +61,7 @@ CLIENT = ClientType.client
 class ClientList(Resource):
     @api.doc('list_of_clients')
     @api.marshal_list_with(_client, envelope='data')
+    @token_required
     def get(self):
         """ List all clients """
         clients = get_all_clients(client_type=CLIENT)
