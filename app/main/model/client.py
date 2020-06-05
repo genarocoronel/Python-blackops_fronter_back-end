@@ -63,8 +63,9 @@ class Client(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'))
     disposition_id = db.Column(db.Integer, db.ForeignKey('client_dispositions.id'))
     account_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    team_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    sales_rep_id = db.Column(db.Integer, db.ForeignKey('users.id', name='clientst_sales_rep_id_fkey'))
     opener_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    team_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     # relationships
     disposition = db.relationship('ClientDisposition', back_populates='clients')
@@ -80,6 +81,7 @@ class Client(db.Model):
     account_manager = db.relationship('User', backref='client_accounts', foreign_keys=[account_manager_id])
     team_manager = db.relationship('User', backref='team_accounts', foreign_keys=[team_manager_id])
     opener = db.relationship('User', backref='opened_accounts', foreign_keys=[opener_id])
+    sales_rep = db.relationship('User', backref='sales_accounts', foreign_keys=[sales_rep_id])
     notification_pref = db.relationship('NotificationPreference', uselist=False, backref='client')
     
     # fields

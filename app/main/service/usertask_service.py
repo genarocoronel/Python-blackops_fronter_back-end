@@ -1,13 +1,16 @@
 from app.main import db
-from app.main.model.usertask import UserTask, TaskStatus, TaskAssignType, TaskPriority
+from app.main.model.usertask import UserTask, TaskStatus, TaskAssignType, TaskPriority, UserTaskNotes
 from app.main.model.debt_payment import DebtPaymentContract, ContractStatus, DebtPaymentContractCreditData
 from app.main.service.workflow import open_task_flow
 from app.main.model.user import User, Department
+from app.main.model.client import Client
+from app.main.model.notes import Note
 from app.main.core.rac import RACRoles, RACMgr
 from flask import g
 from app.main.service.user_service import get_request_user
 from app.main.channels.notification import TaskChannel
 from datetime import datetime
+import uuid
 
 
 class UserTaskService(object):
@@ -70,10 +73,11 @@ class UserTaskService(object):
 
         title = data.get('title')
         desc = data.get('description')
+        priority = data.get('priority')
+        due = data.get('due_date')
+        note = data.get('note')
         
-        due = 24 ## task expiry in hours
         assign_type = TaskAssignType.USER
-        priority = TaskPriority.MEDIUM
         task = UserTask(assign_type=assign_type,
                         creator_id=user.id,
                         owner_id=agent.id,
@@ -82,11 +86,13 @@ class UserTaskService(object):
                         description=desc,
                         due_date=due,
                         client_id=client_id,
-                        object_type=None,
+                        object_type='UserTask',
                         object_id=None) 
 
         db.session.add(task)
         db.session.commit()
+        # task notes
+        add_user_task_notes(task.id, user, note)
         # notify
         TaskChannel.send(agent.id,
                          task)
@@ -111,7 +117,8 @@ def update_user_task(task_id, data):
     # add notes 
     note = data.get('note')
     if note is not None:
-        add_user_task_notes(task_id, note)
+        user = get_request_user() 
+        add_user_task_notes(task_id, user, note)
 
     user_task.modified_on = datetime.utcnow()
     db.session.commit()
@@ -130,16 +137,21 @@ def update_user_task_status(task, status):
     task.status = status 
     db.session.commit()
 
-def add_user_task_notes(task_id, note):
-    # user = g.current_user 
+def add_user_task_notes(task_id, user, note):
+    if not user or not note:
+        return None
+
     note_record = Note(public_id=str(uuid.uuid4()),
-                       authord_id=user['id'],
+                       author_id=user.id,
+                       inserted_on=datetime.now(),
+                       updated_on=datetime.now(),
                        content=note) 
     db.session.add(note_record)
     db.session.commit()
 
-    task_note = UserTaskNote(note_id=note_record.id,
-                             task_id=task_id)
+    task_note = UserTaskNotes(note_id=note_record.id,
+                              task_id=task_id)
     db.session.add(task_note)
     db.session.commit()
     
+    return task_note

@@ -8,6 +8,7 @@ from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.candidate import Candidate
 from app.main.model.client import Client
 from app.main.model.user import User, UserClientAssignment, UserLeadAssignment, UserCandidateAssignment
+from sqlalchemy import func
 
 class Struct:
     def __init__(self, **entries):
@@ -178,7 +179,7 @@ class DepartmentService(object):
         self._name = name
 
     def members(self):
-        users = User.query.filter_by(department=self._name).all()
+        users = User.query.filter(func.lower(User.department) == func.lower(self._name)).all()
         return users
 
     @classmethod
