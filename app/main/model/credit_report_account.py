@@ -32,16 +32,16 @@ class CreditReportAccount(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_client'))
 
     # fields
-    provider = db.Column(db.String(50), nullable=False, default='Smart Credit')
+    provider = db.Column(db.String(50), nullable=True, default='Smart Credit')
     customer_token = db.Column(db.String(), unique=True, nullable=True)
-    tracking_token = db.Column(db.String(100), nullable=False)
+    tracking_token = db.Column(db.String(100), nullable=True)
     plan_type = db.Column(db.String(50), nullable=True)
     financial_obligation_met = db.Column(db.Boolean, nullable=True)
     _password_enc = db.Column('password_enc', db.String(128), nullable=True)
     status = db.Column(db.Enum(CreditReportSignupStatus), nullable=False,
                        default=CreditReportSignupStatus.INITIATING_SIGNUP)
     email = db.Column(db.String(100), nullable=True, unique=True)
-    registered_fraud_insurance = db.Column(db.Boolean, nullable=False, default=False)
+    registered_fraud_insurance = db.Column(db.Boolean, nullable=True, default=False)
 
     # move this to appropriate table, if needed
     # FICO score
