@@ -1,3 +1,4 @@
+import time
 import enum
 import datetime
 import jwt
@@ -337,11 +338,15 @@ class Auth():
         :return: string
         """
         app.logger.info('Attempting encoding auth token')
+        #8 hrs TTL
+        ttl_secs = 28800
+        time_now = int(time.time())
+        token_ttl = time_now + ttl_secs
 
         try:
             payload = {
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1, seconds=5),
-                'iat': datetime.datetime.utcnow(),
+                'exp': token_ttl,
+                'iat': time_now,
                 'sub': user_id
             }
             return jwt.encode(
