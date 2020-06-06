@@ -59,6 +59,11 @@ class RACMgr():
         if not roles_to_enforce:
             raise Exception('Must provide at least one Role to enforce')
 
+        """ Always allow for admins """
+        if (g.current_user['rac_role'] == RACRoles.SUPER_ADMIN.value
+            or g.current_user['rac_role'] == RACRoles.ADMIN.value):
+            return True
+
         for role_item in roles_to_enforce:
             if not RACRoles.is_valid_role(role_item.value):
                 raise Exception('A given role to enforce is not a known type')

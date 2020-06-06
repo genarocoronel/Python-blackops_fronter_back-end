@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
 from sqlalchemy import desc, asc, and_
 from datetime import datetime, timedelta
-from app.main.tasks.debt_payment import register_customer
+from app.main.tasks import debt_payment as pymt_tasks
 from app.main.tasks.mailer import send_welcome_letter, send_spanish_welcome_letter, send_privacy_policy
 from app.main.tasks import docusign
 
@@ -63,6 +63,23 @@ class Workflow(object):
         # notify
         TaskChannel.send(agent_id,
                          task)
+
+class GenericWorkflow(Workflow):
+    _task_due = 24 ## task expiry in hours
+    _task_assign_type = TaskAssignType.AUTO
+    _task_priority = TaskPriority.MEDIUM
+
+    def __init__(self, client, obj_type, obj):
+        assigned_to = client.account_manager_id
+        client_id = client.id
+        self._task_ref_type = obj_type         
+        super().__init__(obj, assigned_to, client_id)
+
+    def create_task(self, title, desc):
+        self._task_title = title
+        self._task_desc = desc
+        self._create_task()
+    
 
 ## Doc processing workflow
 class DocprocWorkflow(Workflow):
@@ -246,7 +263,7 @@ def open_contract_flow(code, contract, revision=None):
                 self.save()
                 # add epps customer
                 # register client with EPPS provider
-                register_customer(self._client_id)
+                pymt_tasks.register_customer(self._client_id)
                 ## send email  
                 ## welcome letter
                 send_welcome_letter(self._client_id)

@@ -7,6 +7,7 @@ from app.main.model.address import Address, AddressType
 from datetime import datetime, date, timedelta
 from app.main.tasks.mailer import send_payment_reminder, send_nsf_draft_issue
 from sqlalchemy import func
+from app.main.service import workflow
 
 import logging
 
@@ -179,10 +180,15 @@ def check_eft_status():
                         payment.status = DebtEftStatus.Failed
                         # send NSF draft issue notice
                         send_nsf_draft_issue(client.id)
+                        wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
+                        wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
                     elif eft.status == EftStatus.Returned or eft.status == EftStatus.Voided:
                         payment.status = DebtEftStatus.Failed
                         # send NSF draft issue notice
                         send_nsf_draft_issue(client.id)
+                        # Create a task 
+                        wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
+                        wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
                     elif eft.status == EftStatus.Settled:
                         payment.status = DebtEftStatus.Settled
                       

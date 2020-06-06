@@ -106,7 +106,22 @@ def fetch_payment_contract(client):
 
         combined_debts = fetch_client_combined_debts(client)
         if len(combined_debts) == 0:
-            raise ValueError("Credit records are empty")
+            result = {
+              "term": 24,
+              "total_debt": 0,
+              "enrolled_debt": 0,
+              "bank_fee": 10,
+              "min_fee": 0,
+              "credit_monitoring_fee": 59,
+              "monthly_fee": 0, 
+              "total_paid": 0,
+              "num_term_paid": 0,
+              "active": False, 
+              "payment_1st_date": datetime.utcnow().strftime('%m-%d-%Y'),
+              "payment_2nd_date": datetime.utcnow().strftime('%m-%d-%Y'),
+            }
+            return result
+
         # calculate the debt
         for record in combined_debts:
             if record.push is True:
@@ -507,7 +522,8 @@ def fetch_payment_schedule(client):
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
     # error ?
     if len(records) == 0:
-        raise ValueError('Payment Schecule not found')
+        #raise ValueError('Payment Schecule not found')
+        return []
 
     index = 0
     balance = total_fee
