@@ -176,6 +176,7 @@ class UserDto:
         'department': fields.String(required=False, description='user department'),
     })
     user_supressed = api.model('user_supressed', {
+        'id': fields.Integer(),
         'public_id': fields.String(description='user identifier'),
         'username': fields.String(required=True, description='user username'),
         'first_name': fields.String(required=True, description='user first name'),
@@ -344,7 +345,16 @@ class ClientDto:
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
         'credit_report_account': fields.Nested(credit_report_account),
+        'account_manager': fields.String(attribute='account_manager.full_name'),
     })
+    client_notice = api.model('client', {
+        'public_id': fields.String(description='client identifier'),
+        'full_name': fields.String(attribute='full_name'),
+        'account_manager': fields.String(attribute='account_manager.full_name'),
+        'sales_rep': fields.String(attribute='sales_rep.full_name'),
+        'msg': fields.String(),
+    })
+
     update_client = api.model('update_client', {
         'first_name': fields.String(description='client first name'),
         'last_name': fields.String(description='client last name'),
@@ -594,6 +604,7 @@ class LeadDto:
         'account_manager': fields.String(attribute='account_manager.full_name'),
         'team_manager': fields.String(attribute='team_manager.full_name'),
         'opener': fields.String(attribute='opener.full_name'),
+        'sales_rep': fields.String(attribute='sales_rep.full_name'),
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
         'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber',attribute='contact_numbers'),
         'notification_pref': fields.Nested(notification_preference),

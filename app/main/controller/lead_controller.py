@@ -113,6 +113,7 @@ class Lead(Resource):
 
     @api.doc('update lead')
     #@api.expect(_update_lead, validate=True)
+    @api.marshal_with(_lead)
     def put(self, public_id):
         """ Update lead with provided identifier"""
         lead = get_client(public_id, client_type=LEAD)
@@ -146,7 +147,7 @@ class LeadAssignment(Resource):
             api.abort(404, message='That Sales Rep could not be found.', success=False)
 
         try:
-            assign_salesrep(lead, asignee)
+            assign_salesrep(lead, asignee.id)
 
         except Exception as e:
             api.abort(500, message=f'Failed to assign a Sales Rep for this Lead. Error: {e}', success=False)
