@@ -103,6 +103,28 @@ def create_creport_account_for_client(external_acc_session, client: Client, stat
     
     return new_account
 
+# credit report account created for manual debts
+def create_manual_creport_account(client: Client):
+    
+    # check credit report account exists 
+    cra = CreditReportAccount.query.filter_by(client_id=client.id).first()
+    if not cra:
+        cra = CreditReportAccount(
+            public_id=str(uuid.uuid4()),
+            customer_token=None,
+            provider=None,
+            tracking_token=None,
+            plan_type=None,
+            financial_obligation_met=None,
+            status=CreditReportSignupStatus.ACCOUNT_CREATED,
+            client=client,
+            email=client.email
+        )
+        save_changes(cra)
+
+    return cra
+    
+
 
 def get_verification_questions(creport_account):
     """ Gets remote verification questions for Credit Account """

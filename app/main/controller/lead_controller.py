@@ -17,7 +17,7 @@ from app.main.service.client_service import get_all_clients, save_new_client, ge
     update_notification_pref, fetch_client_combined_debts, assign_salesrep
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
     get_client_voice_communication, create_presigned_url
-from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
+from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account, create_manual_creport_account,
                                                             get_verification_questions, answer_verification_questions,
                                                             get_security_questions, complete_signup, pull_credit_report)
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract, payment_contract_action, \
@@ -411,7 +411,7 @@ class LeadCreditReportDebts(Resource):
 
         credit_account, error_response = _handle_get_credit_report(lead)
         if not credit_account:
-            api.abort(404, **error_response)
+            credit_account = create_manual_creport_account(lead)
 
         data = request.json
         resp = add_credit_report_data(data, credit_account)
