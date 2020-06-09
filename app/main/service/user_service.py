@@ -55,7 +55,7 @@ def save_new_user(data, desired_role: RACRoles = None):
         )
 
         if desired_role:
-            new_user = RACMgr.assign_role_to_user(Struct(**desired_role), new_user)
+            new_user = RACMgr.assign_role_to_user(desired_role, new_user)
 
         save_changes(new_user)
         return generate_token(new_user)
