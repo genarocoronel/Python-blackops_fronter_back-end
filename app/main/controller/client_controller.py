@@ -119,7 +119,7 @@ class ClientAssignment(Resource):
             api.abort(404, message='That Sales Rep could not be found.', success=False)
 
         try:
-            assign_servicerep(client, asignee)
+            assign_servicerep(client, asignee.id)
             
         except Exception as e:
             api.abort(500, message=f'Failed to assign a Service Rep for this Client. Error: {e}', success=False)

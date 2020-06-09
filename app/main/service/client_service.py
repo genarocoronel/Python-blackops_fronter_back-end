@@ -19,6 +19,7 @@ from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
 from app.main.model.usertask import UserTask
+from app.main.channels import notification
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
@@ -313,16 +314,20 @@ def update_client(client, data, client_type=ClientType.client):
                             'message': 'Invalid Disposition to update manually',
                         }
                         return response_object, 400
+                elif attr == 'sales_rep_id':
+                    # notify the user
+                    user_id = data.get(attr)
+                    assign_salesrep(client, user_id)
+                elif attr == 'account_manager_id':
+                    # notify the user
+                    user_id = data.get(attr)
+                    assign_servicerep(client, user_id)
                 else:
                     setattr(client, attr, data.get(attr))
 
         save_changes(client)
 
-        response_object = {
-            'success': True,
-            'message': f'{client_type.name.capitalize()} updated successfully',
-        }
-        return response_object, 200
+        return client
     else:
         response_object = {
             'success': False,
@@ -331,25 +336,48 @@ def update_client(client, data, client_type=ClientType.client):
         return response_object, 404
 
 
-def assign_salesrep(client, asignee_user):
+def assign_salesrep(client, user_id):
     """ Assigns a Sales Rep user to a Lead """
     assignment = UserLeadAssignment.query.filter_by(client_id=client.id).first()
     if assignment:
-        assignment.user_id = asignee_user.id
+        assignment.user_id = user_id
     else:
         assignment = UserLeadAssignment(
-            user_id = asignee_user.id,
+            user_id = user_id,
             client_id = client.id
         )
-
-    # existing field
-    client.opener_id = asignee_user.id
+    # set in client 
+    client.sales_rep_id = user_id
 
     db.session.add(assignment)
     save_changes()
     
+    client.msg = 'Client assigned to sales team.'
+    notification.ClientNoticeChannel.send(user_id,
+                                          client)
     return True
 
+def assign_servicerep(client, user_id):
+    """ Assigns a Service Rep user to a Client """
+    assignment = UserClientAssignment.query.filter_by(client_id=client.id).first()
+    if assignment:
+        assignment.user_id = user_id
+    else:
+        assignment = UserClientAssignment(
+            user_id = user_id,
+            client_id = client.id
+        )
+
+    db.session.add(assignment)
+    # tmp: support for legacy features
+    client.account_manager_id = user_id 
+
+    save_changes()
+    client.msg = 'Client assigned to service team.'
+    notification.ClientNoticeChannel.send(user_id,
+                                          client)            
+    
+    return True
 
 def get_client_bank_account(client):
     if isinstance(client, str):
@@ -368,24 +396,6 @@ def get_client_appointments(public_id, client_type=ClientType.client):
         return None
 
 
-def assign_servicerep(client, asignee_user):
-    """ Assigns a Service Rep user to a Client """
-    assignment = UserClientAssignment.query.filter_by(client_id=client.id).first()
-    if assignment:
-        assignment.user_id = asignee_user.id
-    else:
-        assignment = UserClientAssignment(
-            user_id = asignee_user.id,
-            client_id = client.id
-        )
-
-    db.session.add(assignment)
-    # tmp: support for legacy features
-    client.account_manager_id = asignee_user.id 
-
-    save_changes()
-    
-    return True
 
 
 def save_changes(*data):

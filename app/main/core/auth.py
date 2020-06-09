@@ -9,7 +9,7 @@ from app.main import db
 from app.main.config import key
 
 from ..service.blacklist_service import save_token
-from app.main.service.sms_service import sms_send_raw
+#from app.main.service import sms_service
 from app.main.model.user import User, UserPasswordReset
 from app.main.model.portal_user import PortalUser
 from app.main.util.validate import is_email
@@ -31,7 +31,7 @@ class Auth():
                     # if user.require_2fa:
                     #     code = generate_code()
                     #     app.logger.debug(f'user authenticated with credentials; requires 2FA code: {code}')
-                    #     sms_send_raw(user.personal_phone,
+                    #     sms_service.sms_send_raw(user.personal_phone,
                     #                  f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes',
                     #                  user.id)
 
@@ -168,7 +168,7 @@ class Auth():
                 app.logger.debug(f'password reset request id: {reset_request.reset_key}, code: {code}')
                 # TODO: Finish implementing feature for sending SMS messages to Users of the CRM.
                 # We may want to centralize SMS services via Bandwidth (or Jive?).
-                # sms_send_raw(user.personal_phone,
+                # sms_service.sms_send_raw(user.personal_phone,
                 #              f'{code} Use this code for Elite Doc Services. It will expire in 10 minutes', user.id)
                 response_object = {
                     'success': True,
