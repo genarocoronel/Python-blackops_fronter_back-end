@@ -903,10 +903,10 @@ class CandidateToLead(Resource):
         if not credit_report_account:
             api.abort(404, "No credit report account associated with candidate. Create SC account first.")
 
-        app.logger.api("Received request to STU and convert a Candidate to Lead")
+        app.logger.info("Received request to STU and convert a Candidate to Lead")
         convert_candidate_to_lead(candidate)
 
-        app.logger.api("Requesting Credit Report pull for converted Lead")
+        app.logger.info("Requesting Credit Report pull for converted Lead")
         pull_credit_report(credit_report_account)
 
         return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200
