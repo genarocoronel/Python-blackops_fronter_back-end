@@ -20,6 +20,8 @@ spec:
       - name: worker-scheduler
         image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
         args:
-        - rqscheduler
+        - python
+        - -m
+        - app.main.scheduler
         - --host
         - redis
