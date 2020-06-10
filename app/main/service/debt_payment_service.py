@@ -14,7 +14,7 @@ from app.main.service.client_service import fetch_client_combined_debts
 from app.main.service.teamrequest_service import create_team_request
 from app.main.channels.notification import TeamRequestChannel
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import func, and_, desc, asc
+from sqlalchemy import func, and_, desc, asc, or_
 import logging
 import uuid
 
@@ -61,7 +61,6 @@ def calc_contract_vals(term, total_debt, co_sign=False):
 """
 Fetch PLANNED Contract for a given client
 """
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def fetch_payment_contract(client):
     # check if client has co-client associated with it
     co_sign = False
@@ -221,8 +220,12 @@ def update_payment_contract(client, data):
 def payment_contract_action(client):
     # fetch the approved contract 
     # if not approve it
-    contract = DebtPaymentContract.query.filter_by(client_id=client.id,
-                                                   status=ContractStatus.PLANNED).first()
+
+    ## allow docusign send for planned & approved contracts
+    contract = DebtPaymentContract.query.filter(and_((DebtPaymentContract.client_id==client.id), 
+                                                     or_(DebtPaymentContract.status==ContractStatus.PLANNED, 
+                                                         DebtPaymentContract.status==ContractStatus.APPROVED)
+                                                    )).first()
     if contract is None:
         raise ValueError('Contract Not Found')
         
@@ -232,8 +235,6 @@ def payment_contract_action(client):
     ## fetch the action
     func = ''
     if action == ContractAction.NEW_CONTRACT:
-        
-
         func = 'send_contract_for_signature'
         app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), client.id)
 
