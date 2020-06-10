@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: worker-scheduler
+  labels:
+    cattle.io/creator: norman
+    workload.user.cattle.io/workloadselector: deployment-default-worker-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      workload.user.cattle.io/workloadselector: deployment-default-worker-scheduler
+  template:
+    metadata:
+      labels:
+        workload.user.cattle.io/workloadselector: deployment-default-worker-scheduler
+    spec:
+      containers:
+      - name: worker-scheduler
+        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
+        args:
+        - rqscheduler
+        - --host
+        - redis
