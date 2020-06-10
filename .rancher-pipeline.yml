@@ -13,6 +13,10 @@ stages:
   steps:
   - applyYamlConfig:
       path: ./.k8s/deployment-api.yml
+- name: Deploy Worker Scheduler Stage
+  steps:
+  - applyYamlConfig:
+      path: ./.k8s/deployment-worker-scheduler.yml
 - name: Deploy Worker Stage
   steps:
   - applyYamlConfig:
