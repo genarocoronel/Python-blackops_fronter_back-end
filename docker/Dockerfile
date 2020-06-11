@@ -13,7 +13,9 @@ RUN apk add postgresql-dev \
             gcc \
             libc-dev \
             libxml2-dev \
-            libxslt-dev
+            libxslt-dev \
+            wkhtmltopdf \
+            xvfb-run
 
 WORKDIR /app
 
