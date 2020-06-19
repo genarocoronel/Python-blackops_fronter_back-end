@@ -75,7 +75,7 @@ def save_new_client(data, client_type=ClientType.lead):
 
 
 def create_client_from_candidate(candidate, client_type=ClientType.lead):
-    inserted_dispo = ClientDisposition.query.filter_by(name='Opener_ActiveNewLead').first()
+    inserted_dispo = ClientDisposition.query.filter_by(name='Sales_ActiveStatus_InsertedLead').first()
     if not inserted_dispo:
         raise Exception('Error finding Client disposition record for "Inserted"')
 
