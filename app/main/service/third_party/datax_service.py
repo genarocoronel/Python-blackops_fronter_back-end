@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
+from flask import current_app
 
 import requests
-from flask import current_app
 
 
 def _build_request(bank_account_number, bank_aba_number, tracking_id, query_type):

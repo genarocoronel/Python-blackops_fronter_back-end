@@ -13,7 +13,6 @@ cryptography==2.8
 defusedxml==0.6.0
 dnspython==1.16.0
 docusign-esign==3.0.0
-eventlet==0.25.2
 filelock==3.0.12
 Flask==0.12.2
 Flask-Bcrypt==0.7.1
@@ -24,7 +23,9 @@ Flask-Script==2.0.6
 Flask-SocketIO==4.2.1
 Flask-SQLAlchemy==2.3.2
 Flask-Testing==0.7.1
-greenlet==0.4.15
+gevent==20.6.2
+gevent-websocket==0.10.1
+greenlet==0.4.16
 idna==2.8
 importlib-metadata==0.23
 inflect==3.0.2
@@ -48,7 +49,7 @@ python-engineio==3.12.1
 python-socketio==4.5.1
 pytz==2018.3
 redis==3.3.11
-requests==2.22.0
+requests==2.24.0
 requests-toolbelt==0.9.1
 rq==1.1.0
 rq-scheduler==0.9.1

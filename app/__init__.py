@@ -1,4 +1,6 @@
 # app/__init__.py
+from gevent import monkey
+monkey.patch_all()
 
 from flask_restplus import Api
 from flask import Blueprint

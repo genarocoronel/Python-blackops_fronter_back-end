@@ -81,7 +81,10 @@ def create_app(config_name):
 
     from app.main.channels import ws
     # initialize socketio
-    # debug => logger=True, engineio_logger=True
-    wscomm.init_app(app, path='/channels', cors_allowed_origins="*")
+    wscomm.init_app(app, 
+                    #logger=True, engineio_logger=True,
+                    message_queue=app.config['REDIS_URL'],
+                    path='/channels', 
+                    cors_allowed_origins="*")
 
     return app
