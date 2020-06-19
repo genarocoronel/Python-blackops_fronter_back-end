@@ -15,6 +15,7 @@ class NotificationType(enum.Enum):
 ## to user dashboards
 class NotificationChannel(Channel):
     namespace = '/notify'
+    _tx_chnl = Channel
 
     # Call back when a channel is opened
     def on_open(self, user):
@@ -25,6 +26,7 @@ class NotificationChannel(Channel):
     # call back when a message is available
     def on_message(self, message):
         pass
+
     # send a message to a user 
     @classmethod
     @serialize
@@ -36,10 +38,12 @@ class NotificationChannel(Channel):
             # notification type
             event_type = cls.type.value
             ns = cls.namespace 
-            Channel.send_event(user_id, 
-                               event_type, 
-                               data,
-                               namespace=ns)
+
+            # send through transmit channel
+            cls._tx_chnl.send_event(user_id, 
+                                    event_type, 
+                                    data,
+                                    namespace=ns)
             return True
 
         except Exception as err:

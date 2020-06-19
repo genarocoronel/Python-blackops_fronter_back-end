@@ -6,6 +6,7 @@ from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from app.main.model.docproc import DocprocStatus
 from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
+from app.main.tasks import channel as wkchannel
 from sqlalchemy import desc, asc, and_
 from datetime import datetime, timedelta
 from app.main.tasks import debt_payment as pymt_tasks
@@ -45,7 +46,7 @@ class Workflow(object):
             db.session.commit()
 
     ## CREATE a USER TASK
-    def _create_task(self):
+    def _create_task(self, is_worker=False):
         due = datetime.utcnow() + timedelta(hours=self._task_due)  
         agent_id = self.owner
         task = UserTask(assign_type=self._task_assign_type,
@@ -61,8 +62,12 @@ class Workflow(object):
         db.session.add(task)
         db.session.commit()
         # notify
-        TaskChannel.send(agent_id,
-                         task)
+        if is_worker is True:
+            wkchannel.WkTaskChannel.send(agent_id,
+                                         task)
+        else:
+            TaskChannel.send(agent_id,
+                             task)
 
 class GenericWorkflow(Workflow):
     _task_due = 24 ## task expiry in hours
@@ -133,7 +138,7 @@ class ContractWorkflow(Workflow):
         self._task_desc = 'Client signed, verify docusign document'
         if self.status == ContractStatus.APPROVED:          
             self.status = ContractStatus.SIGNED
-            self._create_task()
+            self._create_task(is_worker=True)
             self.save()
 
     """
@@ -143,6 +148,7 @@ class ContractWorkflow(Workflow):
     def on_tr_approved(self, teamrequest):
         if self.status == ContractStatus.REQ4APPROVAL:
             self.status = ContractStatus.APPROVED
+            ## task from webapp
             self._create_task()
             self.save()
             # send to worker queue for remote signature (docusign)
@@ -154,6 +160,7 @@ class ContractWorkflow(Workflow):
     def on_tr_declined(self, teamrequest):
         if self.status == ContractStatus.REQ4APPROVAL:
             self.status = ContractStatus.VOID
+            ## task from webapp
             self._create_task()
             self.save()
 
@@ -231,6 +238,7 @@ class RevisionWorkflow(Workflow):
     def on_tr_approved(self, teamrequest): 
         if self.status == RevisionStatus.OPENED:
             self.status = RevisionStatus.ACCEPTED
+            ## task from webapp
             self._create_task()
             self.save()
 
@@ -241,6 +249,7 @@ class RevisionWorkflow(Workflow):
 
         if self.status == RevisionStatus.OPENED:
             self.status = RevisionStatus.REJECTED
+            ## task from webapp
             self._create_task()
             self.save()
  
@@ -271,6 +280,14 @@ def open_contract_flow(code, contract, revision=None):
                 send_privacy_policy(self._client_id)
                 # download the signed document
                 docusign.download_documents(self._object) 
+
+                # Send a notification through worker channel
+                client = self._object.client 
+                client.msg = "Client signed the contract."
+                account_manager = client.account_manager
+                if account_manager:
+                    wkchannel.WkClientNoticeChannel.send(account_manager.id,
+                                                         client)                       
               
     class TermChange(ContractWorkflow): 
         _rsign_worker_func = 'send_term_change_for_signature'
