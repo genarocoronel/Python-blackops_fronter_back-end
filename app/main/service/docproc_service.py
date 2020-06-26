@@ -81,6 +81,11 @@ def get_doctype_by_pubid(public_id):
     return DocprocType.query.filter_by(public_id=public_id).first()
 
 
+def get_doctype_by_name(name):
+    """ Gets a Doc Type by name """
+    return DocprocType.query.filter_by(name=name).first()
+
+
 def multiassign_for_processing(docs_to_assign, docproc_user):
     """ Assigns Docs to a User for processing """
     docs_to_assign_synth = []

@@ -4,6 +4,7 @@ from flask_restplus import Resource
 from app.main.util.portal_dto import DocDto
 from app.main.util.decorator import portal_token_required
 from app.main.core.errors import BadRequestError, NotFoundError
+from app.main.model.docproc import DocprocChannel
 from app.main.service.docproc_service import (get_docs_for_portal_user, get_doc_by_pubid, stream_doc_file,
     create_doc_manual, get_doc_by_pubid, allowed_doc_file_kinds, attach_file_to_doc)
 from flask import current_app as app
@@ -30,6 +31,7 @@ class Doc(Resource):
     def post(self):
         """ Creates a Doc manually """
         request_data = request.json
+        request_data['source_channel'] = DocprocChannel.PORTAL.value
 
         try:
             doc = create_doc_manual(request_data)
