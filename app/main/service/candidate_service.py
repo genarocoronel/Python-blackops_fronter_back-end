@@ -99,10 +99,7 @@ def update_candidate(public_id, data):
                     desired_disposition = CandidateDisposition.query.filter_by(value=data.get(attr)).first()
                     # Do not update if disposition is unchanged, especially for internally managed dipositions
                     if desired_disposition.id != candidate.disposition_id:
-                        opener_disallowed_dispos = []
                         user_role = g.current_user['rac_role']
-                        #print(f'JAJ: {user_role}')
-
                         if user_role == RACRoles.ADMIN.value or user_role == RACRoles.SUPER_ADMIN.value or desired_disposition.select_type == CandidateDispositionType.MANUAL:
                             setattr(candidate, 'disposition_id', desired_disposition.id)
 
