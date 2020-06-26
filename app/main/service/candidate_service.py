@@ -4,7 +4,6 @@ import datetime
 from phonenumbers import PhoneNumber
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
-from app.main.core.auth import Auth
 from app.main.core.rac import RACRoles
 from app.main.model.employment import Employment
 from app.main.model import Frequency
