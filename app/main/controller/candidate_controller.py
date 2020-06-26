@@ -27,6 +27,8 @@ from app.main.service.credit_report_account_service import (creport_account_sign
                                                             get_verification_questions, answer_verification_questions, complete_signup,
                                                             get_security_questions,
                                                             register_fraud_insurance, get_account_password, pull_credit_report)
+from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid, 
+    allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file)
 from app.main.util.dto import CandidateDto
 from app.main.util.parsers import filter_request_parse
 
@@ -50,6 +52,8 @@ _candidate_monthly_expense = CandidateDto.candidate_monthly_expense
 _update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
 _candidate_address = CandidateDto.candidate_address
 _update_candidate_addresses = CandidateDto.update_candidate_addresses
+_candidate_doc = CandidateDto.candidate_doc
+_doc_upload = CandidateDto.doc_upload
 
 
 #### request params
@@ -962,3 +966,110 @@ class CandidateToLead(Resource):
         pull_credit_report(credit_report_account)
 
         return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200
+
+
+@api.route('/<candidate_id>/doc')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateDoc(Resource):
+    @api.doc('Creates a Doc for a Candidate')
+    @api.expect(_candidate_doc, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def post(self, candidate_id):
+        """ Creates a Doc for a Candidate """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+
+        request_data = request.json
+        
+        try:
+            doc = create_doc_candidate(request_data, candidate)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error creating doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error creating doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to create Doc', success=False)
+
+        return doc, 200
+
+    @api.doc('Gets Docs for a Candidate')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def get(self, candidate_id):
+        """ Gets Docs for a Candidate """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+        
+        return get_all_docs_candidate(candidate), 200
+
+
+@api.route('/<candidate_id>/doc/<doc_id>/upload')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.param('doc_id', 'Doc public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateDocUpload(Resource):
+    @api.doc('Uploads a File for a Candidate Doc')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def post(self, candidate_id, doc_id):
+        """ Uploads a File for a Candidate Doc """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+
+        doc = get_doc_candidate_by_pubid(doc_id, True)
+        if not doc:
+            api.abort(404, message='That Candidate Doc could not be found.', success=False)
+
+        args = _doc_upload.parse_args()
+        file = args['doc_file']
+
+        if not file:
+            api.abort(400, message='Doc file is missing from the request.', success=False)
+        elif file.filename == '':
+            api.abort(400, message='No Doc file was selected.', success=False)
+
+        if not allowed_doc_file_kinds(file.filename):
+            api.abort(400, message='That Doc file kind is not allowed. Try PDF, PNG, JPG, JPEG, or GIF.', success=False)
+
+        updated_doc = attach_file_to_doc_candidate(doc, file)
+
+        return updated_doc, 200
+
+
+@api.route('/<candidate_id>/doc/<doc_id>/file')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.param('doc_id', 'Doc public identifier')
+@api.response(404, 'Candidate not found')
+class DocFile(Resource):
+    @api.doc('Gets a Doc File for a Candidate')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def get(self, candidate_id, doc_id):
+        """ Gets a Candidate Doc File stream """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+
+        doc = get_doc_candidate_by_pubid(doc_id, True)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+        
+        try:
+            return stream_doc_file(doc)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to get File for Doc with ID {doc_id}', success=False)

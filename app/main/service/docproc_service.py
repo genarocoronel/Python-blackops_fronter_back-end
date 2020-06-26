@@ -14,6 +14,7 @@ from app.main.config import upload_location
 from app.main import db
 from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus, 
     DocprocNote, Docproc)
+from app.main.model.candidate_docs import CandidateDoc
 from app.main.service.user_service import get_user_by_id, get_request_user
 from app.main.service.client_service import get_client_by_id
 from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc)
@@ -135,6 +136,30 @@ def allowed_doc_file_kinds(filename):
     """ Gets whether a given filename is of allowed extension for Doc Processing """
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_DOC_EXTENSIONS
+
+
+def attach_file_to_doc_candidate(doc, file):
+    """ Attaches a File to a Candidate Doc """
+    orig_filename = generate_secure_filename(file.filename)
+    fileext_part = get_extension_for_filename(orig_filename)
+    ms = time.time()
+    unique_filename = 'docproc_{}_{}{}'.format(doc.public_id, ms, fileext_part)
+    secure_filename, secure_file_path = save_file(file, unique_filename, upload_location)
+
+    @after_this_request
+    def cleanup(resp):
+        # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
+        #delete_file(secure_file_path)
+        return resp
+
+    # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
+    #upload_to_docproc(secure_file_path, secure_filename)
+    doc.file_name = secure_filename
+    doc.orig_file_name = orig_filename
+    db.session.add(doc)
+    _save_changes()
+
+    return synth_doc_candidate(doc)
 
 
 def attach_file_to_doc(doc, file):
@@ -259,6 +284,54 @@ def create_doc_note(doc, content):
     return synth_doc(doc)
 
 
+def create_doc_candidate(data, candidate):
+    """ Creates a Doc manually for a Candidate """
+    curr_user = get_request_user()
+    curr_username = curr_user.username
+
+    doc = CandidateDoc(
+        public_id = str(uuid.uuid4()),
+        type = 'Credit Reports',
+        doc_name = data['doc_name'],
+        source_channel = DocprocChannel.DSTAR.value,
+        inserted_on = datetime.datetime.utcnow(),
+        created_by_username = curr_username,
+        updated_on = datetime.datetime.utcnow(),
+        updated_by_username = curr_username,
+        candidate_id = candidate.id
+    )
+    
+    db.session.add(doc)
+    _save_changes()
+
+    return synth_doc_candidate(doc)
+
+
+def get_doc_candidate_by_pubid(pub_id, should_return_model = False):
+    """ Gets a Candidate Doc by public ID """
+    result = None
+
+    doc_record = CandidateDoc.query.filter_by(public_id=pub_id).first()
+    if should_return_model:
+        result = doc_record
+    else:
+        result = synth_doc_candidate(doc_record)
+
+    return result
+
+
+def get_all_docs_candidate(candidate):
+    """ Gets all Docs for a Candidate """
+    docs = []
+
+    doc_records = CandidateDoc.query.filter_by(candidate_id=candidate.id).all()
+    for doc_item in doc_records:
+        tmp_doc = synth_doc_candidate(doc_item)
+        docs.append(tmp_doc)
+
+    return docs
+
+
 def synth_doc(doc):
     datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
     correspondence_date_format = '%Y-%m-%d'
@@ -328,6 +401,24 @@ def synth_doc(doc):
             'public_id': doc.type.public_id,
             'name': doc.type.name,
         }
+
+    return doc_synth
+
+
+def synth_doc_candidate(doc):
+    datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+    correspondence_date_format = '%Y-%m-%d'
+    doc_synth = {
+        'public_id': doc.public_id,
+        'type': None,
+        'doc_name': doc.doc_name,
+        'source_channel': doc.source_channel,
+        'file_name': doc.file_name,
+        'inserted_on': doc.inserted_on.strftime(datetime_format),
+        'created_by_username': doc.created_by_username,
+        'updated_on': doc.updated_on.strftime(datetime_format),
+        'updated_by_username': doc.updated_by_username,
+    }
 
     return doc_synth
 
