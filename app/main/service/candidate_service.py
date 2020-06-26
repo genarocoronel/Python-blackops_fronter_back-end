@@ -4,6 +4,7 @@ import datetime
 from phonenumbers import PhoneNumber
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
+from app.main.core.rac import RACRoles
 from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
@@ -19,7 +20,7 @@ from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
 from app.main.service.client_service import create_client_from_candidate
 
-from flask import current_app as app
+from flask import current_app as app, g
 
 from app.main.util.query import build_query_from_dates
 
@@ -98,8 +99,10 @@ def update_candidate(public_id, data):
                     desired_disposition = CandidateDisposition.query.filter_by(value=data.get(attr)).first()
                     # Do not update if disposition is unchanged, especially for internally managed dipositions
                     if desired_disposition.id != candidate.disposition_id:
-                        if desired_disposition.select_type == CandidateDispositionType.MANUAL:
+                        user_role = g.current_user['rac_role']
+                        if user_role == RACRoles.ADMIN.value or user_role == RACRoles.SUPER_ADMIN.value or desired_disposition.select_type == CandidateDispositionType.MANUAL:
                             setattr(candidate, 'disposition_id', desired_disposition.id)
+
                         else:
                             response_object = {
                                 'success': False,
