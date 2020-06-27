@@ -41,6 +41,8 @@ def save_new_client(data, client_type=ClientType.lead):
         inserted_on=datetime.datetime.utcnow()
     )
     save_changes(new_client)
+    generate_id_friendly(new_client)
+
     # current address
     # zip_code NOT NULL field
     address1 = '' if data.get('address') is None else data.get('address')
@@ -132,9 +134,15 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         db.session.add(new_client_employment)
 
     save_changes(new_client)
+    generate_id_friendly(new_client)
 
     return new_client
 
+
+def generate_id_friendly(client):
+    client.friendly_id = int(f'100{client.id}')
+    save_changes(client)
+    return client
 
 def get_all_clients(client_type=ClientType.client):
     # TODO - Refactor to use user_service::get_lead_assignments(), and user_service::get_client_assignments()
@@ -684,6 +692,7 @@ def update_co_client(client, data):
                            type=ClientType.coclient,
                            inserted_on=datetime.datetime.utcnow())
         save_changes(co_client)
+        generate_id_friendly(co_client)
         client.co_client = co_client
         db.session.commit()
 
