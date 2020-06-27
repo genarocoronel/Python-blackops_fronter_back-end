@@ -25,4 +25,4 @@ class PortalCallsheet(db.Model):
     # Relationships
     portal_user_id = db.Column(db.Integer, db.ForeignKey('portal_users.id', name='fk_portal_callsheets_portal_users_id'))
     docproc_id = db.Column(db.Integer, db.ForeignKey('docproc.id', name='fk_portal_callsheets_docproc_id'), nullable=True)
-
+    docproc = db.relationship('Docproc', backref='callsheets')
