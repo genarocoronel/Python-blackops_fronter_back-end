@@ -16,6 +16,7 @@ from app.main.seed.admins import create_super_admin
 from app.main.model import *
 from app.main.model.portal_callsheet import PortalCallsheet
 from app.main.model.portal_user import PortalUser
+from app.main.model.candidate_docs import CandidateDoc
 from app.main.model.portal_message import PortalMessage
 from app.main.background.worker import run_worker
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values

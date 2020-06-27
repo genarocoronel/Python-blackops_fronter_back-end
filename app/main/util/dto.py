@@ -903,6 +903,15 @@ class CandidateDto:
         }), required=True, skip_none=True)
     })
     candidate_communication = api.model('communication', _communication)
+    candidate_doc = api.model('candidate_disposition', {
+        'public_id': fields.String(required=False),
+        'doc_name': fields.String(required=True),
+        'type': fields.String(required=False),
+        'file_name': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=False),
+        'updated_on': fields.DateTime(required=False),
+    })
+    doc_upload = parsers.doc_upload
 
 
 class ConfigDto:
