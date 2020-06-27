@@ -1202,3 +1202,20 @@ class TaskDto:
         'due_date': DateTimeFormatField(),
         'inserted_on': DateTimeFormatField(),
     });
+
+class TicketDto:
+    api = Namespace('tickets', description='Support ticket related operations')
+    client = api.model('clients', {
+        'id': fields.String(attribute='public_id'),
+        'name': fields.String(attribute='full_name'),
+        'disposition': fields.String(attribute='disposition.value')
+    })
+
+    ticket = api.model('tickets', {
+      'id': fields.Integer(),
+      'title': fields.String(),
+      'desc': fields.String(),
+      'priority': fields.String(attribute='priority'),
+      'status': fields.String(attribute='status'),
+      'client': fields.Nested(client),
+    });

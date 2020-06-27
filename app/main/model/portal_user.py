@@ -21,6 +21,7 @@ class PortalUser(db.Model):
 
     # relationships
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_portal_user_client_id'), nullable=True)
+    client = db.relationship('Client', backref='portal_account', uselist=False,)
 
     @property
     def password(self):
