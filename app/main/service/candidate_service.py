@@ -442,6 +442,8 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                      pageno=1, search_fields=None, search_val="",
                      dt_fields=None, from_date=None, to_date=None,
                      numeric_fields=None):
+    has_prequalnum_filter = False
+    
     try:
         # sort
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
@@ -458,6 +460,9 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
             _and_filts = []
 
             for field in search_fields:
+                if field == 'prequal_number':
+                    has_prequalnum_filter = True
+
                 filt = None
                 tokens = field.split(':')
                 and_exp = False
@@ -540,7 +545,14 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
         query = query.order_by(sort).paginate(pageno, limit, False)
 
         candidates = query.items
-        # print("query,", query)
+        # Flip status from IMPORTED to REQUESTED and update disposition upon first search by prequal
+        if candidates and has_prequalnum_filter:
+            disp_requested = CandidateDisposition.query.filter_by(value='New Lead').first()
+            for tmp_candidate in candidates:
+                tmp_candidate.disposition_id = disp_requested.id
+                tmp_candidate.status = CandidateStatus.WORKING
+                save_changes(tmp_candidate)
+        
         return {"candidates": candidates, "page_number": pageno, "total_number_of_records": total, "limit": limit}
 
     except Exception as err:
