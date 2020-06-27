@@ -26,7 +26,8 @@ from app.main.service.communication_service import parse_communication_types, da
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions, complete_signup,
                                                             get_security_questions,
-                                                            register_fraud_insurance, get_account_password, pull_credit_report)
+                                                            register_fraud_insurance, pull_credit_report, 
+                                                            get_account_credentials)
 from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid, 
     allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file)
 from app.main.util.dto import CandidateDto
@@ -126,6 +127,7 @@ class UpdateCandidate(Resource):
     @api.marshal_with(_candidate)
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
+
         if not candidate:
             api.abort(404, **error_response)
         return candidate, 200
@@ -742,80 +744,6 @@ class CompleteCreditReportAccoxnt(Resource):
         }
         return response_object, 200
 
-    # @api.doc('submit answer to security question')
-    # @api.expect(_update_credit_report_account, validate=True)
-    # def put(self, candidate_public_id, credit_account_public_id):
-    #     """ Submit Answer to Security Question """
-    #     try:
-    #         candidate, error_response = _handle_get_candidate(candidate_public_id)
-    #         if not candidate:
-    #             api.abort(404, **error_response)
-
-    #         account, error_response = _handle_get_credit_report(candidate)
-    #         if not account:
-    #             return error_response
-
-    #         data = request.json
-    #         update_customer(account.customer_token, data, account.tracking_token)
-    #         account.status = CreditReportSignupStatus.FULL_MEMBER_LOGIN
-    #         update_credit_report_account(account)
-
-    #         response_object = {
-    #             'success': True,
-    #             'message': 'Successfully submitted security question answer'
-    #         }
-    #         return response_object, 200
-
-    #     except ServiceProviderLockedError as e:
-    #         response_object = {
-    #             'success': False,
-    #             'message': 'Cannot sign up for new Credit Account due to a service provider Locked issue, {str(e)}'
-    #         }
-    #         return response_object, 409
-    #     except Exception as e:
-    #         response_object = {
-    #             'success': False,
-    #             'message': str(e)
-    #         }
-    #         return response_object, 500
-
-
-@api.route('/<candidate_public_id>/credit-report/account/password')
-@api.param('candidate_public_id', 'The Candidate Identifier')
-class CreditReportAccountPassword(Resource):
-    @api.doc('credit report account password')
-    @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
-    def get(self, candidate_public_id):
-        """ Retrieve Candidate Credit Report Account Password"""
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            credit_report_account = candidate.credit_report_account
-            if not credit_report_account:
-                response_object = {
-                    'success': False,
-                    'message': 'No Credit Report Account exists'
-                }
-                return response_object, 404
-
-            pwd = get_account_password(credit_report_account)
-
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-        response_object = {
-            'success': True,
-            'password': pwd
-        }
-        return response_object, 200
-
 
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/fraud-insurance/register')
 @api.param('candidate_public_id', 'The Candidate Identifier')
@@ -869,6 +797,26 @@ class CandidateFraudInsurance(Resource):
             'message': result
         }
         return response_object, 200
+
+
+@api.route('/<candidate_id>/credit-report/account/credentials')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateCReportCredentials(Resource):
+    @api.doc('Get Candidate SCredit Acc credentials')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
+    def get(self, candidate_id):
+        """ Get Candidate SCredit Acc credentials """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        if not candidate.credit_report_account:
+            api.abort(404, 'This Candidate does not have a SCredit account')
+
+        credentials_decrypted = get_account_credentials(candidate)
+        return credentials_decrypted, 200
 
 
 @api.route('/<candidate_id>/employments')

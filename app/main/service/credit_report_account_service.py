@@ -39,9 +39,9 @@ def creport_account_signup(request_data: dict, internal_customer, customer_type:
     # We generate password on backend so Users don't have direct access to SCredit account credentials
     # for any given Lead/Client
     app.logger.info("Attempting to create customer with external Provider")
-    password = Auth.generate_password()
+    password = Auth.generate_password(8)
     request_data.update({'password': password})
-    request_data['email'] = creport_acc.email
+    request_data['email'] = _generate_account_username(internal_customer)
     external_customer_info = create_customer(request_data, creport_acc.tracking_token,
                                         sponsor_code=app.smart_credit_sponsor_code)
 
@@ -73,7 +73,7 @@ def create_creport_account_for_candidate(external_acc_session, candidate: Candid
         financial_obligation_met=external_acc_session.get('financial_obligation_met'),
         status=status or CreditReportSignupStatus.INITIATING_SIGNUP,
         candidate=candidate,
-        email=candidate.email
+        email=_generate_account_username(candidate),
     )
     save_changes(new_account)
 
@@ -97,7 +97,7 @@ def create_creport_account_for_client(external_acc_session, client: Client, stat
         financial_obligation_met=external_acc_session.get('financial_obligation_met'),
         status=status or CreditReportSignupStatus.INITIATING_SIGNUP,
         client=client,
-        email=client.email
+        email=_generate_account_username(client)
     )
     save_changes(new_account)
     
@@ -118,7 +118,7 @@ def create_manual_creport_account(client: Client):
             financial_obligation_met=None,
             status=CreditReportSignupStatus.ACCOUNT_CREATED,
             client=client,
-            email=client.email
+            email=_generate_account_username(client)
         )
         save_changes(cra)
 
@@ -155,6 +155,23 @@ def complete_signup(creport_account):
     creport_account.status = CreditReportSignupStatus.FULL_MEMBER
     update_credit_report_account(creport_account, None)
     return creport_account
+    
+
+def get_account_credentials(internal_customer):
+    """ Gets SCredit account login pair """
+    credentials = {
+        'username': internal_customer.credit_report_account.email, 
+        'password': get_account_password(internal_customer.credit_report_account)
+        }
+    
+    return credentials
+
+
+def _generate_account_username(internal_customer):
+    """ Generates a standardized SCredit acc username """
+    domain = '@lendingserve.com'
+    username = f'{internal_customer.first_name}{internal_customer.last_name}10{internal_customer.id}{domain}'
+    return username
 
 
 def get_account_password(creport_account):
