@@ -85,6 +85,7 @@ def create_app(config_name):
                     #logger=True, engineio_logger=True,
                     message_queue=app.config['REDIS_URL'],
                     path='/channels', 
-                    cors_allowed_origins="*")
+                    cors_allowed_origins="*",
+                    async_mode="gevent")
 
     return app

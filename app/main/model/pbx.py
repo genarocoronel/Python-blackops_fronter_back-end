@@ -9,6 +9,7 @@ class PBXNumber(db.Model):
     __tablename__ = "pbx_numbers"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    public_id = db.Column(db.String(100), unique=True)
     inserted_on = db.Column(db.DateTime, nullable=False)
 
     # relationships

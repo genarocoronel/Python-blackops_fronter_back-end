@@ -5,6 +5,7 @@ from app.main import db
 from app.main.model.rac import RACRole
 from app.main.core.errors import NotFoundError
 
+
 class RACRoles(enum.Enum):
     SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
@@ -23,6 +24,11 @@ class RACRoles(enum.Enum):
     def is_valid_role(cls, role):
         roles = set(item.value for item in cls)
         return role in roles
+
+    @classmethod
+    def from_str(cls, value):
+        return next((e for e in cls if e.value == value), None)
+
 
 class RACMgr():
     """ Represents the Role Access Control Manager """

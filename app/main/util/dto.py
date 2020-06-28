@@ -9,7 +9,7 @@ from app.main.model.client import Client, ClientType, EmploymentStatus, ClientDi
 from app.main.model.address import AddressType
 from app.main.model.credit_report_account import CreditReportSignupStatus, CreditReportDataAccountType
 from app.main.model.pbx import VoiceCommunicationType, CommunicationType
-from app.main.model.user import User
+from app.main.model.user import User, Department
 from app.main.core.auth import Auth
 from app.main.util import parsers
 
@@ -41,6 +41,18 @@ class CommsTypeField(fields.String):
             return value.name
 
 
+class DepartmentTypeField(fields.String):
+    def format(self, value):
+        try:
+            if isinstance(value, Department):
+                return value.name
+
+            dept_value = Department[value.upper()]
+            return dept_value.name
+        except KeyError:
+            return 'UNKNOWN'
+
+
 class DateTimeFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y %H:%M")
@@ -49,6 +61,7 @@ class DateTimeFormatField(fields.String):
 class DateFormatField(fields.String):
     def format(self, value):
         return value.strftime("%m-%d-%Y")
+
 
 ## temp
 from datetime import timedelta
@@ -147,7 +160,9 @@ class UserDto:
         'rac_role': fields.Nested(rac_role),
         'language': fields.String(required=True, description='user language preference', example='en'),
         'personal_phone': fields.String(required=True, description='user personal phone number'),
-        'voip_route_number': fields.String(required=False, description='user VOIP routing number')
+        'department': DepartmentTypeField(required=True, description="department in which user belongs"),
+        'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
+        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id')
 
     })
     update_user = api.model('update_user', {
@@ -157,7 +172,8 @@ class UserDto:
         'title': fields.String(required=False, description='user title', example='Opener Rep'),
         'language': fields.String(required=False, description='user language preference', example='en'),
         'personal_phone': fields.String(required=False, description='user personal phone number'),
-        'voip_route_number': fields.String(required=False, description='user VOIP routing number')
+        'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
+        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id')
 
     })
     user = api.model('user', {
@@ -170,10 +186,11 @@ class UserDto:
         'language': fields.String(required=True, description='user language preference'),
         'phone_number': fields.String(required=True, description='user phone number'),
         'personal_phone': fields.String(required=True, description='user personal phone number'),
+        'department': DepartmentTypeField(required=True, description="department in which user belongs"),
         'last_4_of_phone': fields.String(required=True, description='Last 4 of user personal phone number'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
+        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id'),
         'rac_role': fields.String(required=False, description='RAC Role'),
-        'department': fields.String(required=False, description='user department'),
     })
     user_supressed = api.model('user_supressed', {
         'id': fields.Integer(),
@@ -182,9 +199,19 @@ class UserDto:
         'first_name': fields.String(required=True, description='user first name'),
         'last_name': fields.String(required=True, description='user last name'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
+        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id'),
         'rac_role': fields.String(required=False, description='RAC Role')
     })
-    
+    new_user_number = api.model('new_user_number', {
+        'pbx_numbers': fields.List(fields.String, required=True, desciption='PBX Number to assign to user')
+    })
+    user_number = api.model('user_pbx_number', {
+        'number': fields.String(required=True),
+        'department': DepartmentTypeField(required=True),
+        'enabled': fields.Boolean(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'updated_on': fields.DateTime(required=True),
+    })
 
 
 class AuthDto:
@@ -329,6 +356,60 @@ class CreditReportAccountStatusField(fields.String):
             return value.name
         else:
             return 'unknown'
+
+
+class ConfigDto:
+    api = Namespace('config', description='config related operations')
+    contact_number_types = api.model('contact_number_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
+    })
+    income_types = api.model('income_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'display_name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
+    })
+    expense_types = api.model('expense_types', {
+        'id': fields.Integer(required=True),
+        'name': fields.String(required=True),
+        'display_name': fields.String(required=True),
+        'description': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=True),
+    })
+    disposition = api.model('candidate_dispositions', {
+        'public_id': fields.String(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'value': fields.String(required=False),
+        'description': fields.String(required=False),
+    })
+    docproc_types = api.model('docproc_types', {
+        'public_id': fields.String(required=True),
+        'name': fields.String(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'updated_on': fields.DateTime(required=True),
+    })
+    pbx_number = api.model('pbx_number', {
+        'public_id': fields.String(required=True),
+        'number': fields.String(required=True),
+        'department': DepartmentTypeField(required=True),
+        'enabled': fields.Boolean(required=True),
+        'inserted_on': fields.DateTime(required=True),
+        'updated_on': fields.DateTime(required=True),
+    })
+    new_pbx_number = api.model('new_pbx_number', {
+        'number': fields.String(required=True),
+        'department': DepartmentTypeField(required=True),
+        'enabled': fields.Boolean(required=True),
+    })
+    update_pbx_number = api.model('update_pbx_number', {
+        'department': DepartmentTypeField(required=False),
+        'enabled': fields.Boolean(required=False),
+    })
+
 
 class ClientDto:
     api = Namespace('clients', description='client related operations')
@@ -915,42 +996,6 @@ class CandidateDto:
         'updated_on': fields.DateTime(required=False),
     })
     doc_upload = parsers.doc_upload
-
-
-class ConfigDto:
-    api = Namespace('config', description='config related operations')
-    contact_number_types = api.model('contact_number_types', {
-        'id': fields.Integer(required=True),
-        'name': fields.String(required=True),
-        'description': fields.String(required=False),
-        'inserted_on': fields.DateTime(required=True),
-    })
-    income_types = api.model('income_types', {
-        'id': fields.Integer(required=True),
-        'name': fields.String(required=True),
-        'display_name': fields.String(required=True),
-        'description': fields.String(required=False),
-        'inserted_on': fields.DateTime(required=True),
-    })
-    expense_types = api.model('expense_types', {
-        'id': fields.Integer(required=True),
-        'name': fields.String(required=True),
-        'display_name': fields.String(required=True),
-        'description': fields.String(required=False),
-        'inserted_on': fields.DateTime(required=True),
-    })
-    disposition = api.model('candidate_dispositions', {
-        'public_id': fields.String(required=True),
-        'inserted_on': fields.DateTime(required=True),
-        'value': fields.String(required=False),
-        'description': fields.String(required=False),
-    })
-    docproc_types = api.model('docproc_types', {
-        'public_id': fields.String(required=True),
-        'name': fields.String(required=True),
-        'inserted_on': fields.DateTime(required=True),
-        'updated_on': fields.DateTime(required=True),
-    })
 
 
 class TestAPIDto:
