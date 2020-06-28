@@ -1,4 +1,4 @@
-"""empty message
+"""Add public_id to pbx_numbers
 
 Revision ID: ee5919296c72
 Revises: b54ac7c7b06e
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'ee5919296c72'
-down_revision = 'b54ac7c7b06e'
+down_revision = '1d08a02a1fb5'
 branch_labels = None
 depends_on = None
 
