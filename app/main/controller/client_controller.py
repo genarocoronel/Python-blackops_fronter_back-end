@@ -4,26 +4,26 @@ from flask_restplus import Resource
 
 from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
 from app.main.core.errors import (BadRequestError, NotFoundError, ServiceProviderError, ServiceProviderLockedError)
-from app.main.core.types import CustomerType
 from app.main.core.rac import RACRoles
+from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments,
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
                                              update_client_contact_numbers, assign_servicerep, fetch_client_tasks)
-from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
-    get_client_voice_communication, create_presigned_url
+from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_voice_communication, \
+    create_presigned_url, get_sales_and_service_communication_records
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions,
                                                             get_security_questions, complete_signup, pull_credit_report)
 from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.debt_service import scrape_credit_report
+from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc,
+                                              allowed_doc_file_kinds, create_doc_manual, attach_file_to_doc, create_doc_note)
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user, get_a_user
-from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc,
-    allowed_doc_file_kinds, create_doc_manual, attach_file_to_doc, create_doc_note)
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto, TaskDto
@@ -324,7 +324,7 @@ class ClientCommunications(Resource):
             date_range_filter(filter)
 
             date_filter_fields = filter.get('dt_fields', [])
-            result = get_communication_records(filter, comm_types_set, clients=client, date_filter_fields=date_filter_fields)
+            result = get_sales_and_service_communication_records(filter, comm_types_set, clients=client, date_filter_fields=date_filter_fields)
 
             return sorted(result, key=lambda record: record.receive_date, reverse=True)
 
