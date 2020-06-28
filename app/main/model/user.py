@@ -1,6 +1,7 @@
 import datetime
 import enum
 
+from app.main.core.rac import RACRoles
 from app.main.model.rac import RACRole
 from .. import db, flask_bcrypt
 
@@ -53,6 +54,41 @@ class User(db.Model):
     @property
     def full_name(self):
         return "{} {}".format(self.first_name, self.last_name)
+
+    @property
+    def is_admin(self):
+        admin_roles = RACRoles.ADMIN, RACRoles.SUPER_ADMIN
+        if RACRoles.from_str(self.role.name) in admin_roles:
+            return True
+        return False
+
+    @property
+    def is_manager(self):
+        manager_roles = RACRoles.DOC_PROCESS_MGR, RACRoles.OPENER_MGR, RACRoles.SALES_MGR, RACRoles.SERVICE_MGR
+        if RACRoles.from_str(self.role.name) in manager_roles:
+            return True
+        return False
+
+    @property
+    def is_opener_account(self):
+        opener_roles = RACRoles.OPENER_MGR, RACRoles.OPENER_REP
+        if RACRoles.from_str(self.role.name) in opener_roles:
+            return True
+        return False
+
+    @property
+    def is_sales_account(self):
+        sales_roles = RACRoles.SALES_MGR, RACRoles.SALES_REP
+        if RACRoles.from_str(self.role.name) in sales_roles:
+            return True
+        return False
+
+    @property
+    def is_service_account(self):
+        service_roles = RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP
+        if RACRoles.from_str(self.role.name) in service_roles:
+            return True
+        return False
 
     def __repr__(self):
         return "<User '{}'>".format(self.username)
