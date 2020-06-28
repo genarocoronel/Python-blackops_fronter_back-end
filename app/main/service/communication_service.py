@@ -79,9 +79,9 @@ def get_client_voice_communications(clients: Union[Client, List[Client]],
 
     if clients:
         if isinstance(clients, list):
-            client_comms_filter = client_comms_filter.filter(or_(Client.id == client.id for client in clients))
+            client_comms_filter = client_comms_filter.filter(or_(ClientVoiceCommunication.client_id == client.id for client in clients))
         else:
-            client_comms_filter = client_comms_filter.filter(Client.id == clients.id)
+            client_comms_filter = client_comms_filter.filter(ClientVoiceCommunication.client_id == clients.id)
 
     client_comms_filter = build_query_from_dates(client_comms_filter, request_filter['from_date'], request_filter['to_date'],
                                                  VoiceCommunication,
@@ -102,9 +102,9 @@ def get_candidate_voice_communications(candidates: Union[Candidate, List[Candida
     if candidates:
         if isinstance(candidates, list):
             candidate_comms_filter = candidate_comms_filter.filter(
-                or_(Candidate.id == candidate.id for candidate in candidates))
+                or_(CandidateVoiceCommunication.candidate_id == candidate.id for candidate in candidates))
         else:
-            candidate_comms_filter = candidate_comms_filter.filter(Candidate.id == candidates.id)
+            candidate_comms_filter = candidate_comms_filter.filter(CandidateVoiceCommunication.candidate_id == candidates.id)
 
     candidate_comms_filter = build_query_from_dates(candidate_comms_filter, request_filter['from_date'], request_filter['to_date'],
                                                     VoiceCommunication,
