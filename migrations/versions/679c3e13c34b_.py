@@ -1,7 +1,7 @@
 """Tickets
 
 Revision ID: 679c3e13c34b
-Revises: 68d42b11eae0
+Revises: ee5919296c72
 Create Date: 2020-06-24 17:54:06.280294
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '679c3e13c34b'
-down_revision = '68d42b11eae0'
+down_revision = 'ee5919296c72'
 branch_labels = None
 depends_on = None
 
