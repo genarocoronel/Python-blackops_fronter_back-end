@@ -121,6 +121,7 @@ class AppointmentDto:
 
 class CallsheetDto:
     api = Namespace('callsheets', description='Callsheet related operations')
+    callsheet_upload = parsers.doc_upload
     callsheet = api.model('callsheet', {
         'public_id': fields.String(required=False, description='The Callsheet public ID'),
         'callsheet_date': fields.DateTime(required=True, description='Date of receiving a call from collection company'),
@@ -133,6 +134,7 @@ class CallsheetDto:
         'received_on_phone_type': fields.String(required=True, description='The Client phone type receiving collecotr call. Valid values: cell, home, work'),
         'notes': fields.String(required=False, description='Optional Notes, if any'),
         'is_file_attached': fields.Boolean(required=False, description='Flag indicating if a file was attached with Callsheet. Default false'),
+        'docproc': fields.String(required=False, description='Docproc, if any'),
         'inserted_on': fields.DateTime(required=False),
         'updated_on': fields.DateTime(required=False)
     })
@@ -145,5 +147,7 @@ class CallsheetDto:
         'collector_name': fields.String(required=True, description='The name of the collector'),
         'received_from_phone_number': fields.String(required=True, description='The phone number from which call originated'),
         'received_on_phone_type': fields.String(required=True, description='The Client phone type receiving collecotr call. Valid values: cell, home, work'),
-        'notes': fields.String(required=False, description='Optional Notes, if any')
+        'notes': fields.String(required=False, description='Optional Notes, if any'),
+        'is_file_attached': fields.Boolean(required=False, description='Flag indicating if a file was attached with Callsheet. Default false'),
+        'docproc': fields.String(required=False, description='Docproc, if any'),
     })

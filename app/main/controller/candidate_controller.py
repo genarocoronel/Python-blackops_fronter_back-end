@@ -26,7 +26,10 @@ from app.main.service.communication_service import parse_communication_types, da
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions, complete_signup,
                                                             get_security_questions,
-                                                            register_fraud_insurance, get_account_password, pull_credit_report)
+                                                            register_fraud_insurance, pull_credit_report, 
+                                                            get_account_credentials)
+from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid, 
+    allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file)
 from app.main.util.dto import CandidateDto
 from app.main.util.parsers import filter_request_parse
 
@@ -50,6 +53,8 @@ _candidate_monthly_expense = CandidateDto.candidate_monthly_expense
 _update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
 _candidate_address = CandidateDto.candidate_address
 _update_candidate_addresses = CandidateDto.update_candidate_addresses
+_candidate_doc = CandidateDto.candidate_doc
+_doc_upload = CandidateDto.doc_upload
 
 
 #### request params
@@ -103,6 +108,8 @@ class GetCandidates(Resource):
 class CandidateFilter(Resource):
     @api.doc('Candidates filter with pagination info')
     @api.marshal_with(_candidate_pagination)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self):
         """ Get filtered Candidates """
         # filter args
@@ -120,12 +127,15 @@ class UpdateCandidate(Resource):
     @api.marshal_with(_candidate)
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
+
         if not candidate:
             api.abort(404, **error_response)
         return candidate, 200
 
     @api.doc('update candidate')
     @api.expect(_update_candidate, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_id):
         data = request.json
         _convert_payload_datetime_values(data, 'dob')
@@ -168,6 +178,8 @@ class CandidateAssignment(Resource):
 class CandidateIncomeSources(Resource):
     @api.doc('get candidate income sources')
     @api.marshal_list_with(_candidate_income)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -181,6 +193,8 @@ class CandidateIncomeSources(Resource):
 
     @api.doc('update candidate income sources')
     @api.expect([_update_candidate_income], validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -200,6 +214,8 @@ class CandidateIncomeSources(Resource):
 class CandidateMonthlyExpenses(Resource):
     @api.doc('get candidate monthly expenses')
     @api.marshal_list_with(_candidate_monthly_expense)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -213,6 +229,8 @@ class CandidateMonthlyExpenses(Resource):
 
     @api.doc('update candidate monthly expenses')
     @api.expect([_update_candidate_monthly_expense], validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -232,6 +250,8 @@ class CandidateMonthlyExpenses(Resource):
 class CandidateContactNumbers(Resource):
     @api.doc('get candidate contact numbers')
     @api.marshal_list_with(_candidate_number)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -245,6 +265,8 @@ class CandidateContactNumbers(Resource):
 
     @api.doc('update candidate contact numbers')
     @api.expect([_update_candidate_number], validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -265,6 +287,8 @@ class CandidateCommunications(Resource):
     @api.param('_from', 'Start date of communications to query (YYYY-MM-DD)')
     @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
     @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         """ Get all forms of communication for given client """
         candidate, error_response = _handle_get_candidate(candidate_id)
@@ -285,6 +309,8 @@ class CandidateCommunications(Resource):
 @api.route('/<candidate_id>/communications/<communication_id>/file')
 class CandidateCommunicationsFile(Resource):
     @api.doc('Get communications audio file')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id, communication_id):
         """ Get voice communication file url """
         candidate, error_response = _handle_get_candidate(candidate_id)
@@ -309,6 +335,8 @@ class CandidateCommunicationsFile(Resource):
 class CandidateUpload(Resource):
     @api.doc('create candidates from file')
     @api.expect(_candidate_upload, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def post(self):
         """ Creates Candidates from file """
 
@@ -336,6 +364,8 @@ class CandidateUpload(Resource):
 class CandidateImports(Resource):
     @api.doc('retrieve all imports efforts')
     @api.marshal_list_with(_import, envelope='data')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self):
         """ Get all Candidate Imports """
         imports = get_all_candidate_imports()
@@ -348,6 +378,8 @@ class CandidateImports(Resource):
 class CandidateImportRecords(Resource):
     @api.doc('retrieve candidate import information')
     @api.marshal_with(_import)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self, public_id):
         """ Get Candidate Import Information """
         candidate_import = CandidateImport.query.filter_by(public_id=public_id).first()
@@ -391,6 +423,8 @@ def _handle_get_credit_report(candidate):
 class CreateCreditReportAccount(Resource):
     @api.doc('Create credit report account for Candidate. This is Step #1 in process.')
     @api.expect(_new_credit_report_account, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def post(self, candidate_public_id):
         request_data = request.json
 
@@ -444,6 +478,8 @@ class CreateCreditReportAccount(Resource):
 class UpdateCreditReportAccount(Resource):
     @api.doc('update credit report account. This is step #2, and #4 in the process.')
     @api.expect(_update_credit_report_account, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_public_id, public_id):
         """ Update Credit Report Account """
         candidate, error_response = _handle_get_candidate(candidate_public_id)
@@ -513,6 +549,8 @@ class UpdateCreditReportAccount(Resource):
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
 class CreditReportAccountSecurityQuestions(Resource):
     @api.doc('get credit report account security questions. This is step #3 in process.')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_public_id, credit_account_public_id):
         """ Get Available Security Questions"""
         candidate, error_response = _handle_get_candidate(candidate_public_id)
@@ -556,6 +594,8 @@ class CreditReportAccountSecurityQuestions(Resource):
 @api.param('public_id', 'The Credit Report Account Identifier')
 class CreditReporAccounttVerification(Resource):
     @api.doc('get verification questions. Step #5 in process.')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_public_id, public_id):
         """ Get Account Verification Questions """
         candidate, error_response = _handle_get_candidate(candidate_public_id)
@@ -602,6 +642,8 @@ class CreditReporAccounttVerification(Resource):
 
     @api.doc('submit answers to verification questions. Step #6 in process.')
     @api.expect(_credit_account_verification_answers, validate=False)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_public_id, public_id):
         """ Submit Account Verification Answers """
         candidate, error_response = _handle_get_candidate(candidate_public_id)
@@ -659,6 +701,8 @@ class CreditReporAccounttVerification(Resource):
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
 class CompleteCreditReportAccoxnt(Resource):
     @api.doc('complete credit report account signup. Step #7 and final step in process.')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_public_id, credit_account_public_id):
         """ Complete Credit Report Account Sign Up"""
         candidate, error_response = _handle_get_candidate(candidate_public_id)
@@ -700,84 +744,14 @@ class CompleteCreditReportAccoxnt(Resource):
         }
         return response_object, 200
 
-    # @api.doc('submit answer to security question')
-    # @api.expect(_update_credit_report_account, validate=True)
-    # def put(self, candidate_public_id, credit_account_public_id):
-    #     """ Submit Answer to Security Question """
-    #     try:
-    #         candidate, error_response = _handle_get_candidate(candidate_public_id)
-    #         if not candidate:
-    #             api.abort(404, **error_response)
-
-    #         account, error_response = _handle_get_credit_report(candidate)
-    #         if not account:
-    #             return error_response
-
-    #         data = request.json
-    #         update_customer(account.customer_token, data, account.tracking_token)
-    #         account.status = CreditReportSignupStatus.FULL_MEMBER_LOGIN
-    #         update_credit_report_account(account)
-
-    #         response_object = {
-    #             'success': True,
-    #             'message': 'Successfully submitted security question answer'
-    #         }
-    #         return response_object, 200
-
-    #     except ServiceProviderLockedError as e:
-    #         response_object = {
-    #             'success': False,
-    #             'message': 'Cannot sign up for new Credit Account due to a service provider Locked issue, {str(e)}'
-    #         }
-    #         return response_object, 409
-    #     except Exception as e:
-    #         response_object = {
-    #             'success': False,
-    #             'message': str(e)
-    #         }
-    #         return response_object, 500
-
-
-@api.route('/<candidate_public_id>/credit-report/account/password')
-@api.param('candidate_public_id', 'The Candidate Identifier')
-class CreditReportAccountPassword(Resource):
-    @api.doc('credit report account password')
-    def get(self, candidate_public_id):
-        """ Retrieve Candidate Credit Report Account Password"""
-        try:
-            candidate, error_response = _handle_get_candidate(candidate_public_id)
-            if not candidate:
-                api.abort(404, **error_response)
-
-            credit_report_account = candidate.credit_report_account
-            if not credit_report_account:
-                response_object = {
-                    'success': False,
-                    'message': 'No Credit Report Account exists'
-                }
-                return response_object, 404
-
-            pwd = get_account_password(credit_report_account)
-
-        except Exception as e:
-            response_object = {
-                'success': False,
-                'message': str(e)
-            }
-            return response_object, 500
-
-        response_object = {
-            'success': True,
-            'password': pwd
-        }
-        return response_object, 200
-
 
 @api.route('/<candidate_public_id>/credit-report/account/<credit_account_public_id>/fraud-insurance/register')
 @api.param('candidate_public_id', 'The Candidate Identifier')
 @api.param('credit_account_public_id', 'The Credit Report Account Identifier')
 class CandidateFraudInsurance(Resource):
     @api.doc('register candidate for fraud insurance')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def post(self, candidate_public_id, credit_account_public_id):
         candidate, error_response = _handle_get_candidate(candidate_public_id)
         if not candidate:
@@ -825,12 +799,34 @@ class CandidateFraudInsurance(Resource):
         return response_object, 200
 
 
+@api.route('/<candidate_id>/credit-report/account/credentials')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateCReportCredentials(Resource):
+    @api.doc('Get Candidate SCredit Acc credentials')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
+    def get(self, candidate_id):
+        """ Get Candidate SCredit Acc credentials """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        if not candidate.credit_report_account:
+            api.abort(404, 'This Candidate does not have a SCredit account')
+
+        credentials_decrypted = get_account_credentials(candidate)
+        return credentials_decrypted, 200
+
+
 @api.route('/<candidate_id>/employments')
 @api.param('candidate_id', 'Candidate public identifier')
 @api.response(404, 'Candidate not found')
 class CandidateEmployments(Resource):
     @api.doc('get candidate employments')
     @api.marshal_list_with(_candidate_employment)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -844,6 +840,8 @@ class CandidateEmployments(Resource):
 
     @api.doc('update candidate employment')
     @api.expect([_update_candidate_employment], validate=False)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -865,6 +863,8 @@ class CandidateAddresses(Resource):
     @api.response(200, 'Address successfully created')
     @api.doc('create new address')
     @api.expect([_update_candidate_addresses], validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def put(self, candidate_id):
         """ Creates new Address """
         addresses = request.json
@@ -875,6 +875,8 @@ class CandidateAddresses(Resource):
 
     @api.doc('get candidate addresses')
     @api.marshal_list_with(_candidate_address)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
         if not candidate:
@@ -893,6 +895,8 @@ class CandidateAddresses(Resource):
 class CandidateToLead(Resource):
     @api.response(200, 'Address successfully created')
     @api.doc('Convert a candidate to a lead')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def post(self, candidate_id):
         """ Convert Candidate to Lead """
         candidate, error_response = _handle_get_candidate(candidate_id)
@@ -910,3 +914,110 @@ class CandidateToLead(Resource):
         pull_credit_report(credit_report_account)
 
         return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200
+
+
+@api.route('/<candidate_id>/doc')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateDoc(Resource):
+    @api.doc('Creates a Doc for a Candidate')
+    @api.expect(_candidate_doc, validate=True)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def post(self, candidate_id):
+        """ Creates a Doc for a Candidate """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+
+        request_data = request.json
+        
+        try:
+            doc = create_doc_candidate(request_data, candidate)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error creating doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error creating doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to create Doc', success=False)
+
+        return doc, 200
+
+    @api.doc('Gets Docs for a Candidate')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def get(self, candidate_id):
+        """ Gets Docs for a Candidate """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+        
+        return get_all_docs_candidate(candidate), 200
+
+
+@api.route('/<candidate_id>/doc/<doc_id>/upload')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.param('doc_id', 'Doc public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateDocUpload(Resource):
+    @api.doc('Uploads a File for a Candidate Doc')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def post(self, candidate_id, doc_id):
+        """ Uploads a File for a Candidate Doc """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+
+        doc = get_doc_candidate_by_pubid(doc_id, True)
+        if not doc:
+            api.abort(404, message='That Candidate Doc could not be found.', success=False)
+
+        args = _doc_upload.parse_args()
+        file = args['doc_file']
+
+        if not file:
+            api.abort(400, message='Doc file is missing from the request.', success=False)
+        elif file.filename == '':
+            api.abort(400, message='No Doc file was selected.', success=False)
+
+        if not allowed_doc_file_kinds(file.filename):
+            api.abort(400, message='That Doc file kind is not allowed. Try PDF, PNG, JPG, JPEG, or GIF.', success=False)
+
+        updated_doc = attach_file_to_doc_candidate(doc, file)
+
+        return updated_doc, 200
+
+
+@api.route('/<candidate_id>/doc/<doc_id>/file')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.param('doc_id', 'Doc public identifier')
+@api.response(404, 'Candidate not found')
+class DocFile(Resource):
+    @api.doc('Gets a Doc File for a Candidate')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
+        RACRoles.OPENER_REP])
+    def get(self, candidate_id, doc_id):
+        """ Gets a Candidate Doc File stream """
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, message='That Candidate could not be found.', success=False)
+
+        doc = get_doc_candidate_by_pubid(doc_id, True)
+        if not doc:
+            api.abort(404, message='That Doc could not be found.', success=False)
+        
+        try:
+            return stream_doc_file(doc)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error getting File for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to get File for Doc with ID {doc_id}', success=False)

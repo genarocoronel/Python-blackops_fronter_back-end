@@ -232,7 +232,7 @@ class AuthDto:
     rac_roles = api.model('rac_role', {
         'id': fields.String(required=False),
         'name': fields.String(required=True, example='opener_rep'),
-        'name_friendly': fields.String(required=False, example='Opener Rep'),
+        'name_friendly': fields.Integer(required=False, example='Opener Rep'),
         'description': fields.String(required=True, example='Opener Rep Role'),
         'inserted_on': fields.DateTime(required=False),
         'updated_on': fields.DateTime(required=False),
@@ -425,6 +425,7 @@ class ClientDto:
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
+        'friendly_id': fields.Integer(description='client friendly identifier'),
         'credit_report_account': fields.Nested(credit_report_account),
         'account_manager': fields.String(attribute='account_manager.full_name'),
     })
@@ -659,6 +660,7 @@ class LeadDto:
     })
     lead = api.model('lead', {
         'public_id': fields.String(description='lead identifier'),
+        'friendly_id': fields.Integer(description='lead friendly identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
         'middle_initial': fields.String(),
@@ -729,6 +731,7 @@ class LeadDto:
         'first_name': fields.String(description='lead first name'),
         'last_name': fields.String(description='lead last name'),
         'public_id': fields.String(),
+        'friendly_id': fields.Integer(description='lead friendly identifier'),
         'middle_initial': fields.String(),
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
@@ -984,6 +987,15 @@ class CandidateDto:
         }), required=True, skip_none=True)
     })
     candidate_communication = api.model('communication', _communication)
+    candidate_doc = api.model('candidate_disposition', {
+        'public_id': fields.String(required=False),
+        'doc_name': fields.String(required=True),
+        'type': fields.String(required=False),
+        'file_name': fields.String(required=False),
+        'inserted_on': fields.DateTime(required=False),
+        'updated_on': fields.DateTime(required=False),
+    })
+    doc_upload = parsers.doc_upload
 
 
 class TestAPIDto:

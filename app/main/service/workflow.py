@@ -104,7 +104,9 @@ class DocprocWorkflow(Workflow):
         if self.status == DocprocStatus.NEW.value:
             self.status = DocprocStatus.WAIT_AM_REVIEW.value
             client = self._object.client
-            self.owner = client.account_manager_id
+            # Note that there are cases where Client is not yet set for a Doc
+            if client:
+                self.owner = client.account_manager_id
             self._create_task() 
             self.save()
 

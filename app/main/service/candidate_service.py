@@ -4,6 +4,7 @@ import datetime
 from phonenumbers import PhoneNumber
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
+from app.main.core.rac import RACRoles
 from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
@@ -19,7 +20,7 @@ from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
 from app.main.service.client_service import create_client_from_candidate
 
-from flask import current_app as app
+from flask import current_app as app, g
 
 from app.main.util.query import build_query_from_dates
 
@@ -98,8 +99,10 @@ def update_candidate(public_id, data):
                     desired_disposition = CandidateDisposition.query.filter_by(value=data.get(attr)).first()
                     # Do not update if disposition is unchanged, especially for internally managed dipositions
                     if desired_disposition.id != candidate.disposition_id:
-                        if desired_disposition.select_type == CandidateDispositionType.MANUAL:
+                        user_role = g.current_user['rac_role']
+                        if user_role == RACRoles.ADMIN.value or user_role == RACRoles.SUPER_ADMIN.value or desired_disposition.select_type == CandidateDispositionType.MANUAL:
                             setattr(candidate, 'disposition_id', desired_disposition.id)
+
                         else:
                             response_object = {
                                 'success': False,
@@ -439,6 +442,8 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                      pageno=1, search_fields=None, search_val="",
                      dt_fields=None, from_date=None, to_date=None,
                      numeric_fields=None):
+    has_prequalnum_filter = False
+    
     try:
         # sort
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
@@ -455,6 +460,9 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
             _and_filts = []
 
             for field in search_fields:
+                if field == 'prequal_number':
+                    has_prequalnum_filter = True
+
                 filt = None
                 tokens = field.split(':')
                 and_exp = False
@@ -537,7 +545,14 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
         query = query.order_by(sort).paginate(pageno, limit, False)
 
         candidates = query.items
-        # print("query,", query)
+        # Flip status from IMPORTED to REQUESTED and update disposition upon first search by prequal
+        if candidates and has_prequalnum_filter:
+            disp_requested = CandidateDisposition.query.filter_by(value='New Lead').first()
+            for tmp_candidate in candidates:
+                tmp_candidate.disposition_id = disp_requested.id
+                tmp_candidate.status = CandidateStatus.WORKING
+                save_changes(tmp_candidate)
+        
         return {"candidates": candidates, "page_number": pageno, "total_number_of_records": total, "limit": limit}
 
     except Exception as err:
