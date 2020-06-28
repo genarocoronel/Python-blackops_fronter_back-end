@@ -56,6 +56,7 @@ class Client(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True)
+    friendly_id = db.Column(db.Integer)
     inserted_on = db.Column(db.DateTime, nullable=False)
     type = db.Column(db.Enum(ClientType), nullable=False, default=ClientType.lead)
 

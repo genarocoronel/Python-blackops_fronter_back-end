@@ -1,4 +1,5 @@
 import uuid
+import datetime
 
 from app.main import db
 from app.main.core.errors import NoDuplicateAllowed, BadRequestError, NotFoundError
@@ -7,9 +8,11 @@ from app.main.core.types import CustomerType
 from app.main.model.candidate import Candidate
 from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportSignupStatus, CreditReportData
+from app.main.model.credit_report_account_access import CreditReportAccountAccess
 from app.main.service.smartcredit_service import (start_signup_session, create_customer, update_customer, 
     fetch_security_questions, get_id_verification_question, answer_id_verification_questions, 
     complete_credit_account_signup, activate_smart_credit_insurance)
+from app.main.service.user_service import get_request_user
 from flask import current_app as app
 
 
@@ -159,11 +162,21 @@ def complete_signup(creport_account):
 
 def get_account_credentials(internal_customer):
     """ Gets SCredit account login pair """
+    curr_user = get_request_user()
+    log_item = CreditReportAccountAccess(
+        public_id=str(uuid.uuid4()),
+        accesed_by_username=curr_user.username,
+        was_allowed=True,
+        credit_report_account_id=internal_customer.credit_report_account.id,
+        inserted_on=datetime.datetime.utcnow()
+    )
+    save_changes(log_item)
+
     credentials = {
         'username': internal_customer.credit_report_account.email, 
         'password': get_account_password(internal_customer.credit_report_account)
         }
-    
+
     return credentials
 
 
