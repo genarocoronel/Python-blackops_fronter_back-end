@@ -1,5 +1,7 @@
 import uuid
 import datetime
+
+import phonenumbers
 from flask import g
 from app.main import db
 from app.main.core.errors import BadRequestError
@@ -7,19 +9,22 @@ from app.main.core.auth import Auth
 from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.candidate import Candidate
 from app.main.model.client import Client
-from app.main.model.user import User, UserClientAssignment, UserLeadAssignment, UserCandidateAssignment
+from app.main.model.pbx import PBXNumber
+from app.main.model.user import User, UserClientAssignment, UserLeadAssignment, UserCandidateAssignment, UserPBXNumber
 from sqlalchemy import func
+
 
 class Struct:
     def __init__(self, **entries):
         self.__dict__.update(entries)
+
 
 def get_request_user():
     # TODO: should modify flask context to set the 'current_user' to a User model instance
     req_user = g.current_user
     user = User.query.filter_by(id=req_user['user_id']).first()
     return user
-    
+
 
 def save_new_user(data, desired_role: RACRoles = None):
     """ Saves a new User
@@ -51,6 +56,7 @@ def save_new_user(data, desired_role: RACRoles = None):
             language=data.get('language'),
             personal_phone=data.get('personal_phone'),
             voip_route_number=data.get('voip_route_number'),
+            pbx_mailbox_id=data.get('pbx_mailbox_id'),
             registered_on=datetime.datetime.utcnow()
         )
 
@@ -168,6 +174,33 @@ def get_candidate_assignments(current_user):
     candidate_assignments = candidate_assignments_filter.all()
     return [assignment.candidate for assignment in candidate_assignments]
 
+
+def get_user_numbers(user):
+    user_pbx_numbers = UserPBXNumber.query.join(User).filter(User.id == user.id).all()
+    return [number.pbx_number for number in user_pbx_numbers]
+
+
+def update_user_numbers(user, new_pbx_numbers=None):
+    prev_pbx_numbers = UserPBXNumber.query.join(User).filter(User.id == user.id).all()
+
+    for prev_number in prev_pbx_numbers:
+        UserPBXNumber.query.filter(UserPBXNumber.user_id == user.id,
+                                   UserPBXNumber.pbx_number_id == prev_number.pbx_number_id).delete()
+
+    if new_pbx_numbers:
+        pbx_numbers = PBXNumber.query.filter(
+            PBXNumber.number.in_([phonenumbers.parse(number, 'US').national_number for number in new_pbx_numbers])).all()
+
+        if len(pbx_numbers) != len(new_pbx_numbers):
+            raise Exception('Invalid PBX Numbers provided')
+
+        for pbx_number in pbx_numbers:
+            new_pbx_number = UserPBXNumber(user=user, pbx_number=pbx_number)
+            db.session.add(new_pbx_number)
+
+    save_changes()
+
+
 class DepartmentService(object):
 
     @property
@@ -187,4 +220,3 @@ class DepartmentService(object):
         obj = cls()
         obj.name = name
         return obj
-
