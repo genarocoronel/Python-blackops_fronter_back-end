@@ -119,7 +119,7 @@ class Handler(abc.ABC):
         employee, employee_number = next(((entity, number) for entity, number in caller_data if isinstance(entity, EMPLOYEE_TYPES)), (None, None))
 
         if pbx_number and customer_number is None:
-            customer_number = [number for number in phone_number_list if number.national_number != pbx_number.number][0]
+            customer_number = [number for number in phone_number_list if number and number.national_number != pbx_number.number][0]
 
         if communication_type in [VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL]:
             new_voice_comm = VoiceCommunication(
@@ -400,8 +400,9 @@ class JiveListener(SqsListener):
 
 
 def run():
-    print("Initializing listener")
+    current_app.logger.info("Initializing listener")
     listener = JiveListener('jive-listener', region_name='us-west-2', interval=10, queue_url=current_app.jive_queue_url)
+    current_app.logger.info(f'Listening to {current_app.jive_queue_url}')
     listener.listen()
 
 
