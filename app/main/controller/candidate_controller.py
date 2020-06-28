@@ -5,7 +5,6 @@ from flask import request
 from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
-from app.main.util.decorator import (token_required, enforce_rac_policy, enforce_rac_required_roles)
 from app.main.config import upload_location
 from app.main.controller import _convert_payload_datetime_values
 from app.main.core.errors import (BadRequestError, ServiceProviderError, ServiceProviderLockedError)
@@ -20,16 +19,17 @@ from app.main.service.candidate_service import (save_new_candidate_import, save_
                                                 update_candidate_monthly_expenses,
                                                 get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead,
                                                 delete_candidates, candidate_filter, assign_openerrep)
-from app.main.service.user_service import get_a_user
 from app.main.service.communication_service import parse_communication_types, date_range_filter, \
-    get_communication_records, get_candidate_voice_communication, create_presigned_url
+    get_candidate_voice_communication, create_presigned_url, get_opener_communication_records
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions, complete_signup,
                                                             get_security_questions,
-                                                            register_fraud_insurance, pull_credit_report, 
+                                                            register_fraud_insurance, pull_credit_report,
                                                             get_account_credentials)
-from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid, 
-    allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file)
+from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid,
+                                              allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file)
+from app.main.service.user_service import get_a_user
+from app.main.util.decorator import (token_required, enforce_rac_required_roles)
 from app.main.util.dto import CandidateDto
 from app.main.util.parsers import filter_request_parse
 
@@ -301,7 +301,7 @@ class CandidateCommunications(Resource):
             date_range_filter(filter)
 
             date_filter_fields = filter.get('dt_fields', [])
-            result = get_communication_records(filter, comm_types_set, candidates=candidate, date_filter_fields=date_filter_fields)
+            result = get_opener_communication_records(filter, comm_types_set, candidates=candidate, date_filter_fields=date_filter_fields)
 
             return sorted(result, key=lambda record: record.receive_date, reverse=True)
 
