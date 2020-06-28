@@ -75,7 +75,7 @@ def seed():
 ## Werkzueg run is replaced with SocketIO run  
 @manager.command
 def run():
-    wscomm.run(app, host='0.0.0.0', port=5000)
+    wscomm.run(app, host='0.0.0.0', port=5000, log_output=True)
    
 
 @manager.command

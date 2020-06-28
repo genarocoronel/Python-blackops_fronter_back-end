@@ -32,3 +32,8 @@ class StateMachineError(Exception):
     """ State machine errors"""
     def __init(self, arg):
         self.args = arg
+
+class ForbiddenError(Exception):
+    """ App exception representing permission error """
+    def __init(self, arg):
+        self.args = arg

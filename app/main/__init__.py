@@ -8,6 +8,7 @@ from flask_bcrypt import Bcrypt
 from redis import Redis
 from werkzeug.contrib.fixers import ProxyFix
 from flask_socketio import SocketIO
+import logging
 
 from .config import config_by_name
 
@@ -23,6 +24,13 @@ def create_app(config_name):
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.config.from_object(config_by_name[config_name])
 
+    # REQUEST LOGS
+    # DEBUG LOGGING 
+    if app.config['DEBUG'] is True:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARNING)
+        
     if app.config['ENABLE_CORS']:
         app.logger.debug('Enabled CORS support')
         CORS(app, resources={r"/*": {"origins": "*"}})
@@ -82,7 +90,8 @@ def create_app(config_name):
     from app.main.channels import ws
     # initialize socketio
     wscomm.init_app(app, 
-                    #logger=True, engineio_logger=True,
+                    # logger=True, 
+                    # engineio_logger=True,
                     message_queue=app.config['REDIS_URL'],
                     path='/channels', 
                     cors_allowed_origins="*",

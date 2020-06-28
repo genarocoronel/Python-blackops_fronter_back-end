@@ -3,13 +3,14 @@ from flask import current_app as app
 import enum
 from .channel import Channel
 from .serializer import serialize
-from app.main.util.dto import TeamDto, TaskDto, ClientDto
+from app.main.util.dto import TeamDto, TaskDto, ClientDto, TicketDto
 
 
 class NotificationType(enum.Enum):
     TASK = 'task'
     TEAMREQUEST = 'team_request'
     CLIENT_NOTICE = 'client_notice'
+    TICKET = 'ticket'
 
 ## this channel is used to send real time announcements
 ## to user dashboards
@@ -73,6 +74,11 @@ class TaskChannel(NotificationChannel):
 class ClientNoticeChannel(NotificationChannel):
     type = NotificationType.CLIENT_NOTICE
     serializer_class = ClientDto.client_notice
+
+## support ticket channel
+class TicketChannel(NotificationChannel):
+    type = NotificationType.TICKET
+    serializer_class = TicketDto.ticket
 
 
 # register the channel

@@ -15,6 +15,9 @@ from app.main.service.sms_service import send_message_to_client
 from headless_pdfkit import generate_pdf
 from app.main.service.third_party.aws_service import upload_to_docproc
 from app.main.model.docproc import DocprocChannel, Docproc
+from app.main.model.user import User
+from app.main.model.rac import RACRole
+from app.main.core.rac import RACRoles
 from app.main.core import io
 import uuid
 
@@ -655,9 +658,17 @@ def send_template(action, **kwargs):
         # set the client
         mail_mgr.client = client
       
-        mail_mgr.account_manager = client.account_manager
+        if client.account_manager:
+            mail_mgr.account_manager = client.account_manager
+        # account manager not present
+        # assign service manager
+        else:
+            svc_mgr = User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()           
+            mail_mgr.account_manager = svc_mgr
+
         mail_mgr.account_manager.phone = '877-711-3709'
         mail_mgr.account_manager.fax = '877-711-3746'
+            
     
     ## debt
     if kwargs.get('debt_id'):
