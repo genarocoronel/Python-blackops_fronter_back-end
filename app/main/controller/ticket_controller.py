@@ -31,6 +31,7 @@ class UserTickets(Resource):
 class TicketItem(Resource):
     @api.doc('get ticket record by identifier')
     @api.marshal_with(_ticket)
+    @token_required
     def get(self, ticket_id):
         try:
             """ get team request for the given id  """
@@ -42,6 +43,7 @@ class TicketItem(Resource):
 
     @api.doc('update ticket record')
     @api.marshal_with(_ticket)
+    @token_required
     def put(self, ticket_id):
         try:
             """ Update ticket record """
