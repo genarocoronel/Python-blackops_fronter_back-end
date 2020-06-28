@@ -1,9 +1,10 @@
 from flask import request, current_app as app
 from flask_restplus import Resource
 
-from app.main.service.communication_service import parse_communication_types, date_range_filter, get_communication_records, \
-    get_voice_communication, create_presigned_url
-from app.main.service.user_service import get_client_assignments, get_candidate_assignments, get_request_user
+from app.main.service.communication_service import parse_communication_types, date_range_filter, \
+    get_voice_communication, create_presigned_url, get_opener_communication_records, get_sales_and_service_communication_records, \
+    get_communication_records
+from app.main.service.user_service import get_request_user
 from app.main.util.decorator import token_required
 from app.main.util.dto import CommunicationDto
 from app.main.util.parsers import filter_request_parse
@@ -21,21 +22,31 @@ class Communications(Resource):
     @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
     @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
     @api.doc(security='apikey')
-    @api.doc('Get all forms of communication for candidates/clients assigned to current user')
+    @api.doc('Get all forms of communication for candidates/clients depending on the requesting user')
     def get(self):
-        """ Get all forms of communication for candidates/clients assigned to current user  """
+        """ Get all forms of communication for candidates/clients depending on the requesting user """
+        current_user = get_request_user()
+
         try:
             filter = filter_request_parse(request)
             comm_types_set = parse_communication_types(request)
 
             date_range_filter(filter)
 
-            current_user = get_request_user()
-            candidates = get_candidate_assignments(current_user)
-            clients = get_client_assignments(current_user)
+            if not current_user.is_manager and not current_user.is_admin:
+                api.abort(401, message=f'{current_user.username} does not have permission to view this endpoint', success=False)
 
             date_filter_fields = filter.get('dt_fields', [])
-            result = get_communication_records(filter, comm_types_set, candidates, clients, date_filter_fields)
+
+            if current_user.is_opener_account:
+                result = get_opener_communication_records(filter, comm_types_set, None, date_filter_fields)
+
+            elif current_user.is_sales_account or current_user.is_service_account:
+                result = get_sales_and_service_communication_records(filter, comm_types_set, None, date_filter_fields)
+
+            else:
+                # current_user has access to all data - get all communication records
+                result = get_communication_records(filter, comm_types_set, None, None, date_filter_fields)
 
             return sorted(result, key=lambda record: record.receive_date, reverse=True)
 
