@@ -24,6 +24,7 @@ from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pu
                                               allowed_doc_file_kinds, create_doc_manual, attach_file_to_doc, create_doc_note)
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user, get_a_user
+from app.main.service.debt_payment_service import fetch_active_contract
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
 from ..util.dto import ClientDto, AppointmentDto, TaskDto
@@ -1028,6 +1029,24 @@ class ClientTasks(Resource):
         else:
             try:
                 return fetch_client_tasks(client)
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+@api.route('/<client_id>/payment/contract')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientActiveContract(Resource):
+    @token_required
+    @api.doc('fetch payment contract')
+    def get(self, client_id):
+        """ Fetch payment contract for the client """
+        client = get_client(public_id=client_id)
+        if not client:
+            api.abort(404)
+        else:
+            try:
+                contract = fetch_active_contract(client)
+                return contract
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 

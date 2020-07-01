@@ -8,6 +8,8 @@ from app.main import db
 from app.main.model.campaign import Campaign
 from app.main.model.candidate import CandidateImport, Candidate
 from app.main.util.dto import CampaignDto
+from app.main.service.campaign_service import CampaignService
+from app.main.util.decorator import token_required
 
 api = CampaignDto.api
 _campaign = CampaignDto.campaign
@@ -17,34 +19,26 @@ _update_campaign = CampaignDto.update_campaign
 
 @api.route('/')
 class CampaignsList(Resource):
-    @api.expect(_new_campaign, validate=True)
+    #@api.expect(_new_campaign, validate=True)
+    @token_required
+    @api.marshal_with(_campaign)
     def post(self):
         """ Create Campaign """
         try:
             payload = request.json
-
-            new_campaign = Campaign(
-                public_id=str(uuid.uuid4()),
-                name=payload.get('name'),
-                description=payload.get('description'),
-                phone=payload.get('phone'),
-                job_number=payload.get('job_number'),
-                offer_expire_date=payload.get('offer_expire_date'),
-                mailing_date=payload.get('mailing_date'),
-                inserted_on=datetime.datetime.utcnow()
-            )
-            db.session.add(new_campaign)
-            db.session.commit()
-            return {'success': True, 'message': 'Successfully created campaign'}, 201
+            cs = CampaignService()
+            return cs.create(payload)
 
         except Exception as e:
             api.abort(500, message=str(e), success=False)
 
+    @token_required
     @api.doc('list all campaigns')
     @api.marshal_list_with(_campaign, envelope='data')
     def get(self):
         """ List all campaigns """
-        campaigns = Campaign.query.all()
+        cs = CampaignService()
+        campaigns = cs.get()
         return campaigns, 200
 
 
@@ -52,21 +46,15 @@ class CampaignsList(Resource):
 @api.param('campaign_id', 'Campaign Identifier')
 @api.response(404, 'Campaign not found')
 class UpdateCampaign(Resource):
-    @api.expect(_update_campaign, validate=True)
+    #@api.expect(_update_campaign, validate=True)
+    @token_required
+    @api.marshal_with(_campaign)
     def put(self, campaign_id):
         """ Update Campaign Information """
         payload = request.json
         try:
-            campaign = Campaign.query.filter_by(public_id=campaign_id).first()
-            campaign.name = payload.get('name') or campaign.name
-            campaign.description = payload.get('description') or campaign.description
-            campaign.phone = payload.get('phone') or campaign.phone
-            campaign.job_number = payload.get('job_number') or campaign.job_number
-            campaign.mailing_date = payload.get('mailing_date') or campaign.mailing_date
-            campaign.offer_expire_date = payload.get('offer_expire_date') or campaign.offer_expire_date
-            db.session.commit()
-
-            return {'success': True, 'message': 'Successfully updated campaign'}, 200
+            service = CampaignService()
+            return service.update(campaign_id, payload)
 
         except Exception as e:
             api.abort(500, message=str(e), success=False)

@@ -125,6 +125,13 @@ class CampaignDto(object):
         'offer_expire_date': fields.String(required=True),
         'mailing_date': fields.String(required=True),
         'mailer_file': FileToFilenameField(required=False),
+        'pinnacle_phone': fields.String(attribute='pinnacle_phone_no'),
+        'marketing_type': fields.String(attribute='marketing_model'), 
+        'mail_type': fields.String(attribute='mail_type'),
+        'num_mail_pieces': fields.Integer(),
+        'cost_per_piece': fields.Float(),  
+        'min_debt': fields.String(attribute='est_debt_range.min'), 
+        'max_debt': fields.String(attribute='est_debt_range.max'), 
         'inserted_on': fields.DateTime()
     })
     new_campaign = api.model('new_campaign', {
@@ -631,10 +638,7 @@ class LeadDto:
         'status': CreditReportAccountStatusField()
     })
     debt_payment_contract = api.model('debt_payment_contract', {
-        'term': fields.Integer(),
-        'payment_start_date': DateFormatField(),
-        'commission_rate': fields.Float(),
-        'sale_date': DateFormatField(),
+        # add 
     })
     user_account = api.model('users', {
         'id': fields.Integer(),
@@ -665,7 +669,7 @@ class LeadDto:
         'last_name': fields.String(required=True, description='lead last name'),
         'middle_initial': fields.String(),
         'email': fields.String(required=True, description='lead email address'),
-        'language': fields.String(required=True, enum=Language._member_names_),
+        'language': fields.String(required=True, default=Language.ENGLISH.name),
         'estimated_debt': fields.Integer(description='client estimated_debt'),
         'ssn': fields.String(description='lead ssn'),
         'dob': DateFormatField(),
@@ -680,8 +684,8 @@ class LeadDto:
         'campaign_name': fields.String(description='campaign name'),
         'lead_source': fields.String(description='lead source'),
         'application_date': DateFormatField(),
-        'bank_account': fields.Nested(bank_account),
         'co_client_id': fields.Integer(attribute='co_client.id'),
+        'bank_account': fields.Nested(bank_account),
         # use 'user_account' - if nested properties of user model is needed
         # for simplicity using only 'full_name' attribute
         'account_manager': fields.String(attribute='account_manager.full_name'),

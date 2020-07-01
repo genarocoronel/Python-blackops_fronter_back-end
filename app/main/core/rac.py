@@ -62,8 +62,12 @@ class RACMgr():
     @classmethod
     def enforce_policy_user_has_role(cls, roles_to_enforce):
         """ Allows if user has one of the Roles specified """
+        if not hasattr(g, 'current_user') or 'rac_role' not in g.current_user:
+            raise Exception("Unauthorized user")
+
+        # if no roles specified - ALLOW ALL
         if not roles_to_enforce:
-            raise Exception('Must provide at least one Role to enforce')
+            return True
 
         """ Always allow for admins """
         if (g.current_user['rac_role'] == RACRoles.SUPER_ADMIN.value

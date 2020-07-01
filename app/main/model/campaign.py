@@ -1,6 +1,23 @@
+import enum
 from flask import current_app
 
 from app.main import db
+
+class MarketingModel(enum.Enum):
+    PI = 'PI'
+    PURL = 'PURL'
+    CUSTOM = 'Custom'
+
+class MailType(enum.Enum): 
+    BPLUSWSNAP = 'B+WSNAP'
+    PINKSNAP = 'PinkSnap'
+    GREENSNAP = 'GreenSnap'
+    BLUESNAP = 'BlueSnap'
+    ENVELOPE = 'Envelope'
+    CUSTOM = 'Custom'
+    TEST = 'Test'
+    TESTPINKSNAP = 'TestPinkSnap'
+    TESTGREENSNAP = 'TestGreenSnap'
 
 
 class Campaign(db.Model):
@@ -22,6 +39,19 @@ class Campaign(db.Model):
     mailing_date = db.Column(db.String(10), nullable=False)
     offer_expire_date = db.Column(db.String(10), nullable=False)
     mailer_file = db.Column(db.String(100), unique=True, nullable=True)
+
+    # Pinnacle number
+    pinnacle_phone_no = db.Column(db.String(100), nullable=True)
+    # Marketing type 
+    marketing_model = db.Column(db.String(40), default=MarketingModel.PI.value)
+    # type of mail
+    mail_type =  db.Column(db.String(40), default=MailType.BPLUSWSNAP.value)
+    # Number of mail pieces
+    num_mail_pieces = db.Column(db.Integer, default=0)
+    cost_per_piece =  db.Column(db.Float, default=0.16)
+    # estimated debt range
+    est_debt_range = db.Column(db.JSON, default={'min': 0, 'max': 0})
+
 
     def launch_task(self, name, *args, **kwargs):
         current_app.queue.enqueue('app.main.tasks.campaign.' + name, self.id, *args, **kwargs)
