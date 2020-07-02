@@ -35,7 +35,7 @@ class Campaign(db.Model):
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=True)
     phone = db.Column(db.String(25), nullable=False)
-    job_number = db.Column(db.String(25), unique=True, nullable=False)
+    job_number = db.Column(db.String(75), unique=True, nullable=False)
     mailing_date = db.Column(db.String(10), nullable=False)
     offer_expire_date = db.Column(db.String(10), nullable=False)
     mailer_file = db.Column(db.String(100), unique=True, nullable=True)
