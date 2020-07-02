@@ -9,7 +9,7 @@ from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
     CandidateMonthlyExpense
-from app.main.model.candidate import CandidateDisposition, CandidateDispositionType
+from app.main.model.candidate import CandidateDisposition, CandidateDispositionType, CandidateContactNumber
 from app.main.model.user import UserCandidateAssignment
 from app.main.model.campaign import Campaign
 from app.main.model.contact_number import ContactNumber, ContactNumberType
@@ -363,35 +363,40 @@ def get_candidate_contact_numbers(candidate):
     return number_data, None
 
 
-def update_candidate_contact_numbers(candidate, contact_numbers):
-    prev_contact_numbers = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+def update_candidate_contact_numbers(candidate, desired_contact_numbers):
+    existing_contact_numbers = CandidateContactNumber.query.join(Candidate).filter(Candidate.id == candidate.id).all()
+    reset_all_existing_phonenums(existing_contact_numbers)
 
-    # create new records first
-    for data in contact_numbers:
-        phone_type = ContactNumberType.query.filter_by(id=data.get('phone_type_id')).first()
-        if phone_type:
+    for phone_data_item in desired_contact_numbers:
+        desired_phone_type = ContactNumberType.query.filter_by(id=phone_data_item.get('phone_type_id')).first()
+        desired_phonenum = phone_data_item.get('phone_number')
+        is_desired_preferred = phone_data_item.get('preferred')
+        
+        if desired_phone_type and desired_phonenum: 
             new_candidate_number = CandidateContactNumber()
-            new_candidate_number.candidate = candidate
+            new_candidate_number.candidate = candidate                
             new_candidate_number.contact_number = ContactNumber(
                 inserted_on=datetime.datetime.utcnow(),
-                contact_number_type_id=data.get('phone_type_id'),
-                phone_number=data.get('phone_number'),
-                preferred=data.get('preferred')
+                contact_number_type_id=phone_data_item.get('phone_type_id'),
+                phone_number=phone_data_item.get('phone_number'),
+                preferred=phone_data_item.get('preferred')
             )
             db.session.add(new_candidate_number)
         else:
             return None, 'Invalid Contact Number Type'
-    save_changes()
 
-    # remove previous records
-    for prev_number in prev_contact_numbers:
-        CandidateContactNumber.query.filter(CandidateContactNumber.candidate_id == candidate.id,
-                                            CandidateContactNumber.contact_number_id == prev_number.contact_number_id).delete()
-        ContactNumber.query.filter_by(id=prev_number.contact_number_id).delete()
     save_changes()
 
     return {'message': 'Successfully updated contact numbers'}, None
 
+
+def reset_all_existing_phonenums(phone_numbers):
+    for phone_num_item in phone_numbers:
+        phone_id = phone_num_item.contact_number_id
+        CandidateContactNumber.query.filter_by(candidate_id=phone_num_item.candidate_id, contact_number_id=phone_id).delete()
+        ContactNumber.query.filter_by(id=phone_num_item.contact_number_id).delete()
+    return True
+    
 
 def get_all_candidate_imports():
     return CandidateImport.query.all()
