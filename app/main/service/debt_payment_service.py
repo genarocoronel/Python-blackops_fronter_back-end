@@ -20,6 +20,27 @@ import uuid
 
 from flask import current_app as app
 
+
+"""
+fetch credit monitoring fee for a given client
+"""
+def get_fees(client):
+    cpp = CreditPaymentPlan.query.filter_by(name='Universal').first()
+    if cpp is None:
+        raise ValueError("Credit payment plan not present")
+
+    credit_monitoring_fee = cpp.monitoring_fee_1signer
+    if client.co_client:
+        credit_monitoring_fee = cpp.monitoring_fee_2signer    
+
+    result = {
+        'credit_monitoring_fee': credit_monitoring_fee,
+        'bank_fee': cpp.monthly_bank_fee,
+    }
+    return result
+
+
+
 """
 Calculate contract values
 """
@@ -83,6 +104,8 @@ def fetch_payment_contract(client):
         pymt_start = contract.payment_start_date
         pymt_rec_begin_date = contract.payment_recurring_begin_date
 
+        
+
         result = {
             "term": term,
             "total_debt" : contract.total_debt,
@@ -136,6 +159,35 @@ def fetch_payment_contract(client):
         result['payment_2nd_date'] = pymt_rec_begin_date.strftime('%m-%d-%Y')
 
     return result
+
+def fetch_active_contract(client):
+   
+    # active contract
+    contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                   status=ContractStatus.ACTIVE).first()
+    if not contract:
+        raise ValueError("Contract not present")
+
+    term = contract.term
+    pymt_start = contract.payment_start_date
+    term_left = term - contract.num_inst_completed
+    balance = term_left * contract.monthly_fee 
+
+    result = {
+        "term": term,
+        "total_debt" : contract.total_debt,
+        "enrolled_debt": contract.enrolled_debt,
+        "monthly_fee": contract.monthly_fee,
+        "total_paid": contract.total_paid,
+        "num_term_paid": contract.num_inst_completed,
+        "term_left": term_left,
+        "balance" : balance,
+        "payment_1st_date": pymt_start.strftime('%m-%d-%Y'),
+    }  
+
+    return result
+        
+
 
 """
 Update Payment contract for a given client
@@ -569,6 +621,7 @@ def fetch_payment_schedule(client):
         }
         result.append(item)
 
+        ## split rows
 
     return result
 
