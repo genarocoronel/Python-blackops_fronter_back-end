@@ -14,8 +14,8 @@ class CampaignService(ApiService):
         mm = MarketingModel[mkt_type]
         mail_type = data.get('mail_type')
         mt = MailType[mail_type]
-        
         name = data.get('name')
+        num_pieces = data.get('num_mail_pieces')
 
         min_debt = data.get('min_debt')
         max_debt = data.get('max_debt')
@@ -23,19 +23,23 @@ class CampaignService(ApiService):
             'min': min_debt if min_debt else 0,
             'max': max_debt if max_debt else 0,
         }
+
+        mail_dtime = datetime.strptime(data.get('mailing_date'), '%Y-%m-%d')
+        month_word = mail_dtime.strftime("%B")
+        job_num = f'{mkt_type}_{month_word}{mail_dtime.day}{mail_dtime.year}_{mail_type}_{num_pieces}_{min_debt}-{max_debt}'
            
         fields = {
             'public_id': str(uuid.uuid4()),
             'name': name,
             'description': data.get('description'),
             'phone': data.get('phone'),
-            'job_number': data.get('job_number'),
+            'job_number': job_num,
             'offer_expire_date': data.get('offer_expire_date'),
             'mailing_date': data.get('mailing_date'),
             'pinnacle_phone_no': data.get('pinnacle_phone'), 
             'marketing_model': mm.name,
             'mail_type': mt.name, 
-            'num_mail_pieces': data.get('num_mail_pieces'),
+            'num_mail_pieces': num_pieces,
             'cost_per_piece': data.get('cost_per_piece'),
             'est_debt_range': debt_range,
             'inserted_on': datetime.utcnow(),
