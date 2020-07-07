@@ -6,7 +6,7 @@ from app.main.model.contact_number import ContactNumberType
 from app.main.model.address import Address, AddressType
 from datetime import datetime, date, timedelta
 from app.main.tasks.mailer import send_payment_reminder, send_nsf_draft_issue
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.main.service import workflow
 
 import logging
@@ -123,19 +123,19 @@ def process_debt_payments():
             # create a transaction 
             if response.status == EftStatus.Failed or response.status == EftStatus.Error:
                 trans_id = 0
-                payment.status = DebtEftStatus.Failed
+                payment.status = DebtEftStatus.NSF.name
             elif response.status == EftStatus.Returned or response.status == EftStatus.Voided:
                 trans_id = 0
-                payment.status = DebtEftStatus.Failed
+                payment.status = DebtEftStatus.NSF.name
             elif response.status == EftStatus.Settled:
                 trans_id = response.transaction_id
-                payment.status = DebtEftStatus.Settled
+                payment.status = DebtEftStatus.CLEARED.name
             else:
                 # print(response.status)
                 # print(response.message)
                 trans_id = response.transaction_id
                 # update the payment schedule
-                payment.status = DebtEftStatus.Processed
+                payment.status = DebtEftStatus.SEND_TO_EFT.name
 
             if not transaction:
                 transaction = DebtPaymentTransaction(trans_id=trans_id,
@@ -164,7 +164,8 @@ def check_eft_status():
         epps_chnl.connect()
         
         # fetch all the EFT transactions
-        payments = DebtPaymentSchedule.query.filter_by(status=DebtEftStatus.Processed).all()
+        payments = DebtPaymentSchedule.query.filter(or_(DebtPaymentSchedule.status==DebtEftStatus.SEND_TO_EFT.name,
+                                                        DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name)).all()
         for payment in payments:
             client = payment.contract.client
             #fetch transaction
@@ -176,21 +177,23 @@ def check_eft_status():
                     eft_transaction.status = eft.status.value 
                     eft_transaction.modified_date = datetime.utcnow()
                     eft_transaction.message = eft.message
-                    if eft.status == EftStatus.Failed or eft.status == EftStatus.Error:
-                        payment.status = DebtEftStatus.Failed
+                    if eft.status == EftStatus.Transmitted:
+                        payment.on_eft_transmitted()
+                    elif eft.status == EftStatus.Failed or eft.status == EftStatus.Error:
+                        payment.on_eft_failed()
                         # send NSF draft issue notice
                         send_nsf_draft_issue(client.id)
                         wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
                         wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
                     elif eft.status == EftStatus.Returned or eft.status == EftStatus.Voided:
-                        payment.status = DebtEftStatus.Failed
+                        payment.on_eft_failed()
                         # send NSF draft issue notice
                         send_nsf_draft_issue(client.id)
                         # Create a task 
                         wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
                         wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
                     elif eft.status == EftStatus.Settled:
-                        payment.status = DebtEftStatus.Settled
+                        payment.on_eft_settled()
                       
             # db session commit
             db.session.commit()

@@ -212,9 +212,8 @@ class ContractWorkflow(Workflow):
                     if count > self._object.term:
                         db.session.delete(record)
                         continue
-
                     # change the monthly fee for the EFTs not processed
-                    if record.status == DebtEftStatus.Scheduled:
+                    if record.status == DebtEftStatus.FUTURE.name:
                         record.contract_id = self._object.id
                         record.amount = self._object.monthly_fee
 
@@ -426,7 +425,7 @@ def open_contract_flow(code, contract, revision=None):
                 
                 day = int(self._object.fields['recur_day'])
                 records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self._object.contract_id,
-                                                                DebtPaymentSchedule.status==DebtEftStatus.Scheduled)).all()
+                                                                DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name)).all()
                 for record in records:
                     record.due_date = record.due_date.replace(day=day)
                 self._task_desc = 'Change Draft date Approved.\
@@ -435,6 +434,7 @@ def open_contract_flow(code, contract, revision=None):
             except Exception as err:
                 raise ValueError("ChangeRecurDay ON TR APPROVED {}".format(str(err)))
 
+    ## TODO CHECK SKIP PAYMENT LOGIC
     class SkipPayment(RevisionWorkflow):
 
         def on_tr_approved(self, teamrequest):
@@ -443,12 +443,11 @@ def open_contract_flow(code, contract, revision=None):
                     return
 
                 # skip the next payment from the schedule
-                records = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==self._object.contract_id,
-                                                                DebtPaymentSchedule.status==DebtEftStatus.Scheduled)).all()
-                for record in records:
-                    due = record.due_date
-                    record.due_date = due + relativedelta(months=1)
-
+                pymt_record = DebtPaymentSchedule.query\
+                                                 .filter(and_(DebtPaymentSchedule.contract_id==self._object.contract_id,
+                                                              DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name))\
+                                                 .order_by(asc(DebtPaymentSchedule.id)).first()
+                pymt_record.status = DebtEftStatus.SKIPPED.name
                 self._task_desc = 'Skip Payment Approved.\
                                    Please communicate with your client.'
                 super().on_tr_approved(teamrequest)

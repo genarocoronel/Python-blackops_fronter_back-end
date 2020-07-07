@@ -6,13 +6,19 @@ from flask import current_app as app
 
 def populate_credit_payment_plan():
     try:
-        plan = CreditPaymentPlan(name='Universal',
-                                 enrolled_percent=33,
-                                 monthly_bank_fee=10,
-                                 minimum_fee=2475,
-                                 monitoring_fee_1signer=59,
-                                 monitoring_fee_2signer=89)
-        db.session.add(plan)
+        plan = CreditPaymentPlan.query.filter_by(name='Universal').first()
+        if not plan:
+            plan = CreditPaymentPlan(name='Universal',
+                                     enrolled_percent=33,
+                                     monthly_bank_fee=20,
+                                     minimum_fee=2475,
+                                     monitoring_fee_1signer=59,
+                                     monitoring_fee_2signer=89)
+            db.session.add(plan)
+        else:
+            # update the existing table (bankfee + benefits)
+            plan.monthly_bank_fee = 20
+
         db.session.commit()
     except Exception as err:
         #app.logger.warning("Error in popuating credit payment plan {}".format(str(err)))

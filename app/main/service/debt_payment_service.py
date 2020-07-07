@@ -21,25 +21,6 @@ import uuid
 from flask import current_app as app
 
 
-"""
-fetch credit monitoring fee for a given client
-"""
-def get_fees(client):
-    cpp = CreditPaymentPlan.query.filter_by(name='Universal').first()
-    if cpp is None:
-        raise ValueError("Credit payment plan not present")
-
-    credit_monitoring_fee = cpp.monitoring_fee_1signer
-    if client.co_client:
-        credit_monitoring_fee = cpp.monitoring_fee_2signer    
-
-    result = {
-        'credit_monitoring_fee': credit_monitoring_fee,
-        'bank_fee': cpp.monthly_bank_fee,
-    }
-    return result
-
-
 
 """
 Calculate contract values
@@ -104,15 +85,13 @@ def fetch_payment_contract(client):
         pymt_start = contract.payment_start_date
         pymt_rec_begin_date = contract.payment_recurring_begin_date
 
-        
-
         result = {
             "term": term,
             "total_debt" : contract.total_debt,
             "enrolled_debt": contract.enrolled_debt,
-            "bank_fee": 10,
+            "bank_fee": contract.bank_fee,
             "min_fee": 0,
-            "credit_monitoring_fee": 59,
+            "credit_monitoring_fee": contract.credit_monitoring_fee,
             "monthly_fee": contract.monthly_fee,
             "total_paid": contract.total_paid,
             "num_term_paid": contract.num_inst_completed,
@@ -132,7 +111,7 @@ def fetch_payment_contract(client):
               "term": 24,
               "total_debt": 0,
               "enrolled_debt": 0,
-              "bank_fee": 10,
+              "bank_fee": 20,
               "min_fee": 0,
               "credit_monitoring_fee": 59,
               "monthly_fee": 0, 
@@ -258,6 +237,8 @@ def update_payment_contract(client, data):
     if planned_contract.enrolled_debt != result['enrolled_debt'] or planned_contract.monthly_fee != result['monthly_fee']:
         planned_contract.enrolled_debt = result['enrolled_debt']
         planned_contract.monthly_fee = result['monthly_fee']
+        planned_contract.credit_monitoring_fee = result['credit_monitoring_fee']
+        planned_contract.bank_fee = result['bank_fee']
         planned_contract.status = ContractStatus.PLANNED 
     
     # commit the changes
@@ -444,6 +425,8 @@ def update_amendment_plan(client, data):
     result = fetch_amendment_plan(client) 
     planned_contract.enrolled_debt = result['new_enrolled_debt']
     planned_contract.monthly_fee = result['new_monthly_fee']
+    planned_contract.credit_monitoring_fee = result['service_fee']
+    planned_contract.bank_fee = result['bank_fee']
     # commit the changes
     db.session.commit()
     return result
@@ -455,6 +438,7 @@ def payment_contract_req4approve(user, client, data):
     note = data.get('note')
     action = ContractAction[action_title]
     requestor = user
+    
     #team_manager = requestor.team_manager
     # update the payment contract
     update_amendment_plan(client, data)
@@ -465,46 +449,24 @@ def payment_contract_req4approve(user, client, data):
     if contract is None:
         raise ValueError("Saved plan not found")
 
-    # fetch the request type based on the action
-    req_type = TeamRequestType.query.filter_by(code=action.name).first()
-    if req_type is None:
-        raise ValueError("Request Type not found")
-
     svc_mgr = User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()
     if svc_mgr is None:
         raise ValueError("Team Manager not found")
-
-    ## create a Team Request
-    team_request = TeamRequest(public_id=str(uuid.uuid4()),
-                               requester_id=requestor.id,
-                               team_manager_id=svc_mgr.id,
-                               request_type_id=req_type.id,
-                               description=req_type.description,
-                               contract_id=contract.id)
-    db.session.add(team_request)
-                            
-    ## send realtime notification to user
-    #notification = Notification(user_id=team_manager.id,
-    #                            type=NotificationType.USER,
-    #                            title='New Team Request',
-    #                            description='Team request for contact amendment')
-     
-    #TODO
-    # send the notification on real time
 
     contract.agent_id = requestor.id
     contract.status = ContractStatus.REQ4APPROVAL
     contract.current_action = action
     db.session.commit()
-
-    # send notification to service manager
-    TeamRequestChannel.send(svc_mgr.id,
-                            team_request)
-
+    ## create a Team Request
+    team_request = create_team_request(requestor,
+                                       svc_mgr,
+                                       note,
+                                       contract)
     return {
         'success': True,
         'message': 'Approval request submitted'
     }
+
 
 def fetch_debt_payment_stats(client_id, start_date=None, end_date=None):
     result = []
@@ -551,6 +513,7 @@ def fetch_payment_schedule(client):
         initial_contract = active_contract
 
     total_fee = initial_contract.monthly_fee * initial_contract.term
+    total_fee = round(total_fee, 2)
     tmp = {
         'id': 0,
         'editable': False,
@@ -602,12 +565,13 @@ def fetch_payment_schedule(client):
         index = index + 1
         balance = round(balance - record.amount, 2)
 
+        eft_status = DebtEftStatus[record.status]
         item = {
             'id': record.id,
-            'editable': True,
+            'editable': False,
             'description': 'Payment {}'.format(index),
             'type': 'Payment',
-            'status': record.status.value,
+            'status': eft_status.value,
             'plus' : '',
             'minus': record.amount, 
             'balance': balance,
@@ -622,6 +586,37 @@ def fetch_payment_schedule(client):
         result.append(item)
 
         ## split rows
+        credit_monitoring_fee = record.contract.credit_monitoring_fee
+        misc_fee =  record.contract.bank_fee
+        rehab_fee = round(record.amount - (credit_monitoring_fee + misc_fee), 2)
+
+        item = {
+            'id': record.id,
+            'editable': False, 
+            'description': 'Credit Monitoring',
+            'type': 'Service Fee',
+            'trans_date': record.transaction.created_date.strftime("%m/%d/%Y") if record.transaction else '',
+            'earned_fee': credit_monitoring_fee,
+        }
+        result.append(item)
+        item = {
+            'id': record.id,
+            'editable': False, 
+            'description': 'Bank fee + Benefits',
+            'type': 'Service Fee',
+            'trans_date': record.transaction.created_date.strftime("%m/%d/%Y") if record.transaction else '',
+            'earned_fee': misc_fee,
+        }
+        result.append(item)
+        item = {
+            'id': record.id,
+            'editable': False, 
+            'description': 'Credit Rehab',
+            'type': 'Service Fee',
+            'trans_date': record.transaction.created_date.strftime("%m/%d/%Y") if record.transaction else '',
+            'earned_fee': rehab_fee,
+        }
+        result.append(item)
 
     return result
 

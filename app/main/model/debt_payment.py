@@ -13,10 +13,12 @@ from app.main.channels.notification import TaskChannel
 
 
 class DebtEftStatus(enum.Enum):
-    Scheduled = 'Scheduled'  # EFT Scheduled , Not forwarded to EPPS
-    Processed = 'Processed'  # Processed, Sent to EPPS
-    Settled   = 'Settled'    # EFT Transfer completed
-    Failed    = 'Failed'     # EFT Payment failed
+    FUTURE = 'Future'  # EFT Scheduled , Not forwarded to EPPS
+    SEND_TO_EFT = 'Send to EFT'  # Processed, Sent to EPPS
+    TRANSMITTED = 'Transmitted'
+    CLEARED   = 'Cleared'    # EFT Transfer completed
+    NSF    = 'NSF'     # EFT Payment failed
+    SKIPPED = 'Skipped' # payment skipped
 
 class ContractStatus(enum.Enum):
     PLANNED = 'planned'
@@ -72,6 +74,9 @@ class DebtPaymentContract(db.Model):
     total_debt = db.Column(db.Float, default=0)
     enrolled_debt = db.Column(db.Float, default=0)
     monthly_fee = db.Column(db.Float, default=0)
+    # credit monitoring fee & bank fee
+    credit_monitoring_fee = db.Column(db.Float, default=0)
+    bank_fee = db.Column(db.Float, default=0)
     # payment info
     total_paid = db.Column(db.Float, default=0)
     num_inst_completed = db.Column(db.Integer, default=0)
@@ -124,30 +129,30 @@ class DebtPaymentSchedule(db.Model):
     due_date = db.Column(db.DateTime, nullable=False)
     amount  = db.Column(db.Float, nullable=False)
     bank_fee = db.Column(db.Float, nullable=True)
-    status  = db.Column(db.Enum(DebtEftStatus), nullable=False, default=DebtEftStatus.Scheduled)
+    status  = db.Column(db.String(24), nullable=False, default=DebtEftStatus.FUTURE.name)
 
     # single EPPS transaction allowed, so One-to-One
     transaction = db.relationship("DebtPaymentTransaction", backref="debt_payment_schedule", uselist=False) 
 
-    def ON_Processed(self):
-        if self.status == DebtEftStatus.Scheduled:
-            contract = self.contract
-            if contract:
-                contract.total_paid = contract.total_paid + self.amount
-                contract.num_inst_completed = contract.num_inst_completed + 1
-            self.status = DebtEftStatus.Processed
+    def on_eft_transmitted(self):
+        if self.status == DebtEftStatus.SEND_TO_EFT.name:
+            self.status = DebtEftStatus.TRANSMITTED.name
+            db.session.commit()    
+
+    def on_eft_failed(self):
+        if self.status == DebtEftStatus.SEND_TO_EFT.name or\
+           self.status == DebtEftStatus.TRANSMITTED.name:
+            self.status = DebtEftStatus.NSF.name
             db.session.commit()
 
-    def ON_Settled(self):
-        if self.status == DebtEftStatus.Scheduled:
+    def on_eft_settled(self):
+        if self.status == DebtEftStatus.SEND_TO_EFT.name or\
+           self.status == DebtEftStatus.TRANSMITTED.name:
             contract = self.contract
             if contract:
                 contract.total_paid = contract.total_paid + self.amount
                 contract.num_inst_completed = contract.num_inst_completed + 1
-            self.status = DebtEftStatus.Settled
-            db.session.commit()
-        elif self.status == DebtEftStatus.Processed:
-            self.status = DebtEftStatus.Settled
+            self.status = DebtEftStatus.CLEARED.name
             db.session.commit()
 
     @classmethod
