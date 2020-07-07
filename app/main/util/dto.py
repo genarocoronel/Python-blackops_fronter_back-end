@@ -1157,6 +1157,7 @@ class TeamDto:
     client = api.model('clients', {
         'id': fields.String(attribute='public_id'),
         'name': fields.String(attribute='full_name'),
+        'account_manager': fields.String(attribute='account_manager.full_name'),
         'disposition': fields.String(attribute='disposition.value')
     })
 
@@ -1176,7 +1177,6 @@ class TeamDto:
     team_request = api.model('team_requests', {
         'id': fields.String(attribute='public_id'),
         'requested_on': DateTimeFormatField(),
-        'account_manager': fields.String(attribute='team_manager.full_name'),
         'team_manager': fields.String(attribute='team_manager.full_name'),
         'req_type': fields.String(attribute='request_type.title'),
         'description': fields.String(),

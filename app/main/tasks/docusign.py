@@ -444,7 +444,7 @@ def send_additional_debts_for_signature(client_id):
             paid_records = DebtPaymentSchedule.query\
                                               .outerjoin(DebtPaymentContract)\
                                               .filter(DebtPaymentContract.client_id==client.id)\
-                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name, DebtPaymentSchedule.status==DebtEftStatus.CLEARED.name))\
                                               .order_by(asc(DebtPaymentSchedule.id)).all()
             for record in paid_records:
                 index = index + 1
@@ -454,7 +454,7 @@ def send_additional_debts_for_signature(client_id):
 
         scheduled = DebtPaymentSchedule.query\
                                        .outerjoin(DebtPaymentContract)\
-                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name))\
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
         for record in scheduled:
             index = index + 1
@@ -602,7 +602,7 @@ def _handle_removal_debts(client_id,
             paid_records = DebtPaymentSchedule.query\
                                               .outerjoin(DebtPaymentContract)\
                                               .filter(DebtPaymentContract.client_id==client.id)\
-                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name, DebtPaymentSchedule.status==DebtEftStatus.CLEARED.name))\
                                               .order_by(asc(DebtPaymentSchedule.id)).all()
             for record in paid_records:
                 index = index + 1
@@ -612,7 +612,7 @@ def _handle_removal_debts(client_id,
 
         scheduled = DebtPaymentSchedule.query\
                                        .outerjoin(DebtPaymentContract)\
-                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name))\
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
         for record in scheduled:
             index = index + 1
@@ -741,7 +741,7 @@ def send_modify_debts_for_signature(client_id):
             paid_records = DebtPaymentSchedule.query\
                                               .outerjoin(DebtPaymentContract)\
                                               .filter(DebtPaymentContract.client_id==client.id)\
-                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name, DebtPaymentSchedule.status==DebtEftStatus.CLEARED.name))\
                                               .order_by(asc(DebtPaymentSchedule.id)).all()
             for record in paid_records:
                 index = index + 1
@@ -751,7 +751,7 @@ def send_modify_debts_for_signature(client_id):
 
         scheduled = DebtPaymentSchedule.query\
                                        .outerjoin(DebtPaymentContract)\
-                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name))\
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
         for record in scheduled:
             index = index + 1
@@ -862,7 +862,7 @@ def send_term_change_for_signature(client_id):
             paid_records = DebtPaymentSchedule.query\
                                               .outerjoin(DebtPaymentContract)\
                                               .filter(DebtPaymentContract.client_id==client.id)\
-                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name, DebtPaymentSchedule.status==DebtEftStatus.CLEARED.name))\
                                               .order_by(asc(DebtPaymentSchedule.id)).all()
             for record in paid_records:
                 index = index + 1
@@ -872,7 +872,7 @@ def send_term_change_for_signature(client_id):
 
         scheduled = DebtPaymentSchedule.query\
                                        .outerjoin(DebtPaymentContract)\
-                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name))\
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
         for record in scheduled:
             index = index + 1
@@ -1140,7 +1140,7 @@ def send_add_coclient_for_signature(client_id):
             paid_records = DebtPaymentSchedule.query\
                                               .outerjoin(DebtPaymentContract)\
                                               .filter(DebtPaymentContract.client_id==client.id)\
-                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name, DebtPaymentSchedule.status==DebtEftStatus.CLEARED.name))\
                                               .order_by(asc(DebtPaymentSchedule.id)).all()
             for record in paid_records:
                 index = index + 1
@@ -1150,7 +1150,7 @@ def send_add_coclient_for_signature(client_id):
 
         scheduled = DebtPaymentSchedule.query\
                                        .outerjoin(DebtPaymentContract)\
-                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name))\
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
         for record in scheduled:
             index = index + 1
@@ -1291,7 +1291,7 @@ def send_remove_coclient_for_signature(client_id):
             paid_records = DebtPaymentSchedule.query\
                                               .outerjoin(DebtPaymentContract)\
                                               .filter(DebtPaymentContract.client_id==client.id)\
-                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.Processed, DebtPaymentSchedule.status==DebtEftStatus.Settled))\
+                                              .filter(or_(DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name, DebtPaymentSchedule.status==DebtEftStatus.CLEARED.name))\
                                               .order_by(asc(DebtPaymentSchedule.id)).all()
             for record in paid_records:
                 index = index + 1
@@ -1301,7 +1301,7 @@ def send_remove_coclient_for_signature(client_id):
 
         scheduled = DebtPaymentSchedule.query\
                                        .outerjoin(DebtPaymentContract)\
-                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.Scheduled))\
+                                       .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name))\
                                        .order_by(asc(DebtPaymentSchedule.id)).all()
         for record in scheduled:
             index = index + 1

@@ -18,7 +18,8 @@ from app.main.channels.notification import TeamRequestChannel
 @enforce_rac_required_roles([RACRoles.SERVICE_MGR,])
 def fetch_team_requests(team_name):
     team_requests = TeamRequest.query.outerjoin(DebtPaymentContract)\
-                                     .outerjoin(Client).all()
+                                     .outerjoin(Client)\
+                                     .outerjoin(TeamRequestNote).all()
     return team_requests
 
 def filter_team_requests(user):
@@ -122,7 +123,7 @@ def add_team_request_notes(team_request, requestor, note ):
     db.session.add(note_record)
     db.session.commit()
 
-    # realtional table
+    # reltional table
     trn = TeamRequestNote(note_id=note_record.id,
                            team_request_id=team_request.id)
     db.session.add(trn)
