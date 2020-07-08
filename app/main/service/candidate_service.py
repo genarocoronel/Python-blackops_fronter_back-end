@@ -372,7 +372,7 @@ def update_candidate_contact_numbers(candidate, desired_contact_numbers):
         desired_phonenum = phone_data_item.get('phone_number')
         is_desired_preferred = phone_data_item.get('preferred')
         
-        if desired_phone_type and desired_phonenum: 
+        if desired_phone_type: 
             new_candidate_number = CandidateContactNumber()
             new_candidate_number.candidate = candidate                
             new_candidate_number.contact_number = ContactNumber(
