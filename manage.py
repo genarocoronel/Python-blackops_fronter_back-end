@@ -36,6 +36,7 @@ from app.main.seed.docproc import seed_docproc_types
 from app.main.seed.collector import seed_debt_collectors
 from app.main.seed.organization import seed_organizations
 from app.main.seed.template import seed_templates
+from app.main.seed.campaign import seed_pinnacle_phone_numbers
 
 app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
 app.register_blueprint(blueprint, url_prefix='/api/v1')
@@ -69,6 +70,7 @@ def seed():
     seed_debt_collectors()
     seed_organizations()
     seed_templates()
+    seed_pinnacle_phone_numbers()
 
 ## launching development server
 ## uses eventlet library for websocket support
