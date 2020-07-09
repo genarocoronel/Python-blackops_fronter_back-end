@@ -125,7 +125,7 @@ class CampaignDto(object):
         'offer_expire_date': fields.String(required=True),
         'mailing_date': fields.String(required=True),
         'mailer_file': FileToFilenameField(required=False),
-        'pinnacle_phone': fields.String(attribute='pinnacle_phone_no'),
+        'pinnacle_phone': fields.String(attribute='pinnacle_phone_num.number'),
         'marketing_type': fields.String(attribute='marketing_model'), 
         'mail_type': fields.String(attribute='mail_type'),
         'num_mail_pieces': fields.Integer(),
@@ -150,6 +150,10 @@ class CampaignDto(object):
         'offer_expire_date': fields.String(required=False),
         'mailing_date': fields.String(required=False)
     })
+    pinnacle_phone_num = api.model('pinnacle_phone_num', {
+        'number': fields.String(required=True),
+    });
+    
 
 
 class UserDto:

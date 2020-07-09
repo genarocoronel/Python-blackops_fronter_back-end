@@ -8,7 +8,7 @@ from app.main import db
 from app.main.model.campaign import Campaign
 from app.main.model.candidate import CandidateImport, Candidate
 from app.main.util.dto import CampaignDto
-from app.main.service.campaign_service import CampaignService
+from app.main.service.campaign_service import CampaignService, PinnaclePhoneNumService
 from app.main.util.decorator import token_required
 
 api = CampaignDto.api
@@ -58,6 +58,19 @@ class UpdateCampaign(Resource):
 
         except Exception as e:
             api.abort(500, message=str(e), success=False)
+
+@api.route('/pin-phone-nums')
+@api.response(404, 'Pinancele Numbers not found')
+class PinnaclePhoneList(Resource):
+    @token_required
+    @api.doc('list all pinnacle phone nums')
+    def get(self): 
+        """ List all pinnacle phone nums """
+        service = PinnaclePhoneNumService() 
+        pp_nums = service.get()
+        result = [ppn.number for ppn in pp_nums]
+        
+        return result, 200 
 
 
 @api.route('/<campaign_id>/mailer-file')

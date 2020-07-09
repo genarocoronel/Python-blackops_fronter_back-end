@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from app.main.model.campaign import Campaign, MarketingModel, MailType
+from app.main.model.campaign import Campaign, MarketingModel, MailType, PinnaclePhoneNumber
 from .apiservice import ApiService
 
 class CampaignService(ApiService):
@@ -28,6 +28,12 @@ class CampaignService(ApiService):
         month_word = mail_dtime.strftime("%B")
         job_num = f'{mkt_type}_{month_word}{mail_dtime.day}{mail_dtime.year}_{mail_type}_{num_pieces}_{min_debt}-{max_debt}'
            
+        pin_phone_no = data.get('pinnacle_phone')
+        ppn = PinnaclePhoneNumber.query.filter_by(number=pin_phone_no).first()
+        if not ppn:
+            # should we create new entry ??
+            raise ValueError("Pinnacle Phone Number not present")
+
         fields = {
             'public_id': str(uuid.uuid4()),
             'name': name,
@@ -36,7 +42,7 @@ class CampaignService(ApiService):
             'job_number': job_num,
             'offer_expire_date': data.get('offer_expire_date'),
             'mailing_date': data.get('mailing_date'),
-            'pinnacle_phone_no': data.get('pinnacle_phone'), 
+            'pinnacle_phone_num_id': ppn.id, 
             'marketing_model': mm.name,
             'mail_type': mt.name, 
             'num_mail_pieces': num_pieces,
@@ -54,5 +60,11 @@ class CampaignService(ApiService):
                 raise ValueError("Campaign name already exists in the database.")
     
 
+    def _queryset(self):
+        return self._model.query.all()
+
+class PinnaclePhoneNumService(ApiService):
+    _model = PinnaclePhoneNumber
+    
     def _queryset(self):
         return self._model.query.all()

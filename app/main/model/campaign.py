@@ -19,6 +19,12 @@ class MailType(enum.Enum):
     TESTPINKSNAP = 'TestPinkSnap'
     TESTGREENSNAP = 'TestGreenSnap'
 
+class PinnaclePhoneNumber(db.Model):
+    """ Campaign Pinnacle Phone Model """
+    __tablename__ = 'pinnacle_phone_numbers'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    number = db.Column(db.String(20), nullable=False, unique=True)
 
 class Campaign(db.Model):
     """ Campaign Model """
@@ -30,6 +36,9 @@ class Campaign(db.Model):
 
     # relationships
     candidates = db.relationship('Candidate', back_populates='campaign', lazy='dynamic')
+    # Pinnacle number
+    pinnacle_phone_num_id = db.Column(db.Integer, db.ForeignKey('pinnacle_phone_numbers.id', name='campaigns_pinnacle_phone_num_id_fkey'))
+    pinnacle_phone_num = db.relationship('PinnaclePhoneNumber', backref='campaigns')
 
     # fields
     name = db.Column(db.String(100), nullable=False, unique=True)
@@ -40,8 +49,6 @@ class Campaign(db.Model):
     offer_expire_date = db.Column(db.String(10), nullable=False)
     mailer_file = db.Column(db.String(100), unique=True, nullable=True)
 
-    # Pinnacle number
-    pinnacle_phone_no = db.Column(db.String(100), nullable=True)
     # Marketing type 
     marketing_model = db.Column(db.String(40), default=MarketingModel.PI.value)
     # type of mail
