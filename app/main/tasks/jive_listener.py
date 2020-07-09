@@ -212,7 +212,7 @@ class JiveFaxHandler(Handler):
         page_count_raw = html.xpath('//div[contains(text(), "Pages")]/following-sibling::div/text()')
         dest_phone_raw = html.xpath('//div[contains(text(), "To")]/following-sibling::div/div/div/a/text()')
 
-        received_date = date_parser.parse(received_date_raw[0]).replace(tzinfo=gettz('America/Los_Angeles'))
+        received_date = date_parser.parse(received_date_raw[0], tzinfos={'PST': gettz('America/Los_Angeles')})
         source_number = phonenumbers.parse(source_phone_raw[0], DEFAULT_PHONE_REGION)
         destination_number = phonenumbers.parse(dest_phone_raw[0], DEFAULT_PHONE_REGION)
         page_count = self._parse_page_count(page_count_raw)
@@ -272,8 +272,7 @@ class JiveVoicemailHandler(Handler):
         dest_mailbox = html.xpath('//div[contains(text(), "Voicemail Box")]/following-sibling::div/text()')[0]
         source_phone_raw = html.xpath('//div[contains(text(), "From")]/following-sibling::div/div[2]/a/text()')
 
-        received_date = date_parser.parse(received_date_raw[0], tzinfos={'PDT': gettz('America/Los_Angeles'),
-                                                                         'PST': gettz('America/Los_Angeles')})
+        received_date = date_parser.parse(received_date_raw[0]).replace(tzinfo=gettz('America/Los_Angeles'))
         source_number = phonenumbers.parse(source_phone_raw[0], DEFAULT_PHONE_REGION)
         duration_seconds = time_parser(duration_raw[0])
 
@@ -294,7 +293,7 @@ class JiveVoicemailHandler(Handler):
             current_app.logger.debug(f'Voicemail file {audio_filename} uploaded to S3 bucket {bucket_name} with key {voicemail_object_key}')
 
         communication_data = self._build_communication_data(source_number, None, employee_mailbox_id=dest_mailbox)
-        communication_data.receive_date = received_date
+        communication_data.receive_date = received_date.astimezone(pytz.UTC)
         communication_data.duration_seconds = duration_seconds
         communication_data.file_size_bytes = file_size
         communication_data.s3_bucket_name = bucket_name
@@ -369,9 +368,10 @@ class JiveRecordingHandler(Handler):
             # resource_group_id = headers.get('x-amz-meta-resource_group_id')  # PBX UUID
             timezone = headers.get('x-amz-meta-timezone')  # PBX timezone
 
+            received_date = datetime.datetime.fromtimestamp(timestamp_mill / 1000, tz=pytz.timezone(timezone))
             communication_data = self._build_communication_data(source_number, destination_number)
             communication_data.provider_record_id = recording_id
-            communication_data.receive_date = datetime.datetime.fromtimestamp(timestamp_mill / 1000, tz=pytz.timezone(timezone))
+            communication_data.receive_date = received_date.astimezone(pytz.UTC)
             communication_data.file_size_bytes = file_size_bytes
             communication_data.s3_bucket_name = bucket_name
             communication_data.s3_object_key = object_key
