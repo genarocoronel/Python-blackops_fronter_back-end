@@ -229,6 +229,10 @@ def create_doc_manual(data, client = None):
         is_published = is_published
     )
 
+    if data['source_channel'] == DocprocChannel.DSTAR.value:
+        doc.source_channel = DocprocChannel.DSTAR.value
+        
+
     for attr in data:
         if hasattr(doc, attr):
             if attr == 'doc_name':
