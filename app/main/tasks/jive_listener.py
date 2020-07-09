@@ -212,8 +212,7 @@ class JiveFaxHandler(Handler):
         page_count_raw = html.xpath('//div[contains(text(), "Pages")]/following-sibling::div/text()')
         dest_phone_raw = html.xpath('//div[contains(text(), "To")]/following-sibling::div/div/div/a/text()')
 
-        received_date = date_parser.parse(received_date_raw[0], tzinfos={'PDT': gettz('America/Los_Angeles'),
-                                                                         'PST': gettz('America/Los_Angeles')})
+        received_date = date_parser.parse(received_date_raw[0]).replace(tzinfo=gettz('America/Los_Angeles'))
         source_number = phonenumbers.parse(source_phone_raw[0], DEFAULT_PHONE_REGION)
         destination_number = phonenumbers.parse(dest_phone_raw[0], DEFAULT_PHONE_REGION)
         page_count = self._parse_page_count(page_count_raw)
@@ -236,7 +235,7 @@ class JiveFaxHandler(Handler):
             current_app.logger.debug(f'Fax file {fax_filename} uploaded to S3 bucket {bucket_name} with key {fax_object_key}')
 
         communication_data = self._build_communication_data(source_number, destination_number)
-        communication_data.receive_date = received_date
+        communication_data.receive_date = received_date.astimezone(pytz.UTC)
         communication_data.file_size_bytes = file_size
         communication_data.s3_bucket_name = bucket_name
         communication_data.s3_object_key = fax_object_key
