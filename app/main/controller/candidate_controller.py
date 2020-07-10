@@ -27,7 +27,7 @@ from app.main.service.credit_report_account_service import (creport_account_sign
                                                             register_fraud_insurance, pull_credit_report,
                                                             get_account_credentials)
 from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid,
-                                              allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file)
+                                              allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file, copy_docs_from_candidate)
 from app.main.service.user_service import get_a_user
 from app.main.util.decorator import (token_required, enforce_rac_required_roles)
 from app.main.util.dto import CandidateDto
@@ -908,10 +908,12 @@ class CandidateToLead(Resource):
             api.abort(404, "No credit report account associated with candidate. Create SC account first.")
 
         app.logger.info("Received request to STU and convert a Candidate to Lead")
-        convert_candidate_to_lead(candidate)
+        client = convert_candidate_to_lead(candidate)
 
         app.logger.info("Requesting Credit Report pull for converted Lead")
         pull_credit_report(credit_report_account)
+
+        copy_docs_from_candidate(candidate, client)
 
         return {"success": True, "message": "Successfully submitted candidate to underwriter"}, 200
 
