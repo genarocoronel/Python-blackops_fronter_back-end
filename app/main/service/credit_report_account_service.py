@@ -236,7 +236,7 @@ def pull_credit_report(creport_account):
     creport_account.registered_fraud_insurance = True
     update_credit_report_account(creport_account, None)
     app.logger.info("Creating job to import Credit Report debts for Lead")
-    scrape_credit_report(credit_report_account, 'Pulling credit report debts for newly created Lead')
+    scrape_credit_report(creport_account, 'Pulling credit report debts for newly created Lead')
 
 
 def get_all_credit_report_accounts():
