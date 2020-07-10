@@ -13,6 +13,7 @@ from app.main.service.smartcredit_service import (start_signup_session, create_c
     fetch_security_questions, get_id_verification_question, answer_id_verification_questions, 
     complete_credit_account_signup, activate_smart_credit_insurance)
 from app.main.service.user_service import get_request_user
+from app.main.service.debt_service import scrape_credit_report
 from flask import current_app as app
 
 
@@ -235,7 +236,7 @@ def pull_credit_report(creport_account):
     creport_account.registered_fraud_insurance = True
     update_credit_report_account(creport_account, None)
     app.logger.info("Creating job to import Credit Report debts for Lead")
-    scrape_credit_report(credit_report_account, 'Pulling credit report debts for Lead')
+    scrape_credit_report(credit_report_account, 'Pulling credit report debts for newly created Lead')
 
 
 def get_all_credit_report_accounts():
