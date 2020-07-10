@@ -136,8 +136,6 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
     save_changes(new_client)
     generate_id_friendly(new_client)
 
-    copy_docs_from_candidate(candidate, new_client)
-    
     return new_client
 
 
