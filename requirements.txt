@@ -68,3 +68,4 @@ phonenumbers==8.11.4
 pytimeparse==1.1.8
 pdfkit==0.6.1
 headless-pdfkit==0.1.5
+openpyxl==3.0.4
