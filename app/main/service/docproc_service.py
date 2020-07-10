@@ -341,6 +341,27 @@ def get_all_docs_candidate(candidate):
     return docs
 
 
+def copy_docs_from_candidate(candidate, client):
+    """ Copies Candidate Docs to Client dossier """
+    candidate_docs = CandidateDoc.query.filter_by(candidate_id=candidate.id).all()
+    if candidate_docs:
+        doc_type = get_doctype_by_name('Smart Credit Report')
+        for cdoc_item in candidate_docs:
+            tmp_doc_data = {
+                'doc_name': 'Portal Callsheet Doc',
+                'source_channel': DocprocChannel.DSTAR.value,
+                'debt_name': 'Multi',
+                'creditor_name': 'Multi',
+                'collector_name': 'Multi',
+                'file_name': cdoc_item.file_name,
+                'orig_file_name': cdoc_item.orig_file_name,
+                'type': {'public_id': doc_type.public_id}
+            }
+            create_doc_manual(tmp_doc_data, client)
+
+    return True
+
+
 def synth_doc(doc):
     datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
     correspondence_date_format = '%Y-%m-%d'

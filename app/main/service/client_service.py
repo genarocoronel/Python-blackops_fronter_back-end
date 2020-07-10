@@ -19,10 +19,6 @@ from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
 from app.main.model.usertask import UserTask
-from app.main.model.docproc import DocprocChannel
-from app.main.model.candidate_docs import CandidateDoc
-from app.main.service.docproc_service import get_doctype_by_name, create_doc_manual
-from app.main.service.candidate_service import get_candidate_by_public_id
 from app.main.channels import notification
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
@@ -137,34 +133,10 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         )
         db.session.add(new_client_employment)
 
-    # Copy Credit Report Doc to Client
-    copy_docs_from_candidate(candidate, new_client)
-
     save_changes(new_client)
     generate_id_friendly(new_client)
 
     return new_client
-
-
-def copy_docs_from_candidate(candidate, client):
-    """ Copies Candidate Docs to Client dossier """
-    candidate_docs = CandidateDoc.query.filter_by(candidate_id=candidate.id).all()
-    if candidate_docs:
-        doc_type = get_doctype_by_name('Smart Credit Report')
-        for cdoc_item in candidate_docs:
-            tmp_doc_data = {
-                'doc_name': 'Portal Callsheet Doc',
-                'source_channel': DocprocChannel.DSTAR.value,
-                'debt_name': 'Multi',
-                'creditor_name': 'Multi',
-                'collector_name': 'Multi',
-                'file_name': cdoc_item.file_name,
-                'orig_file_name': cdoc_item.orig_file_name,
-                'type': {'public_id': doc_type.public_id}
-            }
-            create_doc_manual(tmp_doc_data, client)
-
-    return True
 
 
 def generate_id_friendly(client):
