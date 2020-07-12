@@ -7,7 +7,7 @@ from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientCheckList, \
-    ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus
+    ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus, ClientCampaign
 from app.main.model.user import UserClientAssignment
 from app.main.model.user import UserLeadAssignment
 from app.main.model.employment import Employment
@@ -135,6 +135,13 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
 
     save_changes(new_client)
     generate_id_friendly(new_client)
+
+    # copy the campaign
+    if candidate.campaign:
+        ccamp = ClientCampaign(client_id=new_client.id,
+                               campaign_id=candidate.campaign_id)
+        db.session.add(ccamp)
+        db.session.commit()
 
     return new_client
 

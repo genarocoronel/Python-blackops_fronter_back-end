@@ -4,6 +4,7 @@ from app.main.model.debt_payment import DebtPaymentSchedule, DebtPaymentContract
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from app.main.model.docproc import DocprocStatus
+from app.main.model.client import ClientType
 from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
 from app.main.tasks import channel as wkchannel
@@ -270,22 +271,27 @@ def open_contract_flow(code, contract, revision=None):
                 # create payment schedule
                 DebtPaymentSchedule.create_schedule(self._object)
                 self.status = ContractStatus.ACTIVE
+                # transition lead to client
+                client = self._object.client 
+                client.type = ClientType.client
                 self.save()
                 # add epps customer
                 # register client with EPPS provider
                 pymt_tasks.register_customer(self._client_id)
                 ## send email  
                 ## welcome letter
-                send_welcome_letter(self._client_id)
+                app.queue.enqueue('app.main.tasks.mailer.send_welcome_letter',
+                                  self._client_id)
                 ## privacy policy
-                send_privacy_policy(self._client_id)
+                app.queue.enqueue('app.main.tasks.mailer.send_privacy_policy',
+                                  self._client_id)
                 # download the signed document
                 docusign.download_documents(self._object) 
 
                 # Send a notification through worker channel
-                client = self._object.client 
                 client.msg = "Client signed the contract."
                 account_manager = client.account_manager
+           
                 if account_manager:
                     wkchannel.WkClientNoticeChannel.send(account_manager.id,
                                                          client)                       

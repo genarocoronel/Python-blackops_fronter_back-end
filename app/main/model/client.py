@@ -1,4 +1,5 @@
 import enum
+from sqlalchemy.orm import backref
 from app.main.model.user import User
 
 from .. import db
@@ -185,3 +186,16 @@ class ClientFaxCommunication(db.Model):
 
     client = db.relationship('Client', backref='fax_communication_client_assoc')
     fax_communication = db.relationship('FaxCommunication', backref='client_fax_communication_assoc')
+
+# client campaign association
+class ClientCampaign(db.Model):
+    __tablename__ = "client_campaigns"
+
+    # foreign keys
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('campaigns.id'), primary_key=True)
+
+    # relationships
+    client = db.relationship("Client", backref=backref('campaign_assoc', cascade="all, delete-orphan")) 
+    campaign = db.relationship("Campaign", backref=backref('client_assoc', cascade="all, delete-orphan", lazy='dynamic')) 
+

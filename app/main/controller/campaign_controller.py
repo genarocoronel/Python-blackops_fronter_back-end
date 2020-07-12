@@ -8,7 +8,7 @@ from app.main import db
 from app.main.model.campaign import Campaign
 from app.main.model.candidate import CandidateImport, Candidate
 from app.main.util.dto import CampaignDto
-from app.main.service.campaign_service import CampaignService, PinnaclePhoneNumService
+from app.main.service.campaign_service import CampaignService, PinnaclePhoneNumService, CampaignReportService
 from app.main.util.decorator import token_required
 
 api = CampaignDto.api
@@ -72,6 +72,17 @@ class PinnaclePhoneList(Resource):
         
         return result, 200 
 
+@api.route('/report')
+@api.response(404, 'Campaign report not found')
+class GenerateReport(Resource):
+    @token_required
+    @api.doc('generate campaign report')
+    def get(self):
+        try:
+            service = CampaignReportService()
+            return service.generate_report()
+        except Exception as e:
+            api.abort(500, message=str(e), success=False)
 
 @api.route('/<campaign_id>/mailer-file')
 @api.param('campaign_id', 'Campaign public id')
