@@ -11,7 +11,8 @@ from app.main.service.client_service import (get_all_clients, save_new_client, g
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
-                                             update_client_contact_numbers, assign_servicerep, fetch_client_tasks)
+                                             update_client_contact_numbers, assign_servicerep)
+from app.main.service.client import ClientTaskService, ClientTrService
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_voice_communication, \
     create_presigned_url, get_sales_and_service_communication_records
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
@@ -27,7 +28,7 @@ from app.main.service.user_service import get_request_user, get_a_user
 from app.main.service.debt_payment_service import fetch_active_contract
 from app.main.util.parsers import filter_request_parse
 from ..util.decorator import token_required, enforce_rac_required_roles
-from ..util.dto import ClientDto, AppointmentDto, TaskDto
+from ..util.dto import ClientDto, AppointmentDto, TaskDto, TeamDto
 
 api = ClientDto.api
 _client = ClientDto.client
@@ -54,6 +55,7 @@ _doc_upload = ClientDto.doc_upload
 _doc_update = ClientDto.doc_update
 _doc_note_create = ClientDto.doc_note_create
 _task = TaskDto.user_task
+_team_request = TeamDto.team_request
 
 CLIENT = ClientType.client
 
@@ -1018,19 +1020,39 @@ class ClientDocNote(Resource):
 @api.param('client_id', 'Client public identifier')
 @api.response(404, 'Client not found')
 class ClientTasks(Resource):
-
     @token_required
     @api.doc('fetches service tasks for a given client')
     @api.marshal_list_with(_task)
     def get(self, client_id):
-        client = get_client(public_id=client_id, client_type=CLIENT) 
-        if not client:
-            api.abort(404, "Client not found")
-        else:
-            try:
-                return fetch_client_tasks(client)
-            except Exception as err:
-                api.abort(500, "{}".format(str(err)))
+        try:
+            s = ClientTaskService(public_id=client_id)
+        except Exception as err:
+            api.abort(404, "{}".format(str(err)))
+
+        try:
+            return s.get()
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))
+
+# fetch all the team requests for a given client
+@api.route('/<client_id>/teamrequests')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientTeamRequests(Resource):
+    @token_required
+    @api.doc('fetches team requests for a given client')
+    @api.marshal_list_with(_team_request) 
+    def get(self, client_id):
+        try:
+            s = ClientTrService(public_id=client_id)
+        except Exception as err:
+            api.abort(404, "{}".format(str(err)))
+
+        try:
+            return s.get()
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))
+
 
 @api.route('/<client_id>/payment/contract')
 @api.param('client_id', 'Client public identifier')
