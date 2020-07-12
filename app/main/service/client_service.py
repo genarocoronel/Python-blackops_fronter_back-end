@@ -18,7 +18,6 @@ from app.main.model.credit_report_account import CreditReportAccount, CreditRepo
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
-from app.main.model.usertask import UserTask
 from app.main.channels import notification
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
@@ -168,7 +167,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         # base query
-        query = Client.query.filter_by(type=client_type).outerjoin(ClientDisposition) \
+        query = Client.query.filter(Client.type!=ClientType.coclient).outerjoin(ClientDisposition) \
             .outerjoin(CreditReportAccount) \
             .outerjoin(Address) \
             # .outerjoin(ClientContactNumber)
@@ -785,11 +784,3 @@ def fetch_client_combined_debts(client):
     except Exception as err:
         raise ValueError("Fetch Combined debts error")
 
-# fetch client tasks
-def fetch_client_tasks(client):
-    try:
-        tasks = UserTask.query.filter_by(client_id=client.id).all()
-        return tasks
-
-    except Exception as err:
-        raise ValueError("Fetch client tasks error {}".format(str(err))) 

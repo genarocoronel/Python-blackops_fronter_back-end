@@ -55,6 +55,9 @@ class DepartmentTypeField(fields.String):
 
 class DateTimeFormatField(fields.String):
     def format(self, value):
+        if not value:
+            return ''
+
         return value.strftime("%m-%d-%Y %H:%M")
 
 
@@ -1178,13 +1181,19 @@ class TeamDto:
         'method': fields.String(attribute='method.name'),
     })
 
+    tr_note = api.model('team_request_notes', {
+        'text': fields.String(attribute='note.content'),
+    });
+
     team_request = api.model('team_requests', {
         'id': fields.String(attribute='public_id'),
         'requested_on': DateTimeFormatField(),
+        'modified_on': DateTimeFormatField(),
         'team_manager': fields.String(attribute='team_manager.full_name'),
         'req_type': fields.String(attribute='request_type.title'),
         'description': fields.String(),
         'status': fields.String(attribute='status.name'),
+        'notes': fields.List(fields.Nested(tr_note)),
         'contract': fields.Nested(contract),
         'revision': fields.Nested(revision),
     });
