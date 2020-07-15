@@ -25,6 +25,7 @@ from app.main.service.debt_payment_service import fetch_payment_contract, update
 from app.main.service.debt_service import check_existing_scrape_task, scrape_credit_report, add_credit_report_data, delete_debts, \
     push_debts, update_debt
 from app.main.service.user_service import get_request_user, get_a_user
+from app.main.service.docproc_service import get_docs_for_client, create_doc_manual, get_doc_by_pubid, update_doc
 from app.main.util.decorator import (enforce_rac_required_roles)
 from app.main.util.decorator import token_required
 from ..util.dto import LeadDto, ClientDto
@@ -52,6 +53,7 @@ _co_client = LeadDto.co_client
 _new_credit_report_account = LeadDto.new_credit_report_account
 _update_credit_report_account = LeadDto.update_credit_report_account
 _credit_account_verification_answers = LeadDto.account_verification_answers
+_doc = LeadDto.doc
 
 LEAD = ClientType.lead
 
@@ -1063,3 +1065,21 @@ class LeadPaymentRecord(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
+
+@api.route('/<lead_id>/docs')
+@api.param('lead_id', 'Lead public identifier')
+class LeadDocs(Resource):
+    @api.doc('Get Lead documents')
+    @api.marshal_list_with(_doc)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    def get(self, lead_id):
+        """ Get Lead documents """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        docs = get_docs_for_client(client)
+
+        return docs, 200

@@ -348,7 +348,7 @@ def copy_docs_from_candidate(candidate, client):
         doc_type = get_doctype_by_name('Smart Credit Report')
         for cdoc_item in candidate_docs:
             tmp_doc_data = {
-                'doc_name': 'Portal Callsheet Doc',
+                'doc_name': 'Initial 3B Credit Report',
                 'source_channel': DocprocChannel.DSTAR.value,
                 'debt_name': 'Multi',
                 'creditor_name': 'Multi',
