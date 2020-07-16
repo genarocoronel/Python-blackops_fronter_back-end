@@ -854,7 +854,7 @@ def send_term_change_for_signature(client_id):
         
         # Repayment calculations
         pymt_term = payment_contract.term
-        total_fee = payment_contract.enrolled_debt + (pymt_term * credit_monitoring_fee) + (pymt_term * cpp.bank_fee) 
+        total_fee = payment_contract.enrolled_debt + (pymt_term * credit_monitoring_fee) + (pymt_term * bank_fee) 
         monthly_fee   = payment_contract.monthly_fee
         ## payment schedule start
         index = 0
