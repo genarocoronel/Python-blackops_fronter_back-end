@@ -140,6 +140,9 @@ class ContractWorkflow(Workflow):
         self._task_title = 'Document for review'
         self._task_desc = 'Client signed, verify docusign document'
         if self.status == ContractStatus.APPROVED:          
+            # download the signed document
+            docusign.download_documents(self._object)                
+
             self.status = ContractStatus.SIGNED
             self._create_task(is_worker=True)
             self.save()
@@ -220,8 +223,6 @@ class ContractWorkflow(Workflow):
 
                 db.session.commit()
 
-                # download the signed document
-                docusign.download_documents(self._object)                
 
             
 ## debt payment revision workflow
