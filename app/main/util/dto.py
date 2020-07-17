@@ -859,7 +859,8 @@ class CandidateDto:
     })
     credit_report_account = api.model('credit_report_account', {
         'public_id': fields.String(),
-        'status': CreditReportAccountStatusField()
+        'status': CreditReportAccountStatusField(),
+        'fico' : fields.Integer()
     })
     candidate_disposition = api.model('candidate_dispositions', {
         'value': fields.String(),
