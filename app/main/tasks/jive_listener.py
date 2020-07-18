@@ -72,29 +72,18 @@ class Handler(abc.ABC):
     def _build_communication_data(self, source_number, destination_number, employee_mailbox_id: str = None, employee_caller_id: str = None):
         assert source_number is not None
 
-        registered_pbx_numbers = get_registered_pbx_numbers()  # <= known company numbers registered with PBX
-
         # Client/Candidate called Employee (voicemail)
-        if employee_mailbox_id and destination_number is None:
+        if employee_mailbox_id:
             customer = identify_customer_by_phone(source_number)
             employee = get_user_by_mailbox_id(employee_mailbox_id)
             return CommunicationData(customer, source_number, employee, destination_number)
 
-        # Employee called Client/Candidate
-        if source_number and source_number.national_number in registered_pbx_numbers:
-            customer = identify_customer_by_phone(destination_number)
-            # TODO: identify employee based on caller id; but setting to None for now as it isn't necessary yet to solve
-            # employee = self._search_employee_by_caller_id(employee_caller_id)
-            employee = None
-            return CommunicationData(employee, source_number, customer, destination_number)
-
-        # Client/Candidate called Employee
-        if destination_number and destination_number.national_number in registered_pbx_numbers:
+        employee = None
+        customer = identify_customer_by_phone(destination_number)
+        if customer is None:
             customer = identify_customer_by_phone(source_number)
-            employee = None  # we don't yet have a reliable way to identify the employee that was on the call
-            return CommunicationData(customer, source_number, employee, destination_number)
 
-        return CommunicationData(None, source_number, None, destination_number)
+        return CommunicationData(employee, source_number, customer, destination_number)
 
     def _create_comm_records(self, communication_data: CommunicationData, communication_type: CommunicationType):
         current_app.logger.info('Saving voice communication records')
