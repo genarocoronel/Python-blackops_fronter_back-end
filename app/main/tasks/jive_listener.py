@@ -28,7 +28,6 @@ from app.main.model.client import Client, ClientVoiceCommunication, ClientFaxCom
 from app.main.model.pbx import VoiceCommunication, CommunicationType, PBXNumber, FaxCommunication, VoiceCommunicationType, \
     TextCommunicationType
 from app.main.model.user import User, UserVoiceCommunication, UserFaxCommunication
-from app.main.service.config_service import get_registered_pbx_numbers
 from app.main.service.customer_service import identify_customer_by_phone
 from app.main.service.user_service import get_user_by_mailbox_id
 from app.main.service.docproc_service import create_doc_from_fax
