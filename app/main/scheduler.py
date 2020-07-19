@@ -12,8 +12,8 @@ from flask import current_app as app
 def register_jobs(scheduler):
     try:
         # schedule rsign status check
-        # schedule every 5 minutes
-        scheduler.cron('*/5 * * * *',
+        # schedule every 2 minutes
+        scheduler.cron('*/2 * * * *',
                         func='app.main.tasks.docusign.check_sessions',
                         args=[],
                         description='kron: check_sessions',
