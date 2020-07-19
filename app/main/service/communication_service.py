@@ -6,7 +6,7 @@ from typing import Union, List, AbstractSet, Mapping, Any
 
 import boto3
 from botocore.exceptions import ClientError
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from flask import current_app as app
 
 from app.main.core.errors import ServiceProviderError
@@ -180,6 +180,7 @@ def get_communication_records(request_filter: Mapping[str, Any],
     result = []
     result.extend(get_opener_communication_records(request_filter, comm_types_set, candidates, date_filter_fields))
     result.extend(get_sales_and_service_communication_records(request_filter, comm_types_set, clients, date_filter_fields))
+    result.extend(get_unassigned_voice_communication_records(request_filter, comm_types_set, date_filter_fields))
     return result
 
 
@@ -196,6 +197,23 @@ def get_opener_communication_records(request_filter: Mapping[str, Any],
         candidate_sms_comms = _normalize_sms_comms(get_candidate_sms_communications(candidates, date_filter_fields, request_filter))
         result.extend([record for record in candidate_sms_comms])
     return result
+
+
+def get_unassigned_voice_communication_records(request_filter: Mapping[str, Any],
+                                               comm_types_set: AbstractSet[CommunicationType],
+                                               date_filter_fields: List[str] = {}):
+    unassigned_comms_filter = VoiceCommunication.query.outerjoin(CandidateVoiceCommunication).outerjoin(ClientVoiceCommunication)
+
+    unassigned_comms_filter = build_query_from_dates(unassigned_comms_filter, request_filter['from_date'], request_filter['to_date'],
+                                                     VoiceCommunication,
+                                                     *date_filter_fields)
+    unassigned_comms_filter = unassigned_comms_filter.filter(and_(
+        or_(VoiceCommunication.type == comm_type for comm_type in comm_types_set if isinstance(comm_type, VoiceCommunicationType)),
+        and_(CandidateVoiceCommunication.voice_communication_id == None, ClientVoiceCommunication.voice_communication_id == None))
+    )
+
+    unassigned_voice_comms = unassigned_comms_filter.all()
+    return unassigned_voice_comms
 
 
 def get_sales_and_service_communication_records(request_filter: Mapping[str, Any],
