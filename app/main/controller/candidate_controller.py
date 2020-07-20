@@ -383,15 +383,7 @@ class CandidateImportRecords(Resource):
     def get(self, public_id):
         """ Get Candidate Import Information """
         candidate_import = CandidateImport.query.filter_by(public_id=public_id).first()
-        # candidate_import.tasks.all()
-        if candidate_import:
-            return candidate_import, 200
-        else:
-            response_object = {
-                'success': False,
-                'message': 'Candidate Import does not exist'
-            }
-            api.abort(404, **response_object)
+        return candidate_import, 200
 
 
 def _handle_get_candidate(candidate_public_id):
