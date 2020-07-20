@@ -903,12 +903,17 @@ class CandidateToLead(Resource):
         if not candidate:
             api.abort(404, **error_response)
 
+        
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate.prequal_number:
+            api.abort(404, "Candidate is missing a PEQUAL NUMBER. Possible Campaign association error. Please report this.")
+
         credit_report_account = candidate.credit_report_account
         if not credit_report_account:
             api.abort(404, "No credit report account associated with candidate. Create SC account first.")
 
         app.logger.info("Received request to STU and convert a Candidate to Lead")
-        client = convert_candidate_to_lead(candidate)
+        client = convert_candidate_to_lead(candidate, candidate.prequal_number)
 
         app.logger.info("Requesting Credit Report pull for converted Lead")
         pull_credit_report(credit_report_account)

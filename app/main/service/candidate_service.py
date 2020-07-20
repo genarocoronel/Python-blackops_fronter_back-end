@@ -551,7 +551,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
 
         candidates = query.items
         # Flip status from IMPORTED to REQUESTED and update disposition upon first search by prequal
-        if candidates and has_prequalnum_filter:
+        if candidates and has_prequalnum_filter and total == 1:
             disp_requested = CandidateDisposition.query.filter_by(value='New Lead').first()
             for tmp_candidate in candidates:
                 tmp_candidate.disposition_id = disp_requested.id
@@ -620,8 +620,9 @@ def save_new_candidate_import(data):
     return new_candidate_import
 
 
-def convert_candidate_to_lead(candidate):
-    new_client = create_client_from_candidate(candidate)
+def convert_candidate_to_lead(candidate, prequal_number):
+    """ Creates a new Lead from Candidate """
+    new_client = create_client_from_candidate(candidate, prequal_number)
     if not new_client:
         raise Exception(f'Error converting Candidate with ID {candidate.public_id} to a Client')
 
