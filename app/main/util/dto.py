@@ -884,7 +884,9 @@ class CandidateDto:
         'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account),
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
-        'phone': PreferedPhoneField(cls_or_instance='CandidateContactNumber',attribute='contact_numbers')
+        'phone': PreferedPhoneField(cls_or_instance='CandidateContactNumber',attribute='contact_numbers'),
+        'best_time': fields.String(required=False, example='13:30'),
+        'loc_time_zone': fields.String(required=False, example='PST'),
     })
     candidate_dispositions = api.model('candidate_disposition', {
         'select_type': CandidateDispositionTypeField(),
