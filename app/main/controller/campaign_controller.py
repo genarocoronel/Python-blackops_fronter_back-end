@@ -4,12 +4,13 @@ import uuid
 from flask import request, send_file
 from flask_restplus import Resource
 
+from app.main.core.rac import RACRoles
+from app.main.util.decorator import token_required, enforce_rac_required_roles
 from app.main import db
 from app.main.model.campaign import Campaign
 from app.main.model.candidate import CandidateImport, Candidate
 from app.main.util.dto import CampaignDto
 from app.main.service.campaign_service import CampaignService, PinnaclePhoneNumService, CampaignReportService
-from app.main.util.decorator import token_required
 
 api = CampaignDto.api
 _campaign = CampaignDto.campaign
@@ -19,9 +20,9 @@ _update_campaign = CampaignDto.update_campaign
 
 @api.route('/')
 class CampaignsList(Resource):
-    #@api.expect(_new_campaign, validate=True)
-    @token_required
     @api.marshal_with(_campaign)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def post(self):
         """ Create Campaign """
         try:
@@ -32,9 +33,10 @@ class CampaignsList(Resource):
         except Exception as e:
             api.abort(500, message=str(e), success=False)
 
-    @token_required
     @api.doc('list all campaigns')
     @api.marshal_list_with(_campaign, envelope='data')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self):
         """ List all campaigns """
         cs = CampaignService()
@@ -46,9 +48,9 @@ class CampaignsList(Resource):
 @api.param('campaign_id', 'Campaign Identifier')
 @api.response(404, 'Campaign not found')
 class UpdateCampaign(Resource):
-    #@api.expect(_update_campaign, validate=True)
-    @token_required
     @api.marshal_with(_campaign)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def put(self, campaign_id):
         """ Update Campaign Information """
         payload = request.json
@@ -62,8 +64,9 @@ class UpdateCampaign(Resource):
 @api.route('/pin-phone-nums')
 @api.response(404, 'Pinancele Numbers not found')
 class PinnaclePhoneList(Resource):
-    @token_required
     @api.doc('list all pinnacle phone nums')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self): 
         """ List all pinnacle phone nums """
         service = PinnaclePhoneNumService() 
@@ -75,8 +78,9 @@ class PinnaclePhoneList(Resource):
 @api.route('/report')
 @api.response(404, 'Campaign report not found')
 class GenerateReport(Resource):
-    @token_required
     @api.doc('generate campaign report')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self):
         try:
             service = CampaignReportService()
@@ -87,6 +91,8 @@ class GenerateReport(Resource):
 @api.route('/<campaign_id>/mailer-file')
 @api.param('campaign_id', 'Campaign public id')
 class GenerateCampaignMailingFile(Resource):
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def put(self, campaign_id):
         """ Generate Campaign Mailer File """
         campaign = Campaign.query.filter_by(public_id=campaign_id).first()
@@ -96,6 +102,8 @@ class GenerateCampaignMailingFile(Resource):
         else:
             api.abort(404, message='Campaign does not exist', success=False)
 
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self, campaign_id):
         """ Download Generated Campaign Mailer File """
         campaign = Campaign.query.filter_by(public_id=campaign_id).first()
@@ -109,6 +117,8 @@ class GenerateCampaignMailingFile(Resource):
 @api.param('campaign_id', 'Campaign public id')
 @api.param('import_id', 'Candidate Import public id')
 class AssignImportToCampaign(Resource):
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def put(self, campaign_id, import_id):
         """ Assign Candidate Import to Campaign """
         try:
@@ -124,6 +134,8 @@ class AssignImportToCampaign(Resource):
 @api.route('/status/<campaign_id>')
 @api.param('campaign_id', 'Campaign public id')
 class GetCampaignAssociationStatus(Resource):
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self, campaign_id):
         """ Get Campaign Association Status """
         try:
