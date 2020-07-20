@@ -303,21 +303,23 @@ def sms_send_raw(phone_target, sms_text, user_id):
 
 def send_message_to_client(client_public_id, from_phone, message_body, to_phone = None):
     """ Sends a SMS message to a client on behalf of a Sales or Service person """
-    app.logger.info(f'Attempting to send SMS message to {to_phone} frm {from_phone}.')
+    app.logger.info(f'Attempting to send SMS message to Client from {from_phone}.')
     sms_message = None
     destination_phone = None
 
     if to_phone:
         # Ensure phone belongs to client when given
+        app.logger.info(f'A TO phone given: {to_phone}')
         client = get_client_by_phone(clean_phone_to_tenchars(to_phone))
         if not client or client.public_id != client_public_id:
-            raise BadRequestError('Client ID To phone number mismatch. Not sent.')
+            raise BadRequestError(f'Client ID {client_public_id} does not own the TO phone {to_phone}. SMS not sent.')
 
         destination_phone = to_phone
     else:
+        app.logger.info(f'A TO phone not given. Will try to find a preferred (cell) phone for this Client')
         client = get_client_by_public_id(client_public_id)
         if not client:
-            raise NotFoundError('could not find a known Client for that outbound SMS message. Not sent.')
+            raise NotFoundError(f'Could not find a known Client with ID {client_public_id} for that outbound SMS message. Not sent.')
         
         for number_item in client.contact_numbers:
             if number_item.contact_number.contact_number_type.name == 'Cell Phone':
@@ -360,20 +362,21 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
 
 def send_message_to_candidate(candidate_public_id, from_phone, message_body, to_phone = None):
     """ Sends a SMS message to a Candidate on behalf of a Sales or Service person """
-    app.logger.info(f'Attempting to send SMS message to Candidate {to_phone} frm {from_phone}.')
+    app.logger.info(f'Attempting to send SMS message to Candidate from {from_phone}.')
     sms_message = None
     destination_phone = None
 
     if to_phone:
         candidate = get_candidate_by_phone(clean_phone_to_tenchars(to_phone))
         if not candidate or candidate.public_id != candidate_public_id:
-            raise BadRequestError('Candidate ID To phone number mismatch. Not sent.')
+            raise BadRequestError(f'Candidate ID {candidate_public_id} does not own the TO phone {to_phone}. SMS not sent.')
 
         destination_phone = to_phone
     else:
+        app.logger.info(f'A TO phone not given. Will try to find a preferred (cell) phone for this Candidate')
         candidate = get_candidate_by_public_id(candidate_public_id)
         if not candidate:
-            raise NotFoundError('could not find a known Candidate for that outbound SMS message. Not sent.')
+            raise NotFoundError(f'Could not find a known Candidate with ID {candidate_public_id} for that outbound SMS message. Not sent.')
         
         for number_item in candidate.contact_numbers:
             if number_item.contact_number.preferred:
