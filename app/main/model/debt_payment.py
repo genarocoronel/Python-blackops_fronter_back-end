@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import desc, asc, and_
 from app.main.core.errors import StateMachineError
 from app.main.channels.notification import TaskChannel
-
+import inflect
 
 class DebtEftStatus(enum.Enum):
     FUTURE = 'Future'  # EFT Scheduled , Not forwarded to EPPS
@@ -89,9 +89,8 @@ class DebtPaymentContract(db.Model):
     # service agent id
     agent_id  = db.Column(db.Integer, db.ForeignKey('users.id', name='debt_payment_contract_agent_id_fkey'))
     # relationship 
-    client = db.relationship('Client', backref='payment_contracts')
-    agent = db.relationship('User', backref='payment_contracts')
-
+    client = db.relationship('Client', backref=backref('payment_contracts', lazy='dynamic'))
+    agent = db.relationship('User', backref=backref('payment_contracts', lazy='dynamic'))
     # previous contract
     prev_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_contract_prev_id_fkey'))
     next_contract = db.relationship('DebtPaymentContract', uselist=False, remote_side=[prev_id]) 
@@ -130,6 +129,8 @@ class DebtPaymentSchedule(db.Model):
     amount  = db.Column(db.Float, nullable=False)
     bank_fee = db.Column(db.Float, nullable=True)
     status  = db.Column(db.String(24), nullable=False, default=DebtEftStatus.FUTURE.name)
+    # description
+    desc = db.Column(db.String(100), nullable=True)
 
     # single EPPS transaction allowed, so One-to-One
     transaction = db.relationship("DebtPaymentTransaction", backref="debt_payment_schedule", uselist=False) 
@@ -157,6 +158,7 @@ class DebtPaymentSchedule(db.Model):
 
     @classmethod
     def create_schedule(cls, contract):
+        p = inflect.engine() 
         term = contract.term
         pymt_start = contract.payment_start_date
         monthly_fee = contract.monthly_fee
@@ -168,10 +170,12 @@ class DebtPaymentSchedule(db.Model):
 
         start = contract.payment_recurring_begin_date
         for i in range(1, term):
+            desc = "{} Payment".format(p.ordinal(i))
             obj = cls(contract_id=contract.id,        
                       due_date=start,
                       amount=monthly_fee,
-                      bank_fee=10)
+                      bank_fee=10,
+                      desc=desc)
             db.session.add(obj)
             db.session.commit()
             start = start + relativedelta(months=1)

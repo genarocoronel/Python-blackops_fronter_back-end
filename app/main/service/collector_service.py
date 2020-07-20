@@ -64,6 +64,33 @@ def synth_collector(collector):
 
     return collector_synth
 
+def update_collector(collector_id, data):
+    fields = {}
+    curr_user = get_request_user()
+    collector = DebtCollector.query.filter_by(public_id=collector_id).first()
+    if not collector:
+        raise ValueError("Debt Collector record not found")
+
+    if data.get('name'):
+        collector.name = data.get('name')
+    if data.get('phone'):
+        collector.phone = data.get('phone')
+    if data.get('fax'):
+        collector.fax = data.get('fax')
+    if data.get('address'):
+        collector.address = data.get('address')
+    if data.get('city'):
+        collector.city = data.get('city')
+    if data.get('state'):
+        collector.state = data.get('state')
+    if data.get('zip_code'):
+        collector.zip_code = data.get('zip_code')
+
+    fields['updated_on'] = datetime.datetime.utcnow()   
+    fields['updated_by_username'] = curr_user.username
+    db.session.commit()
+
+    return collector
 
 def _save_changes(*data):
     for entry in data:

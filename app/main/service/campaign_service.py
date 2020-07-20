@@ -10,7 +10,7 @@ class CampaignService(ApiService):
     _model = Campaign
     _key_field   = 'public_id'
     
-    def _parse(self, data):
+    def _parse(self, data, insert=True):
         ## validate if necessary
         mkt_type = data.get('marketing_type')
         mm = MarketingModel[mkt_type]
@@ -26,9 +26,6 @@ class CampaignService(ApiService):
             'max': max_debt if max_debt else 0,
         }
 
-        mail_dtime = datetime.strptime(data.get('mailing_date'), '%Y-%m-%d')
-        month_word = mail_dtime.strftime("%B")
-        job_num = f'{mkt_type}_{month_word}{mail_dtime.day}{mail_dtime.year}_{mail_type}_{num_pieces}_{min_debt}-{max_debt}'
            
         pin_phone_no = data.get('pinnacle_phone')
         ppn = PinnaclePhoneNumber.query.filter_by(number=pin_phone_no).first()
@@ -37,11 +34,9 @@ class CampaignService(ApiService):
             raise ValueError("Pinnacle Phone Number not present")
 
         fields = {
-            'public_id': str(uuid.uuid4()),
             'name': name,
             'description': data.get('description'),
             'phone': data.get('phone'),
-            'job_number': job_num,
             'offer_expire_date': data.get('offer_expire_date'),
             'mailing_date': data.get('mailing_date'),
             'pinnacle_phone_num_id': ppn.id, 
@@ -50,8 +45,16 @@ class CampaignService(ApiService):
             'num_mail_pieces': num_pieces,
             'cost_per_piece': data.get('cost_per_piece'),
             'est_debt_range': debt_range,
-            'inserted_on': datetime.utcnow(),
         }
+        if insert is True:
+            mail_dtime = datetime.strptime(data.get('mailing_date'), '%Y-%m-%d')
+            month_word = mail_dtime.strftime("%B")
+            job_num = f'{mkt_type}_{month_word}{mail_dtime.day}{mail_dtime.year}_{mail_type}_{num_pieces}_{min_debt}-{max_debt}'
+
+            ## insert fields
+            fields['public_id'] = str(uuid.uuid4())
+            fields['job_number'] = job_num
+            fields['inserted_on'] = datetime.utcnow(),
 
         return fields
 

@@ -80,10 +80,10 @@ class Client(db.Model):
     addresses = db.relationship("Address", backref="client")
     contact_numbers = db.relationship('ClientContactNumber')
     # account manager
-    account_manager = db.relationship('User', backref='client_accounts', foreign_keys=[account_manager_id])
     team_manager = db.relationship('User', backref='team_accounts', foreign_keys=[team_manager_id])
-    opener = db.relationship('User', backref='opened_accounts', foreign_keys=[opener_id])
-    sales_rep = db.relationship('User', backref='sales_accounts', foreign_keys=[sales_rep_id])
+    account_manager = db.relationship('User', backref=backref('service_accounts',  lazy='dynamic'), foreign_keys=[account_manager_id])
+    sales_rep = db.relationship('User', backref=backref('sales_accounts', lazy='dynamic'), foreign_keys=[sales_rep_id])
+    opener = db.relationship('User', backref=backref('opened_accounts', lazy='dynamic'), foreign_keys=[opener_id])
     notification_pref = db.relationship('NotificationPreference', uselist=False, backref='client')
     
     # fields
@@ -107,11 +107,25 @@ class Client(db.Model):
     lead_source = db.Column(db.String(100), nullable=True)
     # date on which application is processed
     application_date = db.Column(db.DateTime, nullable=True)   
+    # EPPS Account Id
+    epps_account_id  = db.Column(db.String(100), nullable=True)
 
     @property
     def full_name(self):
         return "{} {}".format(self.first_name, self.last_name)
 
+    @property
+    def total_debt(self):
+        from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
+        result = 0
+        keys = [self.id,] 
+        if self.co_client:
+            keys.append(self.co_client.id)
+
+        debts = CreditReportData.query.outerjoin(CreditReportAccount).filter(CreditReportAccount.client_id.in_(keys)).all()
+        for debt in debts:
+            result = result + float(debt.balance_original)
+        return result
 
 class ClientIncome(db.Model):
     __tablename__ = "client_income_sources"

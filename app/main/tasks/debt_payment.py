@@ -63,6 +63,10 @@ def register_customer(client_id):
         # Add the customer
         epps_chnl.add_card_holder(card)
 
+        # EPPS Account holder Id
+        client.epps_account_id = cardId
+        client.save()
+
     except Exception as err:
         logging.warning("Register customer issue {}".format(str(err)))
         return None
@@ -98,9 +102,7 @@ def process_debt_payments():
                 continue
                  
             ## create a unique id
-            cid = '{:>07d}'.format(client.id)
-            cc_id = '222'
-            cardId = '{}{}'.format(cc_id, cid)
+            cardId = client.epps_account_id
             # EFT Request parameters
             eft = Eft() 	
             eft.id = cardId

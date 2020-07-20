@@ -1271,3 +1271,120 @@ class TicketDto:
       'status': fields.String(attribute='status'),
       'client': fields.Nested(client),
     });
+
+class CreditorDto:
+    api = Namespace('creditors', description='Creditor related operations')
+    creditor = api.model('creditors', {
+        'name': fields.String(),
+        'company_name': fields.String(),
+        'contact_person': fields.String(),
+        'phone': fields.String(),
+        'fax': fields.String(),
+        'email': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'zipcode': fields.String(),
+        'is_active': fields.Boolean(),
+        'inserted_on': DateTimeFormatField(),
+        'updated_on': DateTimeFormatField(),
+    });
+
+class ReportDto:
+    api = Namespace('reports', description='Reports related end points')
+
+    # Doc & Reference
+    client_report = api.model('client_report', {
+        'campaign_name': fields.String(),
+        'interest_level': fields.String(),
+        'first_name': fields.String(),
+        'last_name': fields.String(),
+        'dob': fields.String(),
+        'lead_source': fields.String(),
+        'disposition': fields.String(),
+        'lead_type': fields.String(),
+        'salesrep': fields.String(),
+        'account_manager': fields.String(), 
+        'email': fields.String(),
+        'client_id': fields.String(),
+    });
+
+    sales_report = api.model('sales_report', {
+        'name': fields.String(),
+        'lead_count': fields.Integer(),
+        'deal_count': fields.Integer(),
+        'recycled_lead_count': fields.Integer(),
+        'recycled_deal_count': fields.Integer(),
+        'recycled_closing_percent': fields.Float(), 
+        'total_leads': fields.Integer(),
+        'total_closing_percent': fields.Float(),
+        'retention': fields.Integer(),
+        'total_debt': fields.Float(),
+
+    });
+
+    ach_report = api.model('ach_report', {
+        'eft_trans_id': fields.String(),
+        'pymt_processor': fields.String(),
+        'created_date': fields.String(),
+        'client_id': fields.String(),
+        'amount': fields.Float(),
+        'description': fields.String(),
+        'effective_date': fields.String(),
+        'eft_status': fields.String(),
+        'eft_status_detail': fields.String(),
+        'eft_status_date': fields.String(),
+        'trust_account_balance': fields.Float(),
+        'account_holder_id': fields.String(),
+        'backend': fields.String(),
+        'bank_name': fields.String(),
+        'routing_number': fields.String(),
+        'account_number': fields.String(),
+        'account_type': fields.String(),
+        'pymt_trans_id': fields.String(), 
+    });
+
+    ach_report = api.model('ach_report', {
+        'client_id': fields.String(),
+        'amount': fields.Float(),
+        'description': fields.String(),
+        'effective_date': fields.String(),
+        'backend': fields.String(),
+    });
+
+    collector_report = api.model('collector_report', {
+        'name': fields.String(),
+        'company_name': fields.String(),
+        'phone': fields.String(),
+        'fax': fields.String(),
+        'num_debts': fields.Integer(),
+        'cretaed_date': fields.String(),
+        'status': fields.String(),
+        'notes': fields.String(),
+        'modified_date': fields.String(),  
+    });
+
+    creditor_report = api.model('creditor_report', {
+        'name': fields.String(),
+        'company_name': fields.String(),
+        'contact_person': fields.String(),
+        'phone': fields.String(),
+        'created_date': fields.String(),
+        'status': fields.String(),    
+        'modified_date': fields.String(), 
+    });
+
+    task_report = api.model('task_report', {
+        'id': fields.String(),
+        'desc': fields.String(),
+        'status': fields.String(),
+        'type': fields.String(),
+        'client_id': fields.String(),
+        'client_name': fields.String(),
+        'client_status': fields.String(),
+        'account_manager': fields.String(),
+        'team_manager': fields.String(),
+        'due_date': fields.String(),
+        'inserted_date': fields.String(),
+    });
+

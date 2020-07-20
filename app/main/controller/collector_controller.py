@@ -6,14 +6,14 @@ from app.main.util.dto import CollectorDto
 from app.main.util.decorator import (token_required, enforce_rac_policy, enforce_rac_required_roles)
 from app.main.core.errors import BadRequestError, NotFoundError
 from app.main.core.rac import RACRoles
-from app.main.service.collector_service import get_all_collectors, create_collector
+from app.main.service.collector_service import get_all_collectors, create_collector, update_collector
 
 api = CollectorDto.api
 _collector = CollectorDto.collector
 _collector_create = CollectorDto.collector_create
 
 @api.route('')
-class Collector(Resource):
+class CollectorList(Resource):
     @api.doc('Creates a Debt Collector')
     @api.expect(_collector_create, validate=True)
     @token_required
@@ -43,3 +43,17 @@ class Collector(Resource):
     def get(self):
         """ Gets a list of Debt Collectors """
         return get_all_collectors()
+
+@api.route('/<collector_id>')
+class CollectorRecord(Resource):
+    @api.doc('Updates a Debt Collector') 
+    @token_required
+    def post(self, collector_id):
+        """ Updates a Debt Collector """
+        data = request.json
+        try:
+            collector = update_collector(collector_id, data)
+            return collector, 200
+        except Exception as e:
+            api.abort(500, message=f'Failed to update debt collector', success=False)
+
