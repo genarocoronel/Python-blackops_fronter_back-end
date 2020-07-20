@@ -3,6 +3,7 @@ import datetime
 
 from phonenumbers import PhoneNumber
 
+from app.main.core.helper import generate_rand_code
 from app.main import db
 from app.main.model import Frequency
 from app.main.model.appointment import Appointment
@@ -40,7 +41,7 @@ def save_new_client(data, client_type=ClientType.lead):
         inserted_on=datetime.datetime.utcnow()
     )
     save_changes(new_client)
-    generate_id_friendly(new_client)
+    assign_friendly_id(new_client)
 
     # current address
     # zip_code NOT NULL field
@@ -75,13 +76,14 @@ def save_new_client(data, client_type=ClientType.lead):
     return new_client, 201
 
 
-def create_client_from_candidate(candidate, client_type=ClientType.lead):
+def create_client_from_candidate(candidate, prequal_number, client_type=ClientType.lead):
     inserted_dispo = ClientDisposition.query.filter_by(name='Sales_ActiveStatus_InsertedLead').first()
     if not inserted_dispo:
         raise Exception('Error finding Client disposition record for "Inserted"')
 
     new_client = Client(
         public_id=str(uuid.uuid4()),
+        friendly_id=prequal_number,
         email=candidate.email,
         suffix=candidate.suffix,
         first_name=candidate.first_name,
@@ -133,7 +135,6 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
         db.session.add(new_client_employment)
 
     save_changes(new_client)
-    generate_id_friendly(new_client)
 
     # copy the campaign
     if candidate.campaign:
@@ -145,10 +146,23 @@ def create_client_from_candidate(candidate, client_type=ClientType.lead):
     return new_client
 
 
-def generate_id_friendly(client):
-    client.friendly_id = int(f'100{client.id}')
+def assign_friendly_id(client):
+    """ Assigns a random Friendly ID to the given Client """
+    friendly_id = generate_rand_code(8, client.public_id)
+    max_tries = 3;
+    current_tries = 1;
+
+    while does_friendly_id_exists(friendly_id):
+        friendly_id = generate_rand_code(8, client.public_id)
+        current_tries +1
+        if current_tries > max_tries:
+            raise Exception(f'Tried x3 times to generate a friendly ID without success for Client with ID {client.id}')
+    
+    client.friendly_id = friendly_id
     save_changes(client)
+
     return client
+
 
 def get_all_clients(client_type=ClientType.client):
     # TODO - Refactor to use user_service::get_lead_assignments(), and user_service::get_client_assignments()
@@ -292,6 +306,14 @@ def get_client(public_id, client_type=ClientType.client):
 def get_client_by_public_id(id):
     """ Gets a client by public ID """
     return Client.query.filter_by(public_id=id).first()
+
+
+def does_friendly_id_exists(friendly_id):
+    """ Gets wheter a friendly ID exists """
+    does_exist = False
+    if Client.query.filter_by(friendly_id=friendly_id).first():
+        does_exist = True
+    return does_exist
 
 
 def get_client_by_id(id):
@@ -701,7 +723,7 @@ def update_co_client(client, data):
                            type=ClientType.coclient,
                            inserted_on=datetime.datetime.utcnow())
         save_changes(co_client)
-        generate_id_friendly(co_client)
+        assign_friendly_id(co_client)
         client.co_client = co_client
         db.session.commit()
 
