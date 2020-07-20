@@ -83,8 +83,9 @@ class Candidate(db.Model):
     language = db.Column(db.String(25), nullable=True)
     employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
     dob = db.Column(db.DateTime, nullable=True)
-
+    best_time = db.Column(db.String(5), nullable=True) # Best time to call
     estimated_debt = db.Column(db.Integer, nullable=False)
+    loc_time_zone = db.Column(db.String(3), nullable=True) # PST/EST/etc.
 
     # mailer fields
     debt3 = db.Column(db.Integer, nullable=False)  # Debt3 = 3% of revolving debt so =DEBT*3% assuming Debt is column L
