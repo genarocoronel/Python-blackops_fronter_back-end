@@ -611,7 +611,11 @@ def verify_assign(candidate):
 
 def assign_openerrep(candidate, asignee_user):
     """ Assigns a Opener Rep user to a Candidate """
-    if asignee_user.rac_role != RACRoles.OPENER_REP.value:
+    user_role = g.current_user['rac_role']
+    if user_role not in (RACRoles.SUPER_ADMIN.value, RACRoles.ADMIN.value, RACRoles.OPENER_MGR.value):
+        raise BadRequestError('Only Opener Managers and Admins can perform assignments.')
+
+    if asignee_user.role.name != RACRoles.OPENER_REP.value:
         raise BadRequestError('Only Opener Reps can be assigned to Candidates.')
 
     assignment = UserCandidateAssignment.query.filter_by(candidate_id=candidate.id).first()
