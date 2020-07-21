@@ -178,7 +178,7 @@ class CandidateAssignment(Resource):
     @api.doc('Assigns a Candidate to a Opener Rep user')
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR])
-    def put(self, public_id, user_public_id):
+    def post(self, public_id, user_public_id):
         """ Assigns a Candidate to a Opener Rep user """
         candidate, error_response = _handle_get_candidate(public_id)
         if not candidate:
@@ -186,10 +186,13 @@ class CandidateAssignment(Resource):
         
         asignee = get_a_user(user_public_id)
         if not asignee:
-            api.abort(404, message='That Opener Rep could not be found.', success=False)
+            api.abort(404, message='That Opener Rep with ID {} could not be found.'.format(user_public_id), success=False)
 
         try:
             assign_openerrep(candidate, asignee)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error assigning Candidate, {}'.format(str(e)), success=False)
 
         except Exception as e:
             api.abort(500, message=f'Failed to assign a Opener Rep for this Candidate. Error: {e}', success=False)
