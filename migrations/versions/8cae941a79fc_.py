@@ -1,7 +1,7 @@
 """Creditor
 
 Revision ID: 8cae941a79fc
-Revises: bedaece16d8a
+Revises: 4c626890b350
 Create Date: 2020-07-20 20:55:24.808249
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '8cae941a79fc'
-down_revision = 'bedaece16d8a'
+down_revision = '4c626890b350'
 branch_labels = None
 depends_on = None
 
