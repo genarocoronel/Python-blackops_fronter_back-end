@@ -18,9 +18,9 @@ from app.main.service.candidate_service import (save_new_candidate_import, save_
                                                 update_candidate_income_sources, get_candidate_monthly_expenses,
                                                 update_candidate_monthly_expenses,
                                                 get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead,
-                                                delete_candidates, candidate_filter, assign_openerrep)
-from app.main.service.communication_service import parse_communication_types, date_range_filter, \
-    get_candidate_voice_communication, create_presigned_url, get_opener_communication_records
+                                                delete_candidates, candidate_filter, assign_openerrep, verify_assign)
+from app.main.service.communication_service import (parse_communication_types, date_range_filter, 
+    get_candidate_voice_communication, create_presigned_url, get_opener_communication_records)
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions, complete_signup,
                                                             get_security_questions,
@@ -140,6 +140,35 @@ class UpdateCandidate(Resource):
         data = request.json
         _convert_payload_datetime_values(data, 'dob')
         return update_candidate(candidate_id, data)
+
+
+@api.route('/<public_id>/verify')
+@api.param('public_id', 'Verifies a Candidate and assigns to current Opener')
+@api.response(404, 'Candidate not found')
+class CandidateVerify(Resource):
+    @api.doc('Verifies a Candidate and assigns to current Opener')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.OPENER_REP])
+    def post(self, public_id):
+        """ Assigns a Candidate to a Opener Rep user """
+        candidate, error_response = _handle_get_candidate(public_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        try:
+            verify_assign(candidate)
+        
+        except BadRequestError as e:
+            api.abort(400, message='Error verifying Candidate, {}'.format(str(e)), success=False)
+
+        except Exception as e:
+            api.abort(500, message=f'Failed to Verify this Candidate for assignment!. Error: {e}', success=False)
+
+        response_object = {
+            'success': True,
+            'message': f'Successfully verified this Candidate and has been assigned to you.',
+        }
+        return response_object, 200
 
 
 @api.route('/<public_id>/assign/<user_public_id>/')
