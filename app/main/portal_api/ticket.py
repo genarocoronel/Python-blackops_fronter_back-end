@@ -1,4 +1,5 @@
 from flask_restplus import Resource
+from flask import request
 from app.main.util.dto import TicketDto
 from app.main.service.ticket_service import PortalNewTicket, PortalOpenedTickets
 from app.main.core.errors import ForbiddenError, NotFoundError

@@ -25,7 +25,9 @@ from .main.controller.team_controller import api as team_ns
 from .main.controller.task_controller import api as task_ns
 from .main.controller.docproc_controller import api as docproc_ns
 from .main.controller.collector_controller import api as collector_ns
+from .main.controller.creditor_controller import api as creditor_ns
 from .main.controller.ticket_controller import api as ticket_ns
+from .main.controller.report_controller import api as report_ns
 from .main.portal_api.auth import api as portal_auth_ns
 from .main.portal_api.docs import api as portal_doc_ns
 from .main.portal_api.budget import api as portal_budget_ns
@@ -70,7 +72,9 @@ api.add_namespace(team_ns)
 api.add_namespace(task_ns)
 api.add_namespace(docproc_ns)
 api.add_namespace(collector_ns)
+api.add_namespace(creditor_ns)
 api.add_namespace(ticket_ns)
+api.add_namespace(report_ns)
 
 # Portal API Namespaces
 portal_blueprint = Blueprint('portal-api', __name__)

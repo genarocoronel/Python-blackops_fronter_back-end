@@ -18,6 +18,7 @@ def has_permissions(func):
     return decorated
 
 
+# CRUD operations 
 class ApiService(object):
     _permissions = []
     _model = None 
@@ -39,8 +40,12 @@ class ApiService(object):
 
         db.session.add(obj)
         db.session.commit()
-
         return obj 
+
+    @has_permissions
+    def get(self):
+        records = self._queryset()
+        return records
 
     @has_permissions
     def update(self, key, data):
@@ -54,7 +59,7 @@ class ApiService(object):
             raise ValueError("Record not found")
 
         # extract attributes
-        attrs = self._parse(data) 
+        attrs = self._parse(data, insert=False) 
         for attr in attrs:
             if hasattr(obj, attr):
                 setattr(obj, attr, attrs.get(attr))
@@ -62,7 +67,16 @@ class ApiService(object):
         db.session.commit()
 
     @has_permissions
-    def get(self):
-        records = self._queryset()
-        return records
+    def delete(self, key):
+        if not self._model:
+             raise ValueError("Not a valid service")
+
+        kwargs = {}
+        kwargs[self._key_field] = key
+        obj = self._model.query.filter_by(**kwargs).first()
+        if not obj:
+            raise ValueError("Record not found")
+
+        db.session.delete(obj)
+        db.session.commit()
 
