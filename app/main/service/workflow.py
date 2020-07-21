@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from app.main.tasks import debt_payment as pymt_tasks
 from app.main.tasks.mailer import send_welcome_letter, send_spanish_welcome_letter, send_privacy_policy
 from app.main.tasks import docusign
+from app.main.service.svc_schedule_service import create_svc_schedule
 
 """
 Base Workflow class
@@ -292,7 +293,10 @@ def open_contract_flow(code, contract, revision=None):
                 # Send a notification through worker channel
                 client.msg = "Client signed the contract."
                 account_manager = client.account_manager
-           
+                
+                # Create initial service schedule for the client
+                create_svc_schedule(client)
+
                 if account_manager:
                     wkchannel.WkClientNoticeChannel.send(account_manager.id,
                                                          client)                       

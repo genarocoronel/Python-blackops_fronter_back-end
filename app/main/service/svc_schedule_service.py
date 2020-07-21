@@ -11,6 +11,7 @@ from flask import g
 
 def create_svc_schedule(client, term_months = 24):
     """ Creates the initial Service Schedule for a Client """
+    # Note: Per DKW on 20 Jul 2020 - generated automatically out to 48 months for every client upon signing
     svc_schedule_records = ServiceSchedule.query.filter_by(client_id=client.id).order_by(db.asc(ServiceSchedule.id)).all()
     if not svc_schedule_records:
         app.logger.info(f'Client does not have Service Schedule and needs to be created.')
