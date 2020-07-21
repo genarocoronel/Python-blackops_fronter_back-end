@@ -3,7 +3,7 @@ from flask_restplus import Resource
 
 from app.main.service.communication_service import parse_communication_types, date_range_filter, \
     get_voice_communication, create_presigned_url, get_opener_communication_records, get_sales_and_service_communication_records, \
-    get_communication_records
+    get_communication_records, get_unassigned_voice_communication_records
 from app.main.service.user_service import get_request_user
 from app.main.util.decorator import token_required
 from app.main.util.dto import CommunicationDto
@@ -47,6 +47,9 @@ class Communications(Resource):
             else:
                 # current_user has access to all data - get all communication records
                 result = get_communication_records(filter, comm_types_set, None, None, date_filter_fields)
+
+            if current_user.is_admin or current_user.is_manager:
+                result.extend(get_unassigned_voice_communication_records(filter, comm_types_set, date_filter_fields))
 
             return sorted(result, key=lambda record: record.receive_date, reverse=True)
 

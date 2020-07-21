@@ -180,7 +180,6 @@ def get_communication_records(request_filter: Mapping[str, Any],
     result = []
     result.extend(get_opener_communication_records(request_filter, comm_types_set, candidates, date_filter_fields))
     result.extend(get_sales_and_service_communication_records(request_filter, comm_types_set, clients, date_filter_fields))
-    result.extend(get_unassigned_voice_communication_records(request_filter, comm_types_set, date_filter_fields))
     return result
 
 
