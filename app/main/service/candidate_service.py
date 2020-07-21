@@ -5,6 +5,7 @@ from phonenumbers import PhoneNumber
 from sqlalchemy import desc, asc, or_, and_
 from app.main import db
 from app.main.core.rac import RACRoles
+from app.main.core.errors import BadRequestError, NotFoundError
 from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
@@ -582,9 +583,38 @@ def get_candidate_contact_by_phone(phone_no: PhoneNumber):
     return candidate_cn
 
 
+def verify_assign(candidate):
+    """ Assigns a Opener Rep user to a Candidate """
+    user_role = g.current_user['rac_role']
+    if user_role != RACRoles.OPENER_REP.value:
+        raise BadRequestError('Only Opener Reps can verify-assign Candidates. Did you mean to use Assign feature instead?')
+
+    assignment = UserCandidateAssignment.query.filter_by(candidate_id=candidate.id).first()
+    if not assignment:
+        assignment = UserCandidateAssignment(
+            user_id = g.current_user['user_id'],
+            candidate_id = candidate.id
+        )
+
+        dispo = CandidateDisposition.query.filter_by(name='Opener_ActiveWorkingLead').first()
+        candidate.disposition_id = dispo.id
+
+        db.session.add(assignment)
+        db.session.add(candidate)
+        save_changes()
+
+    elif assignment and assignment.user_id != g.current_user['user_id']:
+        raise BadRequestError('This Candidate is already assigned to another employee. Please contact your supervisor if you feel this is wrong.')
+    
+    return True
+
+
 def assign_openerrep(candidate, asignee_user):
     """ Assigns a Opener Rep user to a Candidate """
-    assignment = UserCandidateAssignment.query.filter_by(client_id=client.id).first()
+    if asignee_user.rac_role != RACRoles.OPENER_REP.value:
+        raise BadRequestError('Only Opener Reps can be assigned to Candidates.')
+
+    assignment = UserCandidateAssignment.query.filter_by(candidate_id=candidate.id).first()
     if assignment:
         assignment.user_id = asignee_user.id
     else:
@@ -592,9 +622,6 @@ def assign_openerrep(candidate, asignee_user):
             user_id = asignee_user.id,
             candidate_id = candidate.id
         )
-
-    # existing field
-    candidate.opener_id = asignee_user.id
 
     db.session.add(assignment)
     save_changes()
