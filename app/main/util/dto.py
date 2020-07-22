@@ -246,7 +246,7 @@ class AuthDto:
     rac_roles = api.model('rac_role', {
         'id': fields.String(required=False),
         'name': fields.String(required=True, example='opener_rep'),
-        'name_friendly': fields.Integer(required=False, example='Opener Rep'),
+        'name_friendly': fields.String(required=False, example='Opener Rep'),
         'description': fields.String(required=True, example='Opener Rep Role'),
         'inserted_on': fields.DateTime(required=False),
         'updated_on': fields.DateTime(required=False),
