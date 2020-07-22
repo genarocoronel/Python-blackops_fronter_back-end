@@ -1,7 +1,7 @@
 from flask import request
 from flask_restplus import Resource
 
-from ..core.errors import BadRequestError
+from ..core.errors import BadRequestError, ForbiddenError, NotFoundError
 from ..util.decorator import (token_required, enforce_rac_policy, 
         enforce_rac_same_user_policy, enforce_rac_required_roles)
 from ..util.dto import UserDto, TaskDto
@@ -83,13 +83,17 @@ class UsersRoleMembers(Resource):
     @api.doc('Get users that are members of a RAC Role')
     @api.marshal_with(_user_supressed, envelope='data')
     @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, 
+            RACRoles.OPENER_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, 
+            RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR])
     def get(self, role_pub_id):
         """ Get all users (supressed) by RAC role membership """
         users = []
-
-        user_records = get_all_users_by_role_pubid(role_pub_id)
-        for user_record_item in user_records:
-            tmp_user = {
+        
+        try:
+            user_records = get_all_users_by_role_pubid(role_pub_id)
+            for user_record_item in user_records:
+                tmp_user = {
                 'public_id': user_record_item.public_id,
                 'username': user_record_item.username,
                 'first_name': user_record_item.first_name,
@@ -100,6 +104,15 @@ class UsersRoleMembers(Resource):
                 'rac_role': user_record_item.role.name
             }
             users.append(tmp_user)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error fetching Users in RAC Role group, {}'.format(str(e)), success=False)
+
+        except ForbiddenError as e:
+            api.abort(403, message='Error fetching Users in RAC Role group, {}'.format(str(e)), success=False)
+
+        except Exception as e:
+            api.abort(500, message=f'Failed to fetch Users in RAC Role group. Error: {e}', success=False)
 
         return users
 
