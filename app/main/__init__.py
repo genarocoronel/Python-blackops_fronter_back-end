@@ -45,6 +45,7 @@ def create_app(config_name):
 
     app.s3_bucket_voicemail = app.config['S3_BUCKET_VOICEMAIL']
     app.s3_bucket_fax = app.config['S3_BUCKET_FAX']
+    app.s3_bucket_email = app.config['S3_BUCKET_EMAIL']
     app.s3_bucket_docproc = app.config['S3_BUCKET_DOCPROC']
     app.jive_queue_url = app.config['JIVE_QUEUE_URL']
     app.s3_signed_url_timeout_seconds = app.config['S3_SIGNED_URL_TIMEOUT_SEC']

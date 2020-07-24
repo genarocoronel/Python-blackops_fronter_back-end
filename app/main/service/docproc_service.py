@@ -276,6 +276,27 @@ def create_doc_from_fax(src_file_name):
     return synth_doc(doc)
 
 
+def create_doc_from_email(src_file_name):
+    """ Create Document from Email comm """
+    public_id = str(uuid.uuid4())
+
+    doc = Docproc(
+        public_id = public_id,
+        orig_file_name=src_file_name,
+        file_name=src_file_name,
+        source_channel=DocprocChannel.MAIL.value,
+        status=DocprocStatus.NEW.value,
+        inserted_on=datetime.datetime.utcnow(),
+        created_by_username = 'system',
+        updated_on=datetime.datetime.utcnow(),
+        updated_by_username='system',
+    )
+    db.session.add(doc)
+    _save_changes()
+    
+    return synth_doc(doc)
+
+
 def create_doc_note(doc, content):
     """ Creates a Note for a given Doc """
     curr_user = get_request_user()
