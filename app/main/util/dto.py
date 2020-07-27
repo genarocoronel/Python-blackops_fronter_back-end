@@ -1390,3 +1390,17 @@ class ReportDto:
         'inserted_date': fields.String(),
     });
 
+
+call_notification = {
+    'call_id': fields.String(),
+    'caller_id_name': fields.String(),
+    'caller_id_number': fields.String(),
+    'dialed_number': fields.String(),
+    'pbx_id': fields.String()
+}
+
+
+class WebhookDto:
+    api = Namespace('webhooks', description='Webhook definitions')
+    call_initiated = api.model('call_initiated', call_notification)
+    call_missed = api.model('call_missed', call_notification)

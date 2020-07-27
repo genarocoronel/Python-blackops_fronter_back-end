@@ -18,7 +18,7 @@ import phonenumbers
 from lxml import html as htmllib
 from email.message import Message
 
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 from sqs_listener import SqsListener
 import boto3
 
@@ -26,7 +26,7 @@ from app.main import db
 from app.main.model.candidate import Candidate, CandidateVoiceCommunication, CandidateFaxCommunication
 from app.main.model.client import Client, ClientVoiceCommunication, ClientFaxCommunication
 from app.main.model.pbx import VoiceCommunication, CommunicationType, PBXNumber, FaxCommunication, VoiceCommunicationType, \
-    TextCommunicationType
+    TextCommunicationType, CallEventType, VoiceCallEvent
 from app.main.model.user import User, UserVoiceCommunication, UserFaxCommunication
 from app.main.service.customer_service import identify_customer_by_phone
 from app.main.service.user_service import get_user_by_mailbox_id
@@ -71,13 +71,14 @@ class Handler(abc.ABC):
     def _build_communication_data(self, source_number, destination_number, employee_mailbox_id: str = None, employee_caller_id: str = None):
         assert source_number is not None
 
+        employee = None
+
         # Client/Candidate called Employee (voicemail)
         if employee_mailbox_id:
             customer = identify_customer_by_phone(source_number)
             employee = get_user_by_mailbox_id(employee_mailbox_id)
             return CommunicationData(customer, source_number, employee, destination_number)
 
-        employee = None
         customer = identify_customer_by_phone(destination_number)
         if customer is None:
             customer = identify_customer_by_phone(source_number)
@@ -101,15 +102,29 @@ class Handler(abc.ABC):
             or_(PBXNumber.number == number.national_number for number in phone_number_list if number)
         ).first()
 
-        # identify customer number
-        caller_data = zip([source, destination], [source_number, destination_number])
-        customer, customer_number = next(((entity, number) for entity, number in caller_data if isinstance(entity, CUSTOMER_TYPES)), (None, None))
-        employee, employee_number = next(((entity, number) for entity, number in caller_data if isinstance(entity, EMPLOYEE_TYPES)), (None, None))
+        customer = next((entity for entity in (source, destination) if isinstance(entity, CUSTOMER_TYPES)), None)
+        customer_number = next((number for number in (source_number, destination_number) if number and number.national_number != pbx_number), None)
 
-        if pbx_number and customer_number is None:
-            customer_number = [number for number in phone_number_list if number and number.national_number != pbx_number.number][0]
+        employee = next((entity for entity in (source, destination) if isinstance(entity, EMPLOYEE_TYPES)), None)
+        employee_number = next((number for number in (source_number, destination_number) if number and number.national_number == pbx_number), None)
 
         if communication_type in [VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL]:
+            missed_call_event = self._get_missed_call_event(customer_number, status=CallEventType.GOING_TO_VOICEMAIL,
+                                                            based_on_date=communication_data.receive_date, time_lapse=240)
+
+            if VoiceCommunicationType.RECORDING == communication_type and missed_call_event:
+                # Not saving the recording since this was a missed call. Voicemail will be captured and saved
+                current_app.logger.warn(f"Recording is being discarded since a matching missed all event was found.")
+                return
+
+            if VoiceCommunicationType.VOICEMAIL == communication_type and missed_call_event:
+                current_app.logger.info(f"Found missed call event with public_id '{missed_call_event.public_id}' for {communication_type.value}.")
+                missed_call_event.status = CallEventType.MISSED_VOICEMAIL
+                db.session.add(missed_call_event)
+            else:
+                current_app.logger.warn(
+                    f'Unable to find corresponding missed call event for {communication_type.value} received. {communication_type.value.capitalize}:\n{communication_data}')
+
             new_voice_comm = VoiceCommunication(
                 public_id=str(uuid.uuid4()),
                 type=communication_type,
@@ -180,6 +195,18 @@ class Handler(abc.ABC):
             db.session.rollback()
             current_app.logger.error(f'Failed to save voice recording: Error: {e}')
             raise Exception('Failed to save voice recording!')
+
+    def _get_missed_call_event(self, source_number: phonenumbers.PhoneNumber, status: CallEventType = None,
+                               based_on_date: datetime = datetime.datetime.utcnow(), time_lapse: int = 600):
+        call_event_stmt = VoiceCallEvent.query.filter(VoiceCallEvent.caller_number == source_number.national_number)
+
+        if status:
+            call_event_stmt = call_event_stmt.filter(VoiceCallEvent.status == status)
+
+        call_event_stmt = call_event_stmt.filter(
+            VoiceCallEvent.updated_on >= based_on_date - datetime.timedelta(seconds=time_lapse))
+
+        return call_event_stmt.order_by(desc(VoiceCallEvent.updated_on)).first()
 
 
 class JiveFaxHandler(Handler):

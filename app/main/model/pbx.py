@@ -89,3 +89,26 @@ class FaxCommunication(db.Model):
     file_bucket_key = db.Column(db.String(1024), nullable=False, unique=True)
     updated_on = db.Column(db.DateTime, nullable=False)
     is_viewed = db.Column(db.Boolean, nullable=False, default=False)
+
+
+class CallEventType(enum.Enum):
+    INITIATED           = 'call_initiated'
+    GOING_TO_VOICEMAIL  = 'going_to_voicemail'
+    MISSED              = 'missed'
+    MISSED_VOICEMAIL    = 'missed_voicemail'
+
+
+class VoiceCallEvent(db.Model):
+    """ PBX voice call event """
+    __tablename__ = "voice_call_events"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    public_id = db.Column(db.String(100), unique=True)
+    inserted_on = db.Column(db.DateTime, nullable=False)
+    updated_on = db.Column(db.DateTime, nullable=False)
+
+    pbx_id = db.Column(db.String, unique=False, nullable=False)
+    pbx_call_id = db.Column(db.String, unique=True, nullable=False)
+    caller_number = db.Column(db.BigInteger, unique=False, nullable=False)
+    dialed_number = db.Column(db.BigInteger, unique=False, nullable=False)
+    status = db.Column(db.Enum(CallEventType), unique=False, nullable=False)

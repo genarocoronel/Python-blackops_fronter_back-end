@@ -36,6 +36,7 @@ from .main.portal_api.messages import api as portal_messages_ns
 from .main.portal_api.callsheets import api as portal_callsheet_ns
 from .main.portal_api.config import api as portal_config_ns
 from .main.portal_api.ticket import api as portal_ticket_ns
+from .main.controller.webook_controller import api as webhook_ns
 
 
 blueprint = Blueprint('api', __name__)
@@ -75,6 +76,7 @@ api.add_namespace(collector_ns)
 api.add_namespace(creditor_ns)
 api.add_namespace(ticket_ns)
 api.add_namespace(report_ns)
+api.add_namespace(webhook_ns)
 
 # Portal API Namespaces
 portal_blueprint = Blueprint('portal-api', __name__)
