@@ -68,6 +68,8 @@ class DateFormatField(fields.String):
 
 ## temp
 from datetime import timedelta
+
+
 class ScheduleEndField(fields.String):
     def format(self, value):
         result = value + timedelta(hours=1)
@@ -77,7 +79,7 @@ class ScheduleEndField(fields.String):
 # set the current address
 class CurrentAddressField(fields.Raw):
     def format(self, records):
-        result = { 'address': '', 'zip': '', 'city': '', 'state': ''}
+        result = {'address': '', 'zip': '', 'city': '', 'state': ''}
         for addr in records:
             if addr.type == AddressType.CURRENT:
                 result['address'] = addr.address1
@@ -129,12 +131,12 @@ class CampaignDto(object):
         'mailing_date': fields.String(required=True),
         'mailer_file': FileToFilenameField(required=False),
         'pinnacle_phone': fields.String(attribute='pinnacle_phone_num.number'),
-        'marketing_type': fields.String(attribute='marketing_model'), 
+        'marketing_type': fields.String(attribute='marketing_model'),
         'mail_type': fields.String(attribute='mail_type'),
         'num_mail_pieces': fields.Integer(),
-        'cost_per_piece': fields.Float(),  
-        'min_debt': fields.String(attribute='est_debt_range.min'), 
-        'max_debt': fields.String(attribute='est_debt_range.max'), 
+        'cost_per_piece': fields.Float(),
+        'min_debt': fields.String(attribute='est_debt_range.min'),
+        'max_debt': fields.String(attribute='est_debt_range.max'),
         'inserted_on': fields.DateTime()
     })
     new_campaign = api.model('new_campaign', {
@@ -156,7 +158,6 @@ class CampaignDto(object):
     pinnacle_phone_num = api.model('pinnacle_phone_num', {
         'number': fields.String(required=True),
     });
-    
 
 
 class UserDto:
@@ -683,7 +684,7 @@ class LeadDto:
         # inserted_on is kept only for backward compatability
         'inserted_on': fields.DateTime(),
         'created_date': DateTimeFormatField(attribute='inserted_on'),
-        'employment_status':EmploymentStatusField(),
+        'employment_status': EmploymentStatusField(),
         'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account),
         'payment_contract': fields.Nested(debt_payment_contract),
@@ -700,10 +701,10 @@ class LeadDto:
         'opener': fields.String(attribute='opener.full_name'),
         'sales_rep': fields.String(attribute='sales_rep.full_name'),
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
-        'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber',attribute='contact_numbers'),
+        'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber', attribute='contact_numbers'),
         'notification_pref': fields.Nested(notification_preference),
     })
-    lead_pagination=api.model('lead_pagination', {
+    lead_pagination = api.model('lead_pagination', {
         'page_number': fields.Integer(),
         'total_records': fields.Integer(),
         'limit': fields.Integer(),
@@ -832,6 +833,8 @@ class LeadDto:
         'updated_on': fields.DateTime(required=False),
         'updated_by_username': fields.String(required=False),
     })
+
+
 # End LeadDTO
 
 class CandidateImportStatusField(fields.String):
@@ -860,7 +863,7 @@ class CandidateDto:
     credit_report_account = api.model('credit_report_account', {
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField(),
-        'fico' : fields.Integer()
+        'fico': fields.Integer()
     })
     candidate_disposition = api.model('candidate_dispositions', {
         'value': fields.String(),
@@ -884,7 +887,7 @@ class CandidateDto:
         'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account),
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
-        'phone': PreferedPhoneField(cls_or_instance='CandidateContactNumber',attribute='contact_numbers'),
+        'phone': PreferedPhoneField(cls_or_instance='CandidateContactNumber', attribute='contact_numbers'),
         'best_time': fields.String(required=False, example='13:30'),
         'loc_time_zone': fields.String(required=False, example='PST'),
     })
@@ -893,7 +896,7 @@ class CandidateDto:
         'name': fields.String(required=True),
         'value': fields.String(required=True)
     })
-    candidate_pagination=api.model('candidate_pagination', {
+    candidate_pagination = api.model('candidate_pagination', {
         'page_number': fields.Integer(),
         'total_number_of_records': fields.Integer(),
         'limit': fields.Integer(),
@@ -1113,6 +1116,7 @@ class CollectorDto:
         'zip_code': fields.String(required=False),
     })
 
+
 class DocprocDto:
     api = Namespace('docproc', description='Doc Process related operations')
     doc_type = api.model('doc_type', {
@@ -1127,7 +1131,7 @@ class DocprocDto:
         'public_id': fields.String(required=False),
         'first_name': fields.String(required=False),
         'last_name': fields.String(required=False),
-        'status':  fields.String(required=False),
+        'status': fields.String(required=False),
     })
     doc_note = api.model('doc_note', {
         'public_id': fields.String(required=False),
@@ -1257,6 +1261,7 @@ class TaskDto:
         'inserted_on': DateTimeFormatField(),
     });
 
+
 class TicketDto:
     api = Namespace('tickets', description='Support ticket related operations')
     client = api.model('clients', {
@@ -1266,13 +1271,14 @@ class TicketDto:
     })
 
     ticket = api.model('tickets', {
-      'id': fields.Integer(),
-      'title': fields.String(),
-      'desc': fields.String(),
-      'priority': fields.String(attribute='priority'),
-      'status': fields.String(attribute='status'),
-      'client': fields.Nested(client),
-    });
+        'id': fields.Integer(),
+        'title': fields.String(),
+        'desc': fields.String(),
+        'priority': fields.String(attribute='priority'),
+        'status': fields.String(attribute='status'),
+        'client': fields.Nested(client),
+    })
+
 
 class CreditorDto:
     api = Namespace('creditors', description='Creditor related operations')
@@ -1292,6 +1298,7 @@ class CreditorDto:
         'updated_on': DateTimeFormatField(),
     });
 
+
 class ReportDto:
     api = Namespace('reports', description='Reports related end points')
 
@@ -1306,7 +1313,7 @@ class ReportDto:
         'disposition': fields.String(),
         'lead_type': fields.String(),
         'salesrep': fields.String(),
-        'account_manager': fields.String(), 
+        'account_manager': fields.String(),
         'email': fields.String(),
         'client_id': fields.String(),
     });
@@ -1317,7 +1324,7 @@ class ReportDto:
         'deal_count': fields.Integer(),
         'recycled_lead_count': fields.Integer(),
         'recycled_deal_count': fields.Integer(),
-        'recycled_closing_percent': fields.Float(), 
+        'recycled_closing_percent': fields.Float(),
         'total_leads': fields.Integer(),
         'total_closing_percent': fields.Float(),
         'retention': fields.Integer(),
@@ -1343,7 +1350,7 @@ class ReportDto:
         'routing_number': fields.String(),
         'account_number': fields.String(),
         'account_type': fields.String(),
-        'pymt_trans_id': fields.String(), 
+        'pymt_trans_id': fields.String(),
     });
 
     ach_report = api.model('ach_report', {
@@ -1363,7 +1370,7 @@ class ReportDto:
         'cretaed_date': fields.String(),
         'status': fields.String(),
         'notes': fields.String(),
-        'modified_date': fields.String(),  
+        'modified_date': fields.String(),
     });
 
     creditor_report = api.model('creditor_report', {
@@ -1372,8 +1379,8 @@ class ReportDto:
         'contact_person': fields.String(),
         'phone': fields.String(),
         'created_date': fields.String(),
-        'status': fields.String(),    
-        'modified_date': fields.String(), 
+        'status': fields.String(),
+        'modified_date': fields.String(),
     });
 
     task_report = api.model('task_report', {

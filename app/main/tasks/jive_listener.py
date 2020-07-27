@@ -304,8 +304,9 @@ class JiveVoicemailHandler(Handler):
         voicemail_object_key = f'{received_date.strftime("%Y-%m-%dT%H%M%S")}~voicemail~{uuid.uuid4()}.{audio_filename.split(".")[-1]}'
 
         with open(f'/tmp/{audio_filename}', 'rb') as data:
+            current_app.logger.debug(f'Uploading voicemail file {audio_filename} to S3 bucket {bucket_name} with key {voicemail_object_key}')
             s3.upload_fileobj(data, bucket_name, voicemail_object_key)
-            current_app.logger.debug(f'Voicemail file {audio_filename} uploaded to S3 bucket {bucket_name} with key {voicemail_object_key}')
+            current_app.logger.debug(f'Voicemail file successfully uploaded')
 
         communication_data = self._build_communication_data(source_number, None, employee_mailbox_id=dest_mailbox)
         communication_data.receive_date = received_date.astimezone(pytz.UTC)

@@ -72,6 +72,7 @@ class FaxCommunication(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True)
     inserted_on = db.Column(db.DateTime, nullable=False)
+    updated_on = db.Column(db.DateTime, nullable=False)
 
     # foreign keys
     pbx_number_id = db.Column(db.Integer, db.ForeignKey('pbx_numbers.id'))
@@ -87,7 +88,6 @@ class FaxCommunication(db.Model):
     provider_name = db.Column(db.String(25), nullable=False)
     file_bucket_name = db.Column(db.String(50), nullable=False)
     file_bucket_key = db.Column(db.String(1024), nullable=False, unique=True)
-    updated_on = db.Column(db.DateTime, nullable=False)
     is_viewed = db.Column(db.Boolean, nullable=False, default=False)
 
 
