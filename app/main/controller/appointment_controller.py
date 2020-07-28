@@ -1,6 +1,7 @@
 from flask import request
 from flask_restplus import Resource
 
+from app.main.util.decorator import (token_required, enforce_rac_required_roles)
 from app.main.service.appointment_service import AppointmentService
 from ..util.dto import AppointmentDto
 
@@ -12,6 +13,7 @@ _appointment = AppointmentDto.appointment
 class AppointmentList(Resource):
     @api.doc('list_of_appointments')
     @api.marshal_list_with(_appointment, envelope='data')
+    @token_required
     def get(self):
         """ List all appointments """
         return AppointmentService.list()
@@ -34,6 +36,7 @@ class AppointmentList(Resource):
 class Appointment(Resource):
     @api.doc('get appointment')
     @api.marshal_with(_appointment)
+    @token_required
     def get(self, public_id):
         try:
             """ Get appointment with provided identifier"""
@@ -44,6 +47,7 @@ class Appointment(Resource):
 
     @api.doc('update appointment')
     @api.marshal_with(_appointment)
+    @token_required
     def put(self, public_id):
         try:
             print(public_id)

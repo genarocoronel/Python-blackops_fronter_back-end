@@ -11,7 +11,7 @@ api = ReportDto.api
 @api.route('/clients_report/view')
 class ClientReportView(Resource):
     @api.doc('Fetches all leads & clients report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -23,7 +23,7 @@ class ClientReportView(Resource):
 @api.route('/clients_report')
 class ClientReportDownload(Resource):
     @api.doc('Download All leads & clients report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -35,7 +35,7 @@ class ClientReportDownload(Resource):
 @api.route('/sales_report/view')
 class SalesReportView(Resource):
     @api.doc('Fetches Sales report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json 
@@ -47,7 +47,7 @@ class SalesReportView(Resource):
 @api.route('/sales_report')
 class SalesReportDownload(Resource):
     @api.doc('Download Sales report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -59,7 +59,7 @@ class SalesReportDownload(Resource):
 @api.route('/ach_report/view')
 class ACHReportView(Resource):
     @api.doc('Fetches ACH report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -71,7 +71,7 @@ class ACHReportView(Resource):
 @api.route('/ach_report')
 class ACHReportDownload(Resource):
     @api.doc('Download ACH report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -83,7 +83,7 @@ class ACHReportDownload(Resource):
 @api.route('/future_draft_report/view')
 class FutureDraftReportView(Resource):
     @api.doc('Fetches future-draft report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -95,7 +95,7 @@ class FutureDraftReportView(Resource):
 @api.route('/future_draft_report')
 class FutureDraftReportDownload(Resource):
     @api.doc('Fetches future-draft report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -107,7 +107,7 @@ class FutureDraftReportDownload(Resource):
 @api.route('/debt_collector_report/view')
 class DebtCollectorReportView(Resource):
     @api.doc('Fetches Debt Collector report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -119,7 +119,7 @@ class DebtCollectorReportView(Resource):
 @api.route('/debt_collector_report')
 class DebtCollectorReportDownload(Resource):
     @api.doc('Fetches Debt Collector report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -131,7 +131,7 @@ class DebtCollectorReportDownload(Resource):
 @api.route('/creditor_report/view')
 class CreditorReportView(Resource):
     @api.doc('Fetches Creditor report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -143,7 +143,7 @@ class CreditorReportView(Resource):
 @api.route('/creditor_report')
 class CreditorReportDownload(Resource):
     @api.doc('Fetches Creditor report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -155,7 +155,7 @@ class CreditorReportDownload(Resource):
 @api.route('/task_report/view')
 class TaskReportView(Resource):
     @api.doc('Fetches Task report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json
@@ -167,7 +167,7 @@ class TaskReportView(Resource):
 @api.route('/task_report')
 class TaskReportDownload(Resource):
     @api.doc('Fetches Task report')
-    #@token_required
+    @token_required
     def get(self):
         try:
             data = request.json

@@ -48,6 +48,8 @@ class CollectorList(Resource):
 class CollectorRecord(Resource):
     @api.doc('Updates a Debt Collector') 
     @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP])
     def post(self, collector_id):
         """ Updates a Debt Collector """
         data = request.json
