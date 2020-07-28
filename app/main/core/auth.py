@@ -14,7 +14,7 @@ from app.main.model.user import User, UserPasswordReset
 from app.main.model.portal_user import PortalUser
 from app.main.util.validate import is_email
 from app.main.model.blacklist import BlacklistToken
-from flask import current_app as app
+from flask import current_app as app, g
 
 class Auth():
 
@@ -69,6 +69,52 @@ class Auth():
             response_object = {
                 'status': 'fail',
                 'message': 'Try again'
+            }
+            return response_object, 500
+
+
+    @staticmethod
+    def refresh_token():
+        """ Refreshes a valid Auth Token for a new one """
+        try:
+            user = User.query.filter_by(id=g.current_user['user_id']).first()
+            if user:
+                auth_token = Auth.encode_auth_token(user.id)
+
+                response_object = {
+                    'status': 'success',
+                    'message': 'Successfully refreshed token.',
+                    'user': {
+                        'public_id': user.public_id,
+                        'username': user.username,
+                        'password': None,
+                        'email': user.email,
+                        'first_name': user.first_name,
+                        'last_name': user.last_name,
+                        'title': user.title,
+                        'phone_number': user.personal_phone,
+                        'language': user.language,
+                        'personal_phone': user.personal_phone,                            
+                        'last_4_of_phone': user.personal_phone[-4:],
+                        'voip_route_number': user.voip_route_number,
+                        'rac_role': user.role.name,
+                        'require_2fa': user.require_2fa,
+                        'token': auth_token.decode()
+                    }
+                }
+                return response_object, 200
+            else:
+                response_object = {
+                    'status': 'fail',
+                    'message': 'Could not find that user based on given Auth headers. Redirect the user to the login page.'
+                }
+                return response_object, 404
+
+        except Exception as e:
+            print(e)
+            response_object = {
+                'status': 'fail',
+                'message': 'Error attempting to refresh the auth session. Redirect the user to the login page.'
             }
             return response_object, 500
 
