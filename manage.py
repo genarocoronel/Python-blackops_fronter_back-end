@@ -14,11 +14,12 @@ from app.main.model.credit_report_account import CreditReportAccount
 from app.main.seed.admins import create_super_admin
 
 from app.main.model import *
-from app.main.model.portal_callsheet import PortalCallsheet
-from app.main.model.portal_user import PortalUser
-from app.main.model.candidate_docs import CandidateDoc
-from app.main.model.portal_message import PortalMessage
-from app.main.model.credit_report_account_access import CreditReportAccountAccess
+from app.main.model.client_call import ClientCall
+# from app.main.model.portal_callsheet import PortalCallsheet
+# from app.main.model.portal_user import PortalUser
+# from app.main.model.candidate_docs import CandidateDoc
+# from app.main.model.portal_message import PortalMessage
+# from app.main.model.credit_report_account_access import CreditReportAccountAccess
 from app.main.background.worker import run_worker
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values
 from app.main.seed.client_dispositions import seed_client_disposition_values
@@ -47,15 +48,17 @@ manager = Manager(app)
 migrate = Migrate(app, db)
 manager.add_command('db', MigrateCommand)
 
+
 @manager.command
 def worker(queue):
     # default worker queue is `default`
     run_worker(queue)
 
+
 @manager.command
 def seed():
     seed_rac_roles()
-    create_super_admin()    
+    create_super_admin()
     seed_users_with_roles()
     seed_candidate_disposition_values()
     seed_client_disposition_values()
@@ -72,13 +75,14 @@ def seed():
     seed_templates()
     seed_pinnacle_phone_numbers()
 
+
 ## launching development server
 ## uses eventlet library for websocket support
 ## Werkzueg run is replaced with SocketIO run  
 @manager.command
 def run():
     wscomm.run(app, host='0.0.0.0', port=5000, log_output=True)
-   
+
 
 @manager.command
 def encrypt_string(password):
@@ -93,7 +97,7 @@ def kron():
 @manager.command
 def comms_listener():
     jive_listener.run()
-    
+
 
 @manager.option('-t', '--client_type', help='Client Type (candidate, client)')
 @manager.option('-i', '--client_id', help='Client ID')

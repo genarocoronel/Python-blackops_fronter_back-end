@@ -9,7 +9,8 @@ class CallStatus(enum.Enum):
     Success = "success"
     Rejected = "rejected"
     Failed = "failed"
-    
+
+
 class CallDirection(enum.Enum):    
     Incoming = "incoming"
     Outgoing = "outgoing"
