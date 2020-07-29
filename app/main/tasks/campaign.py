@@ -9,6 +9,7 @@ from filelock import FileLock
 from app.main import db
 from app.main.config import upload_location, prequal_id_counter_lock_file, prequal_id_counter_file
 from app.main.model.campaign import Campaign
+from app.main.service.candidate_service import get_last_prequal_number
 
 
 def _set_latest_prequal_id(value):
@@ -53,7 +54,12 @@ def generate_mailer_file(campaign_id):
         lock = FileLock(prequal_id_counter_lock_file)
         with lock:
             if not path.isfile(prequal_id_counter_file):
-                latest_prequal_id = 'A10000'
+                latest_prequal_id = get_last_prequal_number()
+
+                # Start at begining of sequence since we do not have a file nor records with prequal nums
+                if not latest_prequal_id:
+                    latest_prequal_id = 'A10000'
+
             else:
                 latest_prequal_id = open(prequal_id_counter_file, "r").read()
 
