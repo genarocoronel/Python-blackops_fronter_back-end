@@ -4,6 +4,7 @@ from flask_restplus import Resource
 from app.main.core.rac import RACMgr
 from app.main.core.auth import Auth
 from ..util.dto import AuthDto
+from app.main.util.decorator import token_required
 
 api = AuthDto.api
 _user_auth = AuthDto.user_auth
@@ -23,6 +24,15 @@ class UserLogin(Resource):
         # get the post data
         post_data = request.json
         return Auth.login_user(data=post_data)
+
+
+@api.route('/refresh')
+class UserLoginRefresh(Resource):
+    """ Refreshes the Auth Token """
+    @api.doc('user login refresh')
+    @token_required
+    def put(self):
+        return Auth.refresh_token()
 
 
 @api.route('/logout')
