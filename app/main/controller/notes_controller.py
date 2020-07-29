@@ -1,6 +1,7 @@
 from flask import Flask, request
 from flask_restplus import Resource, Api
 
+from app.main.util.decorator import token_required
 from app.main.model.client import ClientType
 from ..util.dto import NotesDto
 from ..service.note_service import create_note, fetch_note
@@ -14,6 +15,7 @@ _note = NotesDto.note
 @api.route('/')
 class Notes(Resource):
     @api.doc('get notes for a given author')
+    @token_required
     def get(self):
         try:
             author_id = request.args.get('author_id')
@@ -53,6 +55,7 @@ class AuthorNotes(Resource):
     @api.response(200, 'Notes successfully added')
     @api.doc('Add Notes')
     @api.expect(_note, validate=True)
+    @token_required
     def post(self, public_id):
         try:
             data = request.json

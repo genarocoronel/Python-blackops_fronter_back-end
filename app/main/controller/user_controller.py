@@ -188,9 +188,8 @@ class UserNumberResource(Resource):
 @api.route('/<dept_name>/members')
 @api.param('dept_name', 'Department name')
 class UsersByDept(Resource):
-
-    #@token_required
-    @api.marshal_list_with(_user_supressed) 
+    @api.marshal_list_with(_user_supressed)
+    @token_required
     def get(self, dept_name):
         try:
             dept = DepartmentService.by_name(dept_name)
@@ -202,7 +201,6 @@ class UsersByDept(Resource):
 @api.route('/<user_id>/tasks')
 @api.param('user_id', 'User Identifier')
 class UserTasks(Resource):
-
     @token_required
     @api.marshal_list_with(_task)
     def get(self, user_id): 

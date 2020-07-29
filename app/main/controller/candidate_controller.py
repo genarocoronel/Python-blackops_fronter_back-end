@@ -9,6 +9,7 @@ from app.main.config import upload_location
 from app.main.controller import _convert_payload_datetime_values
 from app.main.core.errors import (BadRequestError, ServiceProviderError, ServiceProviderLockedError)
 from app.main.core.rac import RACRoles
+from app.main.util.decorator import (token_required, enforce_rac_required_roles)
 from app.main.core.types import CustomerType
 from app.main.model.candidate import CandidateImport
 from app.main.service.candidate_service import (save_new_candidate_import, save_changes, get_all_candidate_imports,
@@ -29,7 +30,6 @@ from app.main.service.credit_report_account_service import (creport_account_sign
 from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid,
                                               allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file, copy_docs_from_candidate)
 from app.main.service.user_service import get_a_user
-from app.main.util.decorator import (token_required, enforce_rac_required_roles)
 from app.main.util.dto import CandidateDto
 from app.main.util.parsers import filter_request_parse
 
@@ -66,6 +66,8 @@ _doc_upload = CandidateDto.doc_upload
 class GetCandidates(Resource):
     @api.doc('get candidates with pagination info')
     @api.marshal_with(_candidate_pagination)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self):
         """ Get all Candidates """
         limit = request.args.get('_limit', None)
@@ -87,6 +89,8 @@ class GetCandidates(Resource):
         return result, 200
 
     @api.doc('delete candidates')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR])
     def delete(self):
         """Delete Candidates"""
         request_data = request.json
@@ -125,6 +129,8 @@ class CandidateFilter(Resource):
 class UpdateCandidate(Resource):
     @api.doc('get candidate')
     @api.marshal_with(_candidate)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
 
@@ -148,7 +154,7 @@ class UpdateCandidate(Resource):
 class CandidateVerify(Resource):
     @api.doc('Verifies a Candidate and assigns to current Opener')
     @token_required
-    @enforce_rac_required_roles([RACRoles.OPENER_REP])
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def post(self, public_id):
         """ Assigns a Candidate to a Opener Rep user """
         candidate, error_response = _handle_get_candidate(public_id)
@@ -954,8 +960,7 @@ class CandidateDoc(Resource):
     @api.doc('Creates a Doc for a Candidate')
     @api.expect(_candidate_doc, validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
-        RACRoles.OPENER_REP])
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def post(self, candidate_id):
         """ Creates a Doc for a Candidate """
         candidate, error_response = _handle_get_candidate(candidate_id)
@@ -978,8 +983,7 @@ class CandidateDoc(Resource):
 
     @api.doc('Gets Docs for a Candidate')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
-        RACRoles.OPENER_REP])
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         """ Gets Docs for a Candidate """
         candidate, error_response = _handle_get_candidate(candidate_id)
@@ -996,8 +1000,7 @@ class CandidateDoc(Resource):
 class CandidateDocUpload(Resource):
     @api.doc('Uploads a File for a Candidate Doc')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
-        RACRoles.OPENER_REP])
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def post(self, candidate_id, doc_id):
         """ Uploads a File for a Candidate Doc """
         candidate, error_response = _handle_get_candidate(candidate_id)
@@ -1031,8 +1034,7 @@ class CandidateDocUpload(Resource):
 class DocFile(Resource):
     @api.doc('Gets a Doc File for a Candidate')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, 
-        RACRoles.OPENER_REP])
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id, doc_id):
         """ Gets a Candidate Doc File stream """
         candidate, error_response = _handle_get_candidate(candidate_id)

@@ -28,6 +28,7 @@ class TeamRequestList(Resource):
 class TeamRequestFilter(Resource): 
     @api.doc('Filter the team requests')
     @api.marshal_list_with(_team_request)
+    @token_required
     def get(self):
         try:
             """ Filter team requests based on field val """
@@ -43,6 +44,7 @@ class TeamRequestFilter(Resource):
 class TeamRequestItem(Resource):
     @api.doc('get team request record by identifier')
     @api.marshal_with(_team_request)
+    @token_required
     def get(self, team_name, req_id):
         try:
             """ get team request for the given id  """
@@ -55,6 +57,7 @@ class TeamRequestItem(Resource):
     @token_required
     @api.doc('update team request record')
     @api.marshal_with(_team_request)
+    @token_required
     def put(self, team_name, req_id):
         try:
             """ Update team request record """

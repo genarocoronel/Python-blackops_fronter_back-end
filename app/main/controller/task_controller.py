@@ -43,6 +43,7 @@ class TaskList(Resource):
 class TaskFilter(Resource): 
     @api.doc('Filter the task resultset')
     @api.marshal_list_with(_task)
+    @token_required
     def get(self):
         try:
             """ Filter user tasks based on field val """
@@ -57,6 +58,7 @@ class TaskFilter(Resource):
 class TaskItem(Resource):
     @api.doc('get task record by identifier')
     @api.marshal_with(_task)
+    @token_required
     def get(self, task_id):
         try:
             """ get team request for the given id  """
@@ -68,6 +70,7 @@ class TaskItem(Resource):
 
     @api.doc('update team request record')
     @api.marshal_with(_task)
+    @token_required
     def put(self, task_id):
         try:
             """ Update task record """

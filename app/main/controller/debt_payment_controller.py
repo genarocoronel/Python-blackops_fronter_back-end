@@ -1,6 +1,7 @@
 from flask import Flask, request
 from flask_restplus import Resource, Api
 
+from app.main.util.decorator import token_required
 from ..util.dto import DebtPaymentDto
 from ..service.debt_payment_service import fetch_debt_payment_stats
 
@@ -9,6 +10,7 @@ api = DebtPaymentDto.api
 @api.route('/client/stats')
 class DebtPaymentStats(Resource):
     @api.doc('Debt payment statuses for a given client')
+    @token_required
     def get(self):
         try:
             client_id = request.args.get('client')
