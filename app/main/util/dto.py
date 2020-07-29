@@ -1038,6 +1038,10 @@ class CandidateDto:
         }), required=True, skip_none=True)
     })
     candidate_communication = api.model('communication', _communication)
+    candidate_assign = api.model('candidate_assign', {
+        'user_id': fields.String(required=True, desciption='The assignee public ID.'),
+        'candidate_ids': fields.List(fields.String, required=True, desciption='List of Candidate public IDs'),
+    })
     candidate_doc = api.model('candidate_disposition', {
         'public_id': fields.String(required=False),
         'doc_name': fields.String(required=True),
