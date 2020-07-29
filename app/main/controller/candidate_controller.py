@@ -53,6 +53,7 @@ _candidate_monthly_expense = CandidateDto.candidate_monthly_expense
 _update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
 _candidate_address = CandidateDto.candidate_address
 _update_candidate_addresses = CandidateDto.update_candidate_addresses
+_candidate_assign = CandidateDto.candidate_assign
 _candidate_doc = CandidateDto.candidate_doc
 _doc_upload = CandidateDto.doc_upload
 
@@ -177,25 +178,37 @@ class CandidateVerify(Resource):
         return response_object, 200
 
 
-@api.route('/<public_id>/assign/<user_public_id>/')
+@api.route('/assign')
 @api.param('public_id', 'The Candidate Identifier')
 @api.response(404, 'Candidate not found')
 class CandidateAssignment(Resource):
     @api.doc('Assigns a Candidate to a Opener Rep user')
+    @api.marshal_with(_candidate_assign)
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR])
-    def post(self, public_id, user_public_id):
+    def post(self):
         """ Assigns a Candidate to a Opener Rep user """
-        candidate, error_response = _handle_get_candidate(public_id)
-        if not candidate:
-            api.abort(404, **error_response)
-        
-        asignee = get_a_user(user_public_id)
-        if not asignee:
-            api.abort(404, message='That Opener Rep with ID {} could not be found.'.format(user_public_id), success=False)
+        request_data = request.json
+        asignee_pub_id = request_data.get('user_id')
+        candidate_ids = request_data.get('candidate_ids')
+        candidates = []
 
+        asignee = get_a_user(asignee_pub_id)
+        if not asignee:
+            api.abort(404, message='That Opener Rep with ID {} could not be found.'.format(asignee_pub_id), success=False)
+
+        if not candidate_ids:
+            api.abort(404, message='You need to specify at least one Candidate public ID.', success=False)
+
+        for candidate_pubid_item in request_data.get('candidate_ids'):
+            candidate, error_response = _handle_get_candidate(candidate_pubid_item)
+            if not candidate:
+                api.abort(404, **error_response)
+            else:
+                candidates.append(candidate)
+        
         try:
-            assign_openerrep(candidate, asignee)
+            assign_openerrep(candidates, asignee)
 
         except BadRequestError as e:
             api.abort(400, message='Error assigning Candidate, {}'.format(str(e)), success=False)
@@ -203,11 +216,8 @@ class CandidateAssignment(Resource):
         except Exception as e:
             api.abort(500, message=f'Failed to assign a Opener Rep for this Candidate. Error: {e}', success=False)
 
-        response_object = {
-            'success': True,
-            'message': f'Successfully assigned this Candidate to Opener Rep with ID {user_public_id}.',
-        }
-        return response_object, 200
+        request_data['message'] = 'Successfully assigned Candidates to this User'
+        return request_data, 200
 
 
 @api.route('/<candidate_id>/income-sources')
