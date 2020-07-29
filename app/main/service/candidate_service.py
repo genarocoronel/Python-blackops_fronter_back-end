@@ -665,3 +665,10 @@ def convert_candidate_to_lead(candidate, prequal_number):
     save_changes(candidate)
 
     return new_client
+
+
+def get_last_prequal_number():
+    """ Gets the last Candidate Prequalification number """
+    last_candidate = Candidate.query.filter(Candidate.prequal_number != None).order_by(desc(Candidate.id)).first()
+    return last_candidate.prequal_number
+    
