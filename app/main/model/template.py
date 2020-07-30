@@ -123,3 +123,5 @@ class MailBox(db.Model):
     attachments = db.Column(db.JSON, default={})
 
 
+    debt_collector_id = db.Column(db.Integer, db.ForeignKey('debt_collectors.id', name='mailbox_debt_collector_id_fkey'))
+    debt_collector = db.relationship('DebtCollector', backref='mails')

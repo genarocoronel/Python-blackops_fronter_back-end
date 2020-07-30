@@ -22,7 +22,6 @@ _update_campaign = CampaignDto.update_campaign
 class CampaignsList(Resource):
     @api.marshal_with(_campaign)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def post(self):
         """ Create Campaign """
         try:
@@ -36,7 +35,6 @@ class CampaignsList(Resource):
     @api.doc('list all campaigns')
     @api.marshal_list_with(_campaign, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self):
         """ List all campaigns """
         cs = CampaignService()
@@ -50,7 +48,6 @@ class CampaignsList(Resource):
 class UpdateCampaign(Resource):
     @api.marshal_with(_campaign)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def put(self, campaign_id):
         """ Update Campaign Information """
         payload = request.json
@@ -66,7 +63,6 @@ class UpdateCampaign(Resource):
 class PinnaclePhoneList(Resource):
     @api.doc('list all pinnacle phone nums')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self): 
         """ List all pinnacle phone nums """
         service = PinnaclePhoneNumService() 
@@ -80,7 +76,6 @@ class PinnaclePhoneList(Resource):
 class GenerateReport(Resource):
     @api.doc('generate campaign report')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def get(self):
         try:
             service = CampaignReportService()

@@ -1,5 +1,44 @@
-from app.main.model.team import TeamRequestType
+from app.main.model.team import Team, TeamRequestType, TeamMember
+from app.main.model.rac import RACRole
+from app.main.model.user import User
+from app.main.core.rac import RACRoles
 from app.main import db
+from sqlalchemy import func
+from datetime import datetime
+
+def seed_teams():
+    records = [
+        {'name': 'Service', 'description': 'Team handles client/lead service requests.'},
+    ]
+
+    admin = User.query.outerjoin(RACRole)\
+                      .filter(RACRole.name==RACRoles.SUPER_ADMIN.value).first()
+    for record in records:
+        team = Team.query.filter_by(name=record['name']).first() 
+        if not team:
+            team = Team(name=record['name'],
+                        description=record['description'],
+                        created_date=datetime.utcnow(),
+                        creator_id=admin.id)
+            db.session.add(team)
+    db.session.commit()
+
+def migrate_users():
+    for user in User.query.all():
+        team = Team.query.filter(func.lower(Team.name)==func.lower(user.department)).first()
+        if not team:
+            continue
+
+        if 'mgr' in user.role.name:
+            team.manager_id = user.id
+        else:
+            tm = TeamMember(team_id=team.id,
+                            member_id=user.id,
+                            created_date=datetime.utcnow())
+            db.session.add(tm)
+
+    db.session.commit()
+
 
 def seed_team_request_types():
     records = [

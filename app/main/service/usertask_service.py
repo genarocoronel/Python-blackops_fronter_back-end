@@ -2,7 +2,7 @@ from app.main import db
 from app.main.model.usertask import UserTask, TaskStatus, TaskAssignType, TaskPriority, UserTaskNotes
 from app.main.model.debt_payment import DebtPaymentContract, ContractStatus, DebtPaymentContractCreditData
 from app.main.service.workflow import open_task_flow
-from app.main.model.user import User, Department
+from app.main.model.user import User
 from app.main.model.client import Client
 from app.main.model.notes import Note
 from app.main.core.rac import RACRoles, RACMgr
@@ -28,12 +28,13 @@ class UserTaskService(object):
     def request(cls): 
         obj = cls()
         user = get_request_user()
-        # role based access
-        if RACMgr.enforce_policy_user_has_role([RACRoles.SERVICE_MGR,]):
-            obj._qs = UserTask.query.outerjoin(User, UserTask.owner)\
-                                    .filter(User.department == Department.SERVICE.name)
-        else:    	
-            obj._qs = UserTask.query.filter_by(owner_id=user.id)
+        agents = [ user ] 
+        # if team manager
+        for team in user.managed_teams:
+            agents = agents + team.agents 
+        userids = [user.id for user in agents]
+        obj._qs = UserTask.query.filter(UserTask.owner_id.in_(userids)).all()
+
         return obj
 
     @classmethod
@@ -47,7 +48,6 @@ class UserTaskService(object):
         obj._qs = UserTask.query.outerjoin(User, UserTask.owner)\
                                 .filter(User.public_id==public_id)
         return obj
-
 
     @classmethod
     def by_id(cls, id):

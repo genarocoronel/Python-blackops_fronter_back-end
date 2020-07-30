@@ -127,6 +127,19 @@ class Client(db.Model):
             result = result + float(debt.balance_original)
         return result
 
+    @property
+    def enrolled_debts(self):
+        if self.credit_report_account:
+            return self.credit_report_account.records
+        return []
+
+    @property
+    def combined_debts(self):
+        if self.co_client:
+            return self.enrolled_debts + self.co_client.enrolled_debts
+        return self.enrolled_debts
+
+
 class ClientIncome(db.Model):
     __tablename__ = "client_income_sources"
 

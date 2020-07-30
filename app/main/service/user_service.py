@@ -43,8 +43,17 @@ def save_new_user(data, desired_role: RACRoles = None):
     elif not data.get('password'):
         raise BadRequestError('Cannot create a new User without providing a desired password')
 
+    # HTTP request
+    if not desired_role:
+        role = data.get('rac_role') 
+        if not role:
+            raise BadRequestError('Cannot crate a user without providing a role')
+        desired_role = RACRoles(role)
+
     user = User.query.filter_by(email=data['email']).first()
     if not user:
+        # department
+        dept = Department.from_role(desired_role.value)
         new_user = User(
             public_id=str(uuid.uuid4()),
             email=data.get('email'),
@@ -57,21 +66,22 @@ def save_new_user(data, desired_role: RACRoles = None):
             personal_phone=data.get('personal_phone'),
             voip_route_number=data.get('voip_route_number'),
             pbx_mailbox_id=data.get('pbx_mailbox_id'),
+            department=dept,
             registered_on=datetime.datetime.utcnow()
         )
 
-        if desired_role:
-            new_user = RACMgr.assign_role_to_user(desired_role, new_user)
-
+        # assign role to user  
+        new_user = RACMgr.assign_role_to_user(desired_role, new_user)
         save_changes(new_user)
-        return generate_token(new_user)
-    else:
-        response_object = {
-            'status': 'fail',
-            'message': 'User already exists. Please Log in.',
-        }
-        return response_object, 409
 
+        if dept == Department.SALES.name:
+            # Add a sales board to Sales agents
+            sb = SalesBoard(agent_id=new_user.id)
+            save_changes(sb)
+
+        return new_user
+    else:
+        raise BadRequestError('User with email adready present in the system')
 
 def update_user(public_id, data):
     user = User.query.filter_by(public_id=public_id).first()
@@ -207,23 +217,3 @@ def update_user_numbers(user, new_pbx_numbers=None):
 
     save_changes()
 
-
-class DepartmentService(object):
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        self._name = name
-
-    def members(self):
-        users = User.query.filter(func.lower(User.department) == func.lower(self._name)).all()
-        return users
-
-    @classmethod
-    def by_name(cls, name):
-        obj = cls()
-        obj.name = name
-        return obj

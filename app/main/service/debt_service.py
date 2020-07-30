@@ -79,7 +79,8 @@ def save_new_debt(data, account):
         payment_amount=data.get('payment_amount'),
         credit_limit=data.get('credit_limit'),
         graduation=data.get('graduation'),
-        last_update=data.get('last_update')
+        last_update=data.get('last_update'),
+        enrolled_date=datetime.datetime.utcnow(), 
     )
     save_changes(debt_data)
     return debt_data

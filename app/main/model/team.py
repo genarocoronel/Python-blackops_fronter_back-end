@@ -3,11 +3,45 @@ from app.main import db
 from datetime import datetime
 from sqlalchemy.orm import backref
 
-
 class TeamRequestStatus(enum.Enum):
     NEW = 'new'
     APPROVED = 'approved'
     DECLINED = 'declined'
+
+class Team(db.Model):
+    """ db model for storing team details """
+    __tablename__ = "teams"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(80), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # team manager
+    manager_id = db.Column(db.Integer, db.ForeignKey('users.id', name='teams_manager_id_fkey'))
+    manager = db.relationship('User', backref='managed_teams', foreign_keys=[manager_id]) 
+    # team creator
+    creator_id = db.Column(db.Integer, db.ForeignKey('users.id', name='teams_creator_id_fkey'))
+    creator = db.relationship('User', backref=backref('created_teams', lazy="dynamic"), foreign_keys=[creator_id]) 
+    created_date = db.Column(db.DateTime, nullable=False)
+    modified_date  = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    @property
+    def members(self):
+        return [tm.member for tm in self.team_members]
+
+    
+class TeamMember(db.Model):
+    """ db model for storing team members"""
+    __tablename__ = "team_members"
+
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id', name="team_members_team_id_fkey"), primary_key=True)
+    member_id = db.Column(db.Integer, db.ForeignKey('users.id', name='team_members_member_id_fkey'), primary_key=True)
+
+    team = db.relationship('Team', backref='team_members')
+
+    created_date = db.Column(db.DateTime, nullable=False)
+
 
 class TeamRequestType(db.Model):
     """ db model for storing team request types"""
