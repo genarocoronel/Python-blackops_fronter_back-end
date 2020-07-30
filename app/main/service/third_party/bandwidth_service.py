@@ -66,7 +66,7 @@ def download_mms_media(media_uri):
         raise ConfigurationError("Bandwidth app ID not configured")
 
     bw_user_id = current_app.bandwidth_user_id
-    media_api_endpoint = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/media_file_name'
+    media_api_endpoint = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/{media_file_name}'
     rheaders = _create_headers()
 
     try:
