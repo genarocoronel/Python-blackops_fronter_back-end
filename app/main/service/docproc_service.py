@@ -18,7 +18,6 @@ from app.main.model.candidate_docs import CandidateDoc
 from app.main.service.user_service import get_user_by_id, get_request_user
 from app.main.service.client_service import get_client_by_id
 from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc)
-from app.main.service.workflow import DocprocWorkflow
 
 ALLOWED_DOC_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
@@ -117,6 +116,7 @@ def move_to_client_dossier(doc, client):
 
 def update_doc(doc, data):
     """ Updates a Doc """
+    from app.main.service.workflow import DocprocWorkflow
     for attr in data:
         if hasattr(doc, attr):
             if attr == 'type':
