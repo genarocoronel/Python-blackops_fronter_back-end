@@ -1,16 +1,21 @@
 import uuid
+import time
 import datetime
 import re
 import enum
 from twilio.rest import Client as Twilio_Client
 
 from app.main import db
+from app.main.core.io import (save_file, delete_file, generate_secure_filename, get_extension_for_filename)
+from app.main.config import upload_location
 from app.main.model.sms import SMSConvo, SMSMessage, SMSMediaFile, SMSBandwidth, SMSMessageStatus
 from app.main.model.client import Client, ClientContactNumber
 from app.main.model.contact_number import ContactNumber
+from app.main.model.docproc import DocprocChannel
 from app.main.service.candidate_service import get_candidate_by_phone, get_candidate_by_id, get_candidate_by_public_id
 from app.main.service.client_service import get_client_by_phone, get_client_by_id, get_client_by_public_id
-from app.main.service.third_party.bandwidth_service import sms_send
+from app.main.service.third_party.bandwidth_service import sms_send, download_mms_media
+from app.main.service.docproc_service import create_doc_manual, upload_to_docproc, get_doctype_by_name
 from app.main.core.errors import BadRequestError, NotFoundError, ConfigurationError, ServiceProviderError
 from flask import current_app as app
 
@@ -493,14 +498,57 @@ def _handle_new_media(media_data, message):
         for media_item in media_data:
             tmp_media_item = SMSMediaFile(
                 public_id = str(uuid.uuid4()),
-                file_uri = media_item,
                 inserted_on = datetime.datetime.utcnow(),
                 sms_message_id = message.id
             )
+
+            try:
+                file_content, media_filename = download_mms_media(tmp_media_item.file_uri)
+                app.logger.info(f'Successfully retrieved MMS media from Bandwidth {tmp_media_item.file_uri}')
+
+            except Exception as e:
+                app.logger.error(f'Error retrieving MMS media from Bandwidth, {str(e)}')
+
+            orig_filename = generate_secure_filename(media_filename)
+            fileext_part = get_extension_for_filename(orig_filename)
+            ms = time.time()
+            unique_filename = 'docproc_mms_{}_{}{}'.format(doc.public_id, ms, fileext_part)
+            try:
+                secure_filename, secure_file_path = save_file(file_content, unique_filename, upload_location)
+
+            except Exception as e:
+                app.logger.error(f'Error saving MMS media locally, {str(e)}')
+
+            try:
+                remote_filename = upload_to_docproc(secure_file_path, secure_filename)
+                app.logger.info(f'Successfully saved MMS media to S3 {saved_file_uri}')
+
+            except Exception as e:
+                app.logger.error(f'Error saving MMS media to S3, {str(e)}')
+
+            try:
+                doc_type = get_doctype_by_name('Other')
+                doc_data = {
+                    'doc_name': 'Doc via SMS From {}'.format(message.from_phone),
+                    'source_channel': DocprocChannel.SMS.value,
+                    'type': {'public_id': doc_type.public_id},
+                    'file_name': secure_filename,
+                    'orig_file_name': orig_filename
+                }
+                doc = create_doc_manual(doc_data, None)
+
+                app.logger.info(f'Successfully created Doc for MMS media. Doc pubID {doc.public_id}')
+
+            except Exception as e:
+                app.logger.error(f'Error creating a Doc from MMS, {str(e)}')
+
+            # This is the AWS S3 file URI (not Bandwidth)
+            tmp_media_item.file_uri = remote_filename
             db.session.add(tmp_media_item)
             save_changes()
-            media_records.append(tmp_media_item)
 
+            media_records.append(tmp_media_item)
+        
     return media_records
 
 

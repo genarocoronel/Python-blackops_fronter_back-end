@@ -54,6 +54,30 @@ def sms_send(from_phone, to_phone, message_body):
     return message_confirmation
 
 
+def download_mms_media(media_uri):
+    """ Fetches MMS media file """
+    media_file_name = media_uri.split('/')[-1]
+
+    if not current_app.bandwidth_api_endpoint:
+        raise ConfigurationError("Bandwidth API endpoint not configured")
+    elif not current_app.bandwidth_user_id:
+        raise ConfigurationError("Bandwidth user ID not configured")
+    elif not current_app.bandwidth_app_id:
+        raise ConfigurationError("Bandwidth app ID not configured")
+
+    bw_user_id = current_app.bandwidth_user_id
+    media_api_endpoint = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/{media_file_name}'
+    rheaders = _create_headers()
+
+    try:
+        r = requests.get(url = media_api_endpoint, headers=rheaders)
+
+    except Exception as e:
+        app.logger.error(f'Error fetching {media_uri} MMS media from Bandwidth, {str(e)}')
+
+    return r.content,  media_file_name
+
+
 def _create_headers():
     """ Creates HTTP request headers expected by external service """
     basic_auth_token = _synth_auth_token()
