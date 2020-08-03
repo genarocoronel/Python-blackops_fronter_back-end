@@ -11,8 +11,8 @@ _creditor = CreditorDto.creditor
 
 @api.route('/')
 class CreditorList(Resource):
-    @token_required
     @api.marshal_with(_creditor)
+    @token_required
     def post(self): 
         """ Create Creditor """
         try:
@@ -22,9 +22,9 @@ class CreditorList(Resource):
         except Exception as e:
             api.abort(500, message=str(e), success=False)
 
-    @token_required
     @api.doc('list all creditors')
     @api.marshal_list_with(_creditor)
+    @token_required
     def get(self):
         """ List all creditors """
         try:
@@ -37,8 +37,8 @@ class CreditorList(Resource):
 @api.route('/<creditor_id>')
 @api.param('creditor_id', 'Creditor Identifier')
 class CreditorItem(Resource):
-    @token_required
     @api.marshal_with(_creditor)
+    @token_required
     def put(self, creditor_id):
         """ Update Creditor Information """
         payload = request.json

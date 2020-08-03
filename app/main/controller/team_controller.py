@@ -13,9 +13,9 @@ _team_request = TeamDto.team_request
 
 @api.route('/')
 class TeamList(Resource):
-    @token_required
     @api.doc('List of teams')
     @api.marshal_list_with(_team)
+    @token_required
     def get(self):
         try:
             """ List all teams """
@@ -24,9 +24,9 @@ class TeamList(Resource):
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
 
-    @token_required
     @api.doc('Create a team')
     @api.marshal_with(_team)
+    @token_required
     def post(self):
         try:
             """ Create a team """
@@ -39,8 +39,8 @@ class TeamList(Resource):
 @api.route('/<team_id>')
 @api.param('team_id', 'Team Identifier')
 class TeamRecord(Resource):
-    @token_required
     @api.marshal_with(_team)
+    @token_required
     def put(self, team_id):
         """ Update team Information """
         try:
@@ -55,9 +55,9 @@ class TeamRecord(Resource):
 @api.route('/<team_name>/requests')
 @api.param('team_name', 'Team name')
 class TeamRequestList(Resource):
-    @token_required
     @api.doc('List of team requests for the given department')
     @api.marshal_list_with(_team_request)
+    @token_required
     def get(self, team_name):
         try:
             """ List all clients """

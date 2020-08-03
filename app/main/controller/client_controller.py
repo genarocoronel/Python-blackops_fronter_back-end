@@ -1080,7 +1080,6 @@ class ClientTasks(Resource):
     @api.doc('fetches service tasks for a given client')
     @api.marshal_list_with(_task)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
     def get(self, client_id):
         try:
             s = ClientTaskService(public_id=client_id)
@@ -1100,7 +1099,6 @@ class ClientTeamRequests(Resource):
     @api.doc('fetches team requests for a given client')
     @api.marshal_list_with(_team_request)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
     def get(self, client_id):
         try:
             s = ClientTrService(public_id=client_id)

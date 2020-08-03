@@ -27,8 +27,8 @@ class DebtPaymentStats(Resource):
 @api.route('/eft-fee')
 class EftReturnFeeView(Resource):
     @api.doc('create eft return fee')
-    @token_required
     @api.marshal_with(_eft_return_fee)
+    @token_required
     def post(self):
         try:
             data = request.json
@@ -38,8 +38,8 @@ class EftReturnFeeView(Resource):
             api.abort(500, message=str(e), success=False)
 
     @api.doc('fetches eft return fee')
-    @token_required
     @api.marshal_list_with(_eft_return_fee)
+    @token_required
     def get(self):
         try:
             svc = EftFeeService()
