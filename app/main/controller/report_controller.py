@@ -178,7 +178,7 @@ class TaskReportDownload(Resource):
             api.abort(500, message=str(e), success=False)
 
 @api.route('/days_delinquent_report/view')
-class DeysDelinquentReportView(Resource):
+class DaysDelinquentReportView(Resource):
     @api.doc('Fetches Days Delinquent report')
     @token_required
     def get(self):

@@ -6,7 +6,7 @@ from ..util.decorator import (token_required, enforce_rac_policy,
         enforce_rac_same_user_policy, enforce_rac_required_roles)
 from ..util.dto import UserDto, TaskDto
 from ..core.rac import RACRoles
-from ..service.user_service import (save_new_user, get_all_users, get_a_user,
+from ..service.user_service import (save_new_user, get_all_users, get_a_user, get_department_users,
                                     update_user, get_all_users_by_role_pubid, update_user_numbers, get_user_numbers)
 from ..service.usertask_service import UserTaskService
 from ..service.team import TeamService
@@ -187,8 +187,8 @@ class UsersByDept(Resource):
     @token_required
     def get(self, dept_name):
         try:
-            dept = DepartmentService.by_name(dept_name)
-            return dept.members()
+            users = get_department_users(dept_name)
+            return users
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
 

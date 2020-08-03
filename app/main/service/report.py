@@ -172,12 +172,39 @@ class ClientReportSvc(ReportService):
                     'last_name': client.last_name,
                     'dob': self._dt2str(client.dob),
                     'lead_source': client.lead_source,
-                    'disposition': client.disposition.value if client.disposition else '',
+                    'status': client.disposition.value if client.disposition else '',
                     'lead_type': 'Primary',
-                    'salesrep': client.sales_rep.full_name if client.sales_rep else '',
+                    'salesman': client.sales_rep.full_name if client.sales_rep else '',
                     'account_manager': client.account_manager.full_name if client.account_manager else '',
+                    'team_manager': client.team_manager.full_name if client.team_manager else '',
+                    'attorney': '', 
+                    'contact': '', 
                     'email': client.email, 
+                    'state': '', 
+                    'fico': '', 
+                    'smart_credit': '',
+                    'smart_credit_email': '',
+                    'smart_credit_token': '',
+                    'latest_action': '',
+                    'last_appt': '',
                     'client_id': client.friendly_id,
+                    'created_date': '',
+                    'last_call': '',
+                    'age': '',
+                    'calls': '',
+                    'total_call_duration': '',
+                    'task': '',
+                    'backend': '',
+                    'days_remain': '',
+                    'commission_rate': '',
+                    'total_debt': '',
+                    'next_draft_date': '',
+                    'num_payments': '',
+                    'total_payment': '',
+                    'sale_date': '',
+                    'first_payment_date': '',
+                    'balance': '',
+                    'last_update': '',
                 } 
                 records.append(record)
 
@@ -222,11 +249,11 @@ class SalesReportSvc(ReportService):
                     total_debt = total_debt + deal.total_debt 
 
                 record = {
-                    'name': user.full_name, 
-                    'lead_count': lead_count,
-                    'deal_count': deal_count,
-                    'recycled_lead_count': 0,
-                    'recycled_deal_count': 0,
+                    'agent': user.full_name, 
+                    'leads_count': lead_count,
+                    'deals_count': deal_count,
+                    'recycled_leads_count': 0,
+                    'recycled_deals_count': 0,
                     'recycled_closing_percent': 0,
                     'total_leads': 0,
                     'total_closing_percent': 0,
@@ -347,10 +374,10 @@ class CollectorReportSvc(ReportService):
                     'phone': collector.phone,
                     'fax': collector.fax,
                     'num_debts': num_debts,
-                    'created': self._dt2str(collector.inserted_on),
+                    'created_date': self._dt2str(collector.inserted_on),
                     'status': 'Active',
                     'notes': '',
-                    'modified': self._dt2str(collector.updated_on),  
+                    'last_update': self._dt2str(collector.updated_on),  
                 }
                 records.append(record)
 
@@ -382,9 +409,9 @@ class CreditorReportSvc(ReportService):
                     'company_name': creditor.company_name,
                     'contact_person': creditor.contact_person,
                     'phone': creditor.phone,
-                    'created': self._dt2str(creditor.inserted_on),
+                    'created_date': self._dt2str(creditor.inserted_on),
                     'status': 'Active' if creditor.is_active else 'Inactive',
-                    'modified': self._dt2str(creditor.updated_on),  
+                    'last_update': self._dt2str(creditor.updated_on),  
                 }
                 records.append(record)
 
@@ -429,9 +456,9 @@ class TaskReportSvc(ReportService):
                     'client_name': client.full_name if client else '',
                     'client_status': client.disposition.value if client else '',
                     'account_manager': task.owner.full_name,
-                    'team_manager': '',
+                    'team_manager': client.team_manager.full_name if client.team_manager else '',
                     'due_date': self._dt2str(task.due_date),
-                    'inserted_on': self._dt2str(task.created_on), 
+                    'date_added': self._dt2str(task.created_on), 
                 }
                 records.append(record)
 
@@ -574,7 +601,7 @@ class TeamReportSvc(ReportService):
                     'team_manager': manager, 
                     'status': 'Active' if team.is_active else 'Inactive',
                     'description': team.description,
-                    'creator': creator,
+                    'last_update': creator,
                 }
                 records.append(record)
             
@@ -607,20 +634,20 @@ class StaffReportSvc(ReportService):
                 if user.team_member:
                     team = user.team_member.team.name  
                 record = {
-                    'name': user.username,
-                    'full_name': user.full_name,
-                    'routed_number': user.voip_route_number,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'routed_call_phone': user.voip_route_number,
                     'ext': '',
-                    'did': '',
-                    'phone': user.phone,
-                    'sales_mgr': '',
+                    'inbound_did': '',
+                    'phone_number': user.personal_phone,
+                    'sales_manager': '',
                     'department': team,
                     'status': 'Active',
                     'start_date': self._dt2str(user.start_date), # add field in table 
                     'park': '',
                     'comments': '',
-                    'updated_on': self._dt2str(user.modified_date), 
-                    'updated_by': 'Admin',
+                    'last_update': "{} by Admin".format(self._dt2str(user.modified_date)), 
                 }
                 records.append(record)
 

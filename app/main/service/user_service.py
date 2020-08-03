@@ -10,7 +10,8 @@ from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.candidate import Candidate
 from app.main.model.client import Client
 from app.main.model.pbx import PBXNumber
-from app.main.model.user import User, UserClientAssignment, UserLeadAssignment, UserCandidateAssignment, UserPBXNumber
+from app.main.model.user import User, UserClientAssignment, UserLeadAssignment, UserCandidateAssignment, UserPBXNumber, Department
+from app.main.model.sales_board import SalesBoard
 from sqlalchemy import func
 
 
@@ -216,4 +217,9 @@ def update_user_numbers(user, new_pbx_numbers=None):
             db.session.add(new_pbx_number)
 
     save_changes()
+
+
+def get_department_users(name):
+    users = User.query.filter(func.lower(User.department) == func.lower(name)).all()
+    return users 
 

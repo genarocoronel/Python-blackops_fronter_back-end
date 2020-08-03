@@ -440,7 +440,7 @@ class ClientDto:
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
-        'friendly_id': fields.Integer(description='client friendly identifier'),
+        'friendly_id': fields.String(description='client friendly identifier'),
         'credit_report_account': fields.Nested(credit_report_account),
         'account_manager': fields.String(attribute='account_manager.full_name'),
     })
@@ -672,7 +672,7 @@ class LeadDto:
     })
     lead = api.model('lead', {
         'public_id': fields.String(description='lead identifier'),
-        'friendly_id': fields.Integer(description='lead friendly identifier'),
+        'friendly_id': fields.String(description='lead friendly identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
         'middle_initial': fields.String(),
@@ -743,7 +743,7 @@ class LeadDto:
         'first_name': fields.String(description='lead first name'),
         'last_name': fields.String(description='lead last name'),
         'public_id': fields.String(),
-        'friendly_id': fields.Integer(description='lead friendly identifier'),
+        'friendly_id': fields.String(description='lead friendly identifier'),
         'middle_initial': fields.String(),
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
