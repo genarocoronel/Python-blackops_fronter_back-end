@@ -226,3 +226,19 @@ class DebtPaymentContractRevision(db.Model):
     contract = db.relationship('DebtPaymentContract', backref='revisions')
     agent = db.relationship('User', backref='payment_revisions') 
 
+
+class EftReturnFee(db.Model):
+    """ DB model for storing EFT Return fee information """
+    __tablename__ = "eft_return_fee"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    code = db.Column(db.String(20), nullable=False)
+    amount = db.Column(db.Float, default=0)
+    created_date = db.Column(db.DateTime, nullable=False)
+    modified_date = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # added/modified by 
+    agent_id = db.Column(db.Integer, db.ForeignKey('users.id', name='eft_return_fee_agent_id_fkey'))
+    agent = db.relationship('User', backref=backref('eft_return_fee_records', lazy='dynamic')) 
+

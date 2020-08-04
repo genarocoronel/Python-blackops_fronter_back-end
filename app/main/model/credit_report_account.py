@@ -78,6 +78,8 @@ class CreditReportData(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     public_id = db.Column(db.String(100), unique=True)
     last_update = db.Column(db.DateTime, nullable=True)
+    # debt enrolled date
+    enrolled_date = db.Column(db.DateTime, nullable=True)
 
     # foreign keys
     account_id = db.Column(db.Integer, db.ForeignKey('credit_report_accounts.id', name='fk_credit_report_data'))

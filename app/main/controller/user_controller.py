@@ -6,10 +6,10 @@ from ..util.decorator import (token_required, enforce_rac_policy,
         enforce_rac_same_user_policy, enforce_rac_required_roles)
 from ..util.dto import UserDto, TaskDto
 from ..core.rac import RACRoles
-from ..service.user_service import (save_new_user, get_all_users, get_a_user,
+from ..service.user_service import (save_new_user, get_all_users, get_a_user, get_department_users,
                                     update_user, get_all_users_by_role_pubid, update_user_numbers, get_user_numbers)
-from ..service.user_service import DepartmentService
 from ..service.usertask_service import UserTaskService
+from ..service.team import TeamService
 
 api = UserDto.api
 _user = UserDto.user
@@ -28,22 +28,17 @@ class UserList(Resource):
     @api.expect(_new_user, validate=True)
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @api.marshal_with(_user, envelope='data')
     def post(self):
         """Creates a new User """
         data = request.json
         try:
-            new_user_response = save_new_user(data=data, desired_role=data.get('rac_role'))
-            response_object = {
-                'success': True,
-                'data': new_user_response
-            }
-            return response_object, 200
+            new_user = save_new_user(data=data)
+            return new_user
         except BadRequestError as e:
             api.abort(400, message='Error creating new user, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to create new user. Please report this issue.', success=False)
-
-        return new_user_response
 
     @api.doc('List all registered users')
     @api.marshal_list_with(_user, envelope='data')
@@ -192,8 +187,8 @@ class UsersByDept(Resource):
     @token_required
     def get(self, dept_name):
         try:
-            dept = DepartmentService.by_name(dept_name)
-            return dept.members()
+            users = get_department_users(dept_name)
+            return users
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
 

@@ -440,7 +440,7 @@ class ClientDto:
         'phone': fields.String(required=True, description='client phone number'),
         'type': ClientTypeField(required=False, description='client type'),
         'public_id': fields.String(description='client identifier'),
-        'friendly_id': fields.Integer(description='client friendly identifier'),
+        'friendly_id': fields.String(description='client friendly identifier'),
         'credit_report_account': fields.Nested(credit_report_account),
         'account_manager': fields.String(attribute='account_manager.full_name'),
     })
@@ -672,7 +672,7 @@ class LeadDto:
     })
     lead = api.model('lead', {
         'public_id': fields.String(description='lead identifier'),
-        'friendly_id': fields.Integer(description='lead friendly identifier'),
+        'friendly_id': fields.String(description='lead friendly identifier'),
         'first_name': fields.String(required=True, description='lead first name'),
         'last_name': fields.String(required=True, description='lead last name'),
         'middle_initial': fields.String(),
@@ -743,7 +743,7 @@ class LeadDto:
         'first_name': fields.String(description='lead first name'),
         'last_name': fields.String(description='lead last name'),
         'public_id': fields.String(),
-        'friendly_id': fields.Integer(description='lead friendly identifier'),
+        'friendly_id': fields.String(description='lead friendly identifier'),
         'middle_initial': fields.String(),
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
@@ -1069,6 +1069,14 @@ class RemoteSignDto:
 class DebtPaymentDto:
     api = Namespace('debtpayment', description='Debt Payment related operations')
 
+    eft_return_fee = api.model('eft_return_fee', {
+        'code': fields.String(),
+        'amount': fields.Float(),
+        'inserted_on': fields.DateTime(attribute='created_date'),
+        'updated_on': fields.DateTime(attribute='modified_date'),
+        'updated_by': fields.DateTime(attribute='agent.full_name'),
+    })
+
 
 class NotesDto:
     api = Namespace('notes', description='note related operations')
@@ -1205,6 +1213,17 @@ class DocprocDto:
 
 class TeamDto:
     api = Namespace('teams', description='Team Request related operations')
+
+    team = api.model('teams', {
+        'id': fields.Integer(),
+        'name':fields.String(),
+        'description': fields.String(),
+        'is_active': fields.Boolean(),
+        'manager': fields.String(attribute='manager.full_name'),
+        'creator': fields.String(attribute='creator.full_name'),
+        'created_date': DateTimeFormatField(), 
+        'modified_date': DateTimeFormatField(),
+    })
 
     client = api.model('clients', {
         'id': fields.String(attribute='public_id'),
@@ -1415,3 +1434,20 @@ class WebhookDto:
     api = Namespace('webhooks', description='Webhook definitions')
     call_initiated = api.model('call_initiated', call_notification)
     call_missed = api.model('call_missed', call_notification)
+
+class LeadDistroDto:
+    api = Namespace('lead-distro', description='Lead Distribution related end points')
+
+    agent = api.model('agent', {
+        'id': fields.String(attribute='public_id'),
+        'full_name': fields.String(attribute='full_name'),
+        'priority': fields.Integer(attribute='sales_board.priority'),
+        'is_active': fields.Boolean(attribute='sales_board.is_active'),
+    });
+
+    profile = api.model('lead_distro_profile', {
+        'hunt_type': fields.String(),
+        'flow_interval': fields.String(),
+        'agents': fields.List(fields.Nested(agent)),
+    });
+

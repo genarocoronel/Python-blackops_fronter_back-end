@@ -1,11 +1,12 @@
 from functools import wraps
 from datetime import datetime
-
+from flask import g
 from app.main.core.rac import RACRoles
 from ..core.rac import RACMgr
 from app.main import db
 
 
+# NOTE: This decorator is only for ApiService subclasses
 def has_permissions(func):
     @wraps(func)
     def decorated(*args, **kwargs):
@@ -13,6 +14,10 @@ def has_permissions(func):
         roles_to_enforce = args[0]._permissions
         if not RACMgr.enforce_policy_user_has_role(roles_to_enforce):
             return 'You do not have permissions to access this resource or action', 403
+        
+        curr_user = g.current_user 
+        if curr_user and 'user_obj' in curr_user:
+            args[0]._req_user = curr_user['user_obj'] 
         return func(*args, **kwargs)
 
     return decorated
@@ -23,6 +28,7 @@ class ApiService(object):
     _permissions = []
     _model = None 
     _key_field = 'id'
+    _req_user  = None # set during permission check
 
     @has_permissions
     def create(self, data):

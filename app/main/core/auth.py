@@ -163,7 +163,8 @@ class Auth():
                         'username': user.username,
                         'email': user.email,
                         'rac_role': user.role.name,
-                        'registered_on': str(user.registered_on)
+                        'registered_on': str(user.registered_on),
+                        'user_obj': user,
                     }
                 }
                 return response_object, 200

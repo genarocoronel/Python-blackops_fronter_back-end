@@ -100,6 +100,7 @@ class CreditReportPipeline(object):
                 credit_limit=_sanitize_dollar_amount(item.get('credit_limit')),
                 graduation=graduation,
                 last_update=datetime.datetime.utcnow(),
+                enrolled_date=datetime.datetime.utcnow(),
                 push=False,
                 last_debt_status=None,
                 bureaus=None,
