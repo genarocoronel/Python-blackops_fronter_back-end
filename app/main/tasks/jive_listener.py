@@ -2,6 +2,7 @@ import abc
 import datetime
 import email
 import json
+import tempfile
 import uuid
 from dataclasses import dataclass
 from typing import Union
@@ -385,11 +386,10 @@ class JiveRecordingHandler(Handler):
             # resource_group_id = headers.get('x-amz-meta-resource_group_id')  # PBX UUID
             timezone = headers.get('x-amz-meta-timezone')  # PBX timezone
 
-            with open(f'/tmp/{str(uuid.uuid4())}.mp3', 'w+b') as f:
-                s3.download_fileobj(bucket_name, object_key, f)
-                audio = MP3(f)
+            with tempfile.TemporaryFile() as temp:
+                s3.download_fileobj(bucket_name, object_key, temp)
+                audio = MP3(temp)
                 duration_seconds = int(audio.info.length)
-                # TODO: delete temporary file
 
             received_date = datetime.datetime.fromtimestamp(timestamp_mill / 1000, tz=pytz.timezone(timezone))
             communication_data = self._build_communication_data(source_number, destination_number)
