@@ -94,6 +94,7 @@ def kron():
     subprocess.run(["python", "-m", "app.main.scheduler", "--url", app.config['REDIS_URL']])
 
 
+
 @manager.command
 def comms_listener():
     jive_listener.run()
@@ -119,6 +120,15 @@ def create_credit_account(client_type, client_id, email, password):
     db.session.add(credit_report_account)
     db.session.commit()
 
+from app.test.regress import RegressionTest
+@manager.option('--host', help='Host Name')
+@manager.option('--role', help='User role')
+@manager.option('--uname', help='Username')
+@manager.option('--pswd', help='Password')
+@manager.command
+def regress(host, role, uname, pswd):
+    test = RegressionTest(host)
+    test.run(role=role, uname=uname, pswd=pswd)
 
 @manager.command
 def test():
