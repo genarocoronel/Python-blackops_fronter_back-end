@@ -65,7 +65,7 @@ def register_customer(client_id):
 
         # EPPS Account holder Id
         client.epps_account_id = cardId
-        client.save()
+        db.session.commit()
 
     except Exception as err:
         logging.warning("Register customer issue {}".format(str(err)))

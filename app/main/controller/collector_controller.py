@@ -3,9 +3,8 @@ from flask_restplus import Resource
 from flask import current_app as app
 
 from app.main.util.dto import CollectorDto
-from app.main.util.decorator import (token_required, enforce_rac_policy, enforce_rac_required_roles)
+from app.main.util.decorator import (token_required, user_has_permission)
 from app.main.core.errors import BadRequestError, NotFoundError
-from app.main.core.rac import RACRoles
 from app.main.service.collector_service import get_all_collectors, create_collector, update_collector
 
 api = CollectorDto.api
@@ -17,8 +16,7 @@ class CollectorList(Resource):
     @api.doc('Creates a Debt Collector')
     @api.expect(_collector_create, validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
-        RACRoles.DOC_PROCESS_REP])
+    @user_has_permission('collectors.create')
     def post(self):
         """ Creates a Debt Collector """
         request_data = request.json
@@ -38,8 +36,7 @@ class CollectorList(Resource):
     @api.doc('Gets a list of Debt Collectors')
     @api.marshal_list_with(_collector, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
-        RACRoles.DOC_PROCESS_REP])
+    @user_has_permission('collectors.view')
     def get(self):
         """ Gets a list of Debt Collectors """
         return get_all_collectors()
@@ -48,8 +45,7 @@ class CollectorList(Resource):
 class CollectorRecord(Resource):
     @api.doc('Updates a Debt Collector') 
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
-        RACRoles.DOC_PROCESS_REP])
+    @user_has_permission('collectors.update')
     def post(self, collector_id):
         """ Updates a Debt Collector """
         data = request.json

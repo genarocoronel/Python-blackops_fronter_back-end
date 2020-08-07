@@ -15,6 +15,12 @@ def _convert_bool(value):
 
     return False
 
+# TODO: remove this once we have better handle on configuration in all environments
+default_comms_handler_map = {
+    "s3-thedeathstarco-jive-recording": {"pbx_system_name": "UNKNOWN", "handler_name": "jive-recording-handler"},
+    "ses-thedeathstarco-jive-received": {"pbx_system_name": "UNKNOWN", "handler_name": "jive-email-handler"},
+}
+
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'UtmqEhIIcPuNbXiKLi3Ufk5C6yv8cEiyiiywfsQSdtE=')
@@ -27,9 +33,10 @@ class Config:
     S3_BUCKET_VOICEMAIL = os.environ.get('S3_BUCKET_VOICEMAIL', 'dev-voicemails')
     S3_BUCKET_FAX = os.environ.get('S3_BUCKET_FAX', 'dev-faxes')
     S3_BUCKET_EMAIL = os.environ.get('S3_BUCKET_EMAIL', 'dev-email')
-    S3_BUCKET_DOCPROC = os.environ.get('S3_BUCKET_DOCPROC', 'dev-docproc')
+    S3_BUCKET_DOCPROC = os.environ.get('S3_BUCKET_DOCPROC', 'staging-docproc')
     JIVE_QUEUE_URL = os.environ.get('JIVE_QUEUE_URL', 'https://sqs.us-west-2.amazonaws.com/450101876349/jive')
     S3_SIGNED_URL_TIMEOUT_SEC = os.environ.get('S3_SIGNED_URL_TIMEOUT_SEC', 3600)
+    COMMS_HANDLER_MAP = os.environ.get('COMMS_HANDLER_MAP', default_comms_handler_map)
 
     SMART_CREDIT_URL = os.environ.get('SMART_CREDIT_URL', 'https://stage-sc.consumerdirect.com')
     SMART_CREDIT_CLIENT_KEY = os.environ.get('SMART_CREDIT_CLIENT_KEY')

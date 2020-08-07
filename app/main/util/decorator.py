@@ -51,6 +51,22 @@ def enforce_rac_required_roles(roles_to_enforce: list):
     return decorator
 
 
+def user_has_permission(resource):
+    """ Decorator to enforce current user has permission for the resource """
+    def decorator(func_to_decorate):
+        @wraps(func_to_decorate)
+        def decorated(*orig_args, **orig_kwargs):
+            # TODO - implement business logic
+            if not RACMgr.does_user_has_permission(resource):
+                return 'You do not have permissions to access this resource or action', 403
+
+            return func_to_decorate(*orig_args, **orig_kwargs)
+
+        return decorated
+
+    return decorator
+
+
 def token_required(f):
     """ Decorator to enforce Authenticated session """
     @wraps(f)

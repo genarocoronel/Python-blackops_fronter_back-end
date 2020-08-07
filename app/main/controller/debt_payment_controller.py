@@ -4,8 +4,11 @@ from flask_restplus import Resource, Api
 from app.main.util.decorator import token_required
 from ..util.dto import DebtPaymentDto
 from ..service.debt_payment_service import fetch_debt_payment_stats
+from ..service.eft import EftFeeService
+from app.main.util.decorator import token_required
 
 api = DebtPaymentDto.api 
+_eft_return_fee = DebtPaymentDto.eft_return_fee
 
 @api.route('/client/stats')
 class DebtPaymentStats(Resource):
@@ -22,3 +25,27 @@ class DebtPaymentStats(Resource):
         except Exception as err:
             return {'message': 'Internal Server error - {}'.format(str(err))}, 400
 
+@api.route('/eft-fee')
+class EftReturnFeeView(Resource):
+    @api.doc('create eft return fee')
+    @api.marshal_with(_eft_return_fee)
+    @token_required
+    def post(self):
+        try:
+            data = request.json
+            svc = EftFeeService()
+            return svc.create(data)
+        except Exception as e:
+            api.abort(500, message=str(e), success=False)
+
+    @api.doc('fetches eft return fee')
+    @api.marshal_list_with(_eft_return_fee)
+    @token_required
+    def get(self):
+        try:
+            svc = EftFeeService()
+            return svc.get()
+        except Exception as e:
+            api.abort(500, message=str(e), success=False)
+
+    

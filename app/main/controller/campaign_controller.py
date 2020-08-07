@@ -4,8 +4,7 @@ import uuid
 from flask import request, send_file
 from flask_restplus import Resource
 
-from app.main.core.rac import RACRoles
-from app.main.util.decorator import token_required, enforce_rac_required_roles
+from app.main.util.decorator import token_required, user_has_permission
 from app.main import db
 from app.main.model.campaign import Campaign
 from app.main.model.candidate import CandidateImport, Candidate
@@ -22,7 +21,7 @@ _update_campaign = CampaignDto.update_campaign
 class CampaignsList(Resource):
     @api.marshal_with(_campaign)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.create')
     def post(self):
         """ Create Campaign """
         try:
@@ -36,7 +35,7 @@ class CampaignsList(Resource):
     @api.doc('list all campaigns')
     @api.marshal_list_with(_campaign, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.view')
     def get(self):
         """ List all campaigns """
         cs = CampaignService()
@@ -50,7 +49,7 @@ class CampaignsList(Resource):
 class UpdateCampaign(Resource):
     @api.marshal_with(_campaign)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.update')
     def put(self, campaign_id):
         """ Update Campaign Information """
         payload = request.json
@@ -66,7 +65,7 @@ class UpdateCampaign(Resource):
 class PinnaclePhoneList(Resource):
     @api.doc('list all pinnacle phone nums')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.create')
     def get(self): 
         """ List all pinnacle phone nums """
         service = PinnaclePhoneNumService() 
@@ -80,7 +79,7 @@ class PinnaclePhoneList(Resource):
 class GenerateReport(Resource):
     @api.doc('generate campaign report')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.view')
     def get(self):
         try:
             service = CampaignReportService()
@@ -92,7 +91,7 @@ class GenerateReport(Resource):
 @api.param('campaign_id', 'Campaign public id')
 class GenerateCampaignMailingFile(Resource):
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.update')
     def put(self, campaign_id):
         """ Generate Campaign Mailer File """
         campaign = Campaign.query.filter_by(public_id=campaign_id).first()
@@ -103,7 +102,7 @@ class GenerateCampaignMailingFile(Resource):
             api.abort(404, message='Campaign does not exist', success=False)
 
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.view')
     def get(self, campaign_id):
         """ Download Generated Campaign Mailer File """
         campaign = Campaign.query.filter_by(public_id=campaign_id).first()
@@ -118,7 +117,7 @@ class GenerateCampaignMailingFile(Resource):
 @api.param('import_id', 'Candidate Import public id')
 class AssignImportToCampaign(Resource):
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.update')
     def put(self, campaign_id, import_id):
         """ Assign Candidate Import to Campaign """
         try:
@@ -135,7 +134,7 @@ class AssignImportToCampaign(Resource):
 @api.param('campaign_id', 'Campaign public id')
 class GetCampaignAssociationStatus(Resource):
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('campaigns.view')
     def get(self, campaign_id):
         """ Get Campaign Association Status """
         try:

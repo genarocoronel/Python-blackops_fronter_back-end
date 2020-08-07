@@ -30,7 +30,7 @@ from app.main.seed.rsign import seed_rsign_records
 from app.main.seed.bank_account import seed_datax_validation_codes
 from app.main.seed.checklist import seed_client_main_checklist
 from app.main.seed.rac import seed_rac_roles
-from app.main.seed.users_roles import seed_users_with_roles
+from app.main.seed.users_roles import seed_users_with_roles, seed_permissions
 from app.main.tasks import jive_listener
 from app.main.seed.team import seed_team_request_types
 from app.main.seed.docproc import seed_docproc_types
@@ -59,6 +59,7 @@ def worker(queue):
 def seed():
     seed_rac_roles()
     create_super_admin()
+    seed_permissions()
     seed_users_with_roles()
     seed_candidate_disposition_values()
     seed_client_disposition_values()
@@ -94,6 +95,7 @@ def kron():
     subprocess.run(["python", "-m", "app.main.scheduler", "--url", app.config['REDIS_URL']])
 
 
+
 @manager.command
 def comms_listener():
     jive_listener.run()
@@ -119,6 +121,15 @@ def create_credit_account(client_type, client_id, email, password):
     db.session.add(credit_report_account)
     db.session.commit()
 
+from app.test.regress import RegressionTest
+@manager.option('--host', help='Host Name')
+@manager.option('--role', help='User role')
+@manager.option('--uname', help='Username')
+@manager.option('--pswd', help='Password')
+@manager.command
+def regress(host, role, uname, pswd):
+    test = RegressionTest(host)
+    test.run(role=role, uname=uname, pswd=pswd)
 
 @manager.command
 def test():

@@ -2,6 +2,7 @@ import abc
 import datetime
 import email
 import json
+import tempfile
 import uuid
 from dataclasses import dataclass
 from typing import Union
@@ -15,6 +16,7 @@ from phonenumbers import PhoneNumber
 from pytimeparse import parse as time_parser
 
 import phonenumbers
+from mutagen.mp3 import MP3
 from lxml import html as htmllib
 from email.message import Message
 
@@ -26,7 +28,7 @@ from app.main import db
 from app.main.model.candidate import Candidate, CandidateVoiceCommunication, CandidateFaxCommunication
 from app.main.model.client import Client, ClientVoiceCommunication, ClientFaxCommunication
 from app.main.model.pbx import VoiceCommunication, CommunicationType, PBXNumber, FaxCommunication, VoiceCommunicationType, \
-    TextCommunicationType, CallEventType, VoiceCallEvent
+    TextCommunicationType, CallEventType, VoiceCallEvent, PBXSystem, PBXSystemVoiceCommunication, PBXSystemFaxCommunication
 from app.main.model.user import User, UserVoiceCommunication, UserFaxCommunication
 from app.main.service.customer_service import identify_customer_by_phone
 from app.main.service.user_service import get_user_by_mailbox_id
@@ -64,6 +66,11 @@ class CommunicationData:
 
 
 class Handler(abc.ABC):
+    HANDLER_NAME = 'default'
+
+    def __init__(self, pbx_system_name='UNKNOWN'):
+        self.pbx_system_name = pbx_system_name
+
     @abc.abstractmethod
     def handle(self, message):
         pass
@@ -108,6 +115,8 @@ class Handler(abc.ABC):
         employee = next((entity for entity in (source, destination) if isinstance(entity, EMPLOYEE_TYPES)), None)
         employee_number = next((number for number in (source_number, destination_number) if number and number.national_number == pbx_number), None)
 
+        pbx_system = PBXSystem.query.filter_by(name=self.pbx_system_name).one_or_none()
+
         if communication_type in [VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL]:
             missed_call_event = self._get_missed_call_event(customer_number, status=CallEventType.GOING_TO_VOICEMAIL,
                                                             based_on_date=communication_data.receive_date, time_lapse=240)
@@ -144,6 +153,14 @@ class Handler(abc.ABC):
             )
             db.session.add(new_voice_comm)
 
+            # Add association of voice communication to the corresponding PBX System it originated from
+            if pbx_system:
+                new_pbx_system_voice_comm_association = PBXSystemVoiceCommunication(
+                    pbx_system=pbx_system,
+                    voice_communication=new_voice_comm
+                )
+                db.session.add(new_pbx_system_voice_comm_association)
+
             if customer:
                 if isinstance(customer, Client):
                     new_client_communication = ClientVoiceCommunication(client=customer, voice_communication=new_voice_comm)
@@ -174,6 +191,14 @@ class Handler(abc.ABC):
                 file_bucket_key=communication_data.s3_object_key,
             )
             db.session.add(new_fax_comm)
+
+            # Add association of fax communication to the corresponding PBX System it originated from
+            if pbx_system:
+                new_pbx_system_voice_comm_association = PBXSystemFaxCommunication(
+                    pbx_system=pbx_system,
+                    fax_communication=new_fax_comm
+                )
+                db.session.add(new_pbx_system_voice_comm_association)
 
             if customer:
                 if isinstance(customer, Client):
@@ -210,6 +235,8 @@ class Handler(abc.ABC):
 
 
 class JiveFaxHandler(Handler):
+    HANDLER_NAME = 'jive-fax-handler'
+
     def handle(self, message):
         if not isinstance(message, email.message.Message):
             raise Exception('Expected to process email.message.Message object')
@@ -267,6 +294,8 @@ class JiveFaxHandler(Handler):
 
 
 class JiveVoicemailHandler(Handler):
+    HANDLER_NAME = 'jive-voicemail-handler'
+
     def handle(self, message):
         current_app.logger.info('Handling PBX voicemail recording...')
 
@@ -282,14 +311,14 @@ class JiveVoicemailHandler(Handler):
         charset = part.get_content_charset()
         html = htmllib.fromstring(payload.decode(charset))
 
-        received_date_raw = html.xpath('//div[contains(text(), "Received on")]/following-sibling::div/text()')
-        duration_raw = html.xpath('//div[contains(text(), "Duration")]/following-sibling::div/text()')
-        dest_mailbox = html.xpath('//div[contains(text(), "Voicemail Box")]/following-sibling::div/text()')[0]
-        source_phone_raw = html.xpath('//div[contains(text(), "From")]/following-sibling::div/div[2]/a/text()')
+        received_date_raw = html.xpath('//td[contains(text(), "Time")]/following-sibling::td/text()')
+        duration_raw = html.xpath('//td[contains(text(), "Duration")]/following-sibling::td/text()')
+        dest_mailbox = html.xpath('//td[contains(text(), "Voicemail box")]/following-sibling::td/text()')[0]
+        source_phone_raw = html.xpath('//td[contains(text(), "From")]/following-sibling::td/text()')
 
         received_date = date_parser.parse(received_date_raw[0]).replace(tzinfo=gettz('America/Los_Angeles'))
-        source_number = phonenumbers.parse(source_phone_raw[0], DEFAULT_PHONE_REGION)
-        duration_seconds = time_parser(duration_raw[0])
+        source_number = phonenumbers.parse(source_phone_raw[0].split(" ", 1)[-1], DEFAULT_PHONE_REGION)
+        duration_seconds = time_parser(duration_raw[0].replace("&nbsp;", ' '))
 
         part = find_part_by_content_type(message, "audio/mpeg")
         audio_filename = part.get_filename()
@@ -320,6 +349,8 @@ class JiveVoicemailHandler(Handler):
 
 
 class JiveEmailHandler(Handler):
+    HANDLER_NAME = 'jive-email-handler'
+
     def handle(self, message):
         current_app.logger.info('Handling PBX email...')
         current_app.logger.debug(f'Received message:\n{message}')
@@ -357,6 +388,8 @@ class JiveEmailHandler(Handler):
 
 
 class JiveRecordingHandler(Handler):
+    HANDLER_NAME = 'jive-recording-handler'
+
     def handle(self, message):
         current_app.logger.info('Handling PBX voice recording...')
         current_app.logger.debug(f'Received message:\n{message}')
@@ -384,11 +417,17 @@ class JiveRecordingHandler(Handler):
             # resource_group_id = headers.get('x-amz-meta-resource_group_id')  # PBX UUID
             timezone = headers.get('x-amz-meta-timezone')  # PBX timezone
 
+            with tempfile.TemporaryFile() as temp:
+                s3.download_fileobj(bucket_name, object_key, temp)
+                audio = MP3(temp)
+                duration_seconds = int(audio.info.length)
+
             received_date = datetime.datetime.fromtimestamp(timestamp_mill / 1000, tz=pytz.timezone(timezone))
             communication_data = self._build_communication_data(source_number, destination_number)
             communication_data.provider_record_id = recording_id
             communication_data.receive_date = received_date.astimezone(pytz.UTC)
             communication_data.file_size_bytes = file_size_bytes
+            communication_data.duration_seconds = duration_seconds
             communication_data.s3_bucket_name = bucket_name
             communication_data.s3_object_key = object_key
             self._create_comm_records(communication_data, VoiceCommunicationType.RECORDING)
@@ -396,25 +435,46 @@ class JiveRecordingHandler(Handler):
         current_app.logger.info('Voice recordings capture completed!')
 
 
-class JiveListener(SqsListener):
-    JIVE_RECORDING_ID = 's3-thedeathstarco-jive-recording'
-    JIVE_EMAIL_ID = 'ses-thedeathstarco-jive-received'
+class UnprocessableMessageException(Exception):
+    pass
 
+
+class JiveListener(SqsListener):
     def _identify_handler(self, message):
         topic_source = message.get('TopicArn').split(':')[-1]
-        if topic_source == self.JIVE_RECORDING_ID:
-            return JiveRecordingHandler()
-        elif topic_source == self.JIVE_EMAIL_ID:
-            return JiveEmailHandler()
-        else:
-            raise Exception('Unprocessable message received')
+        handler_info = current_app.comms_topic_to_handler_map.get(topic_source, None)
+
+        if handler_info is None:
+            current_app.logger.error(f'Received unknown message: Message:\n{message}')
+            raise Exception('Unknown message encountered. Unable to process.')
+
+        handlers = (cls for cls in Handler.__subclasses__())
+        for handler in handlers:
+            if handler_info['handler_name'] == handler.HANDLER_NAME:
+                return handler(handler_info['pbx_system_name'])
+
+        current_app.logger.warn(f'Missing handler with name: {handler_info["handler_name"]}')
+        raise Exception(f'Missing Handler: {handler_info["handler_name"]}')
 
     def handle_message(self, body, attributes, messages_attributes):
-        handler = self._identify_handler(body)
-        handler.handle(body)
+        try:
+            handler = self._identify_handler(body)
+            handler.handle(body)
+        except UnprocessableMessageException:
+            current_app.logger.error('Unprocessable message received')
+            return
+
+
+def _verify_configuration():
+    if current_app.comms_topic_to_handler_map is None:
+        current_app.logger.error('Missing configuration from environment: COMMS_HANDLER_MAP')
+        raise Exception('Missing required Config: COMMS_HANDLER_MAP')
+    else:
+        current_app.logger.info(f'ENV[COMMS_HANDLER_MAP] = {current_app.comms_topic_to_handler_map}')
 
 
 def run():
+    _verify_configuration()
     current_app.logger.info("Initializing listener")
     listener = JiveListener('jive-listener', region_name='us-west-2', interval=10, queue_url=current_app.jive_queue_url)
     current_app.logger.info(f'Listening to {current_app.jive_queue_url}')

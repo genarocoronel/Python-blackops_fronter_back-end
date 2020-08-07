@@ -3,13 +3,13 @@ from flask_restplus import Resource
 
 from ..core.errors import BadRequestError, ForbiddenError, NotFoundError
 from ..util.decorator import (token_required, enforce_rac_policy, 
-        enforce_rac_same_user_policy, enforce_rac_required_roles)
+        enforce_rac_same_user_policy, user_has_permission)
 from ..util.dto import UserDto, TaskDto
 from ..core.rac import RACRoles
-from ..service.user_service import (save_new_user, get_all_users, get_a_user,
+from ..service.user_service import (save_new_user, get_all_users, get_a_user, get_department_users,
                                     update_user, get_all_users_by_role_pubid, update_user_numbers, get_user_numbers)
-from ..service.user_service import DepartmentService
 from ..service.usertask_service import UserTaskService
+from ..service.team import TeamService
 
 api = UserDto.api
 _user = UserDto.user
@@ -26,29 +26,24 @@ class UserList(Resource):
     @api.response(201, 'User successfully created.')
     @api.doc('create a new user')
     @api.expect(_new_user, validate=True)
+    @api.marshal_with(_user, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('users.create')
     def post(self):
         """Creates a new User """
         data = request.json
         try:
-            new_user_response = save_new_user(data=data, desired_role=data.get('rac_role'))
-            response_object = {
-                'success': True,
-                'data': new_user_response
-            }
-            return response_object, 200
+            new_user = save_new_user(data=data)
+            return new_user
         except BadRequestError as e:
             api.abort(400, message='Error creating new user, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to create new user. Please report this issue.', success=False)
 
-        return new_user_response
-
     @api.doc('List all registered users')
     @api.marshal_list_with(_user, envelope='data')
     @token_required
-    @enforce_rac_policy(rac_resource='users.list')
+    @user_has_permission('users.view')
     def get(self):
         """List all registered users"""
         users = []
@@ -83,9 +78,7 @@ class UsersRoleMembers(Resource):
     @api.doc('Get users that are members of a RAC Role')
     @api.marshal_with(_user_supressed, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, 
-            RACRoles.OPENER_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, 
-            RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR])
+    @user_has_permission('users.view')
     def get(self, role_pub_id):
         """ Get all users (supressed) by RAC role membership """
         users = []
@@ -163,6 +156,7 @@ class UpdateUser(Resource):
 class UserNumberResource(Resource):
     @api.marshal_list_with(_user_number)
     @token_required
+    @user_has_permission('users.view')
     def get(self, user_id):
         user_record = get_a_user(user_id)
         if not user_record:
@@ -172,6 +166,7 @@ class UserNumberResource(Resource):
 
     @api.expect(_new_user_number, validate=True)
     @token_required
+    @user_has_permission('users.update')
     def put(self, user_id):
         user_record = get_a_user(user_id)
         if not user_record:
@@ -190,10 +185,11 @@ class UserNumberResource(Resource):
 class UsersByDept(Resource):
     @api.marshal_list_with(_user_supressed)
     @token_required
+    @user_has_permission('users.view')
     def get(self, dept_name):
         try:
-            dept = DepartmentService.by_name(dept_name)
-            return dept.members()
+            users = get_department_users(dept_name)
+            return users
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
 
@@ -203,6 +199,7 @@ class UsersByDept(Resource):
 class UserTasks(Resource):
     @token_required
     @api.marshal_list_with(_task)
+    @user_has_permission('tasks.view')
     def get(self, user_id): 
         try:
             if 'all' in user_id:

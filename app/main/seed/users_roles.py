@@ -399,3 +399,168 @@ def seed_users_with_roles():
     doc_process_rep2.department = Department.DOCPROC.name
     
     db.session.commit()
+
+### resource based permissions
+
+from app.main.model.rac import RACResource, RACPermission, RACRole
+def seed_permissions():
+    ## Non admin API resources
+    ## Allowed fror Admin roles
+    resources = [
+        {'name': 'candidates.create', 'desc': 'Create Candidate', 'roles': [ RACRoles.OPENER_MGR, RACRoles.OPENER_REP ]},
+        {'name': 'candidates.update', 'desc': 'Update Candidate', 'roles': [ RACRoles.OPENER_MGR, RACRoles.OPENER_REP ]},
+        {'name': 'candidates.delete', 'desc': 'Delete Candidate', 'roles': [ RACRoles.OPENER_MGR ]},
+        {'name': 'candidates.view', 'desc': 'View Candidate', 'roles': [RACRoles.OPENER_MGR, RACRoles.OPENER_REP, RACRoles.SALES_MGR] },
+        # appointments
+        {'name': 'appointments.create', 'desc': 'Create Appointment', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        {'name': 'appointments.update', 'desc': 'Update Appointment', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        {'name': 'appointments.delete', 'desc': 'Delete Appointment',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        {'name': 'appointments.view', 'desc': 'View Appointment',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        # leads
+        {'name': 'leads.create', 'desc': 'Create Lead',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        {'name': 'leads.update', 'desc': 'Update Lead',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        {'name': 'leads.delete', 'desc': 'Delete Lead',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        {'name': 'leads.view', 'desc': 'View Lead',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, ]},
+        {'name': 'leads.assignment', 'desc': 'Assign the Lead',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN,  RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN,  ]},
+        # leads credit report & debts
+        {'name': 'leads.debts.create', 'desc': 'Add Debts for Lead', 
+          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'leads.debts.update', 'desc': 'Update Debts for Lead', 
+          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'leads.debts.delete', 'desc': 'Delete Debts for Lead', 
+          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'leads.debts.view', 'desc': 'View Debts for Lead', 
+          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        # payment contract
+        {'name': 'leads.contract.create', 'desc': 'Add payment contract', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'leads.contract.update', 'desc': 'Update payment contract', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'leads.contract.view', 'desc': 'View payment contract', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'leads.contract.send', 'desc': 'View payment contract', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        # clients
+        {'name': 'clients.create', 'desc': 'Create Client', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.update', 'desc': 'Update Client',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.delete', 'desc': 'Delete Client',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.view', 'desc': 'View Client', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.assignment', 'desc': 'Client Assignment', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
+        {'name': 'clients.debts.view', 'desc': 'View Client debts', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.debts.update', 'desc': 'Update Client debts', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.debts.create', 'desc': 'Create Client debts', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        # client service schedule
+        {'name': 'clients.service_schedule.view', 'desc': 'View client service Schedule', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.service_schedule.update', 'desc': 'Update client service schedule', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.service_schedule.create', 'desc': 'Create client service Schedule', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        # client documents
+        {'name': 'clients.docs.view', 'desc': 'View client documents', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,
+                   RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        {'name': 'clients.docs.update', 'desc': 'Update client documents', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,
+                   RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        {'name': 'clients.docs.create', 'desc': 'Create client documents', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,
+                   RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        # amendment
+        {'name': 'clients.amendment.create', 'desc': 'Create contract amendment', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.amendment.update', 'desc': 'Update contract amendment',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.amendment.view', 'desc': 'View amendment',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'clients.amendment.request', 'desc': 'Approve request(TR) for amendment',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        # team request
+        {'name': 'clients.tr.view', 'desc': 'Clients Team requests',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
+        {'name': 'tr.view', 'desc': 'Team requests view',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
+        {'name': 'tr.update', 'desc': 'Team requests update',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
+        {'name': 'teams.view', 'desc': 'Teams view',
+         'roles': [RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
+        {'name': 'teams.create', 'desc': 'Teams view',
+         'roles': []},
+        {'name': 'teams.update', 'desc': 'Teams view',
+         'roles': []},
+        # tasks
+        {'name': 'tasks.view', 'desc': 'View tasks',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'tasks.create', 'desc': 'Create tasks',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        {'name': 'tasks.update', 'desc': 'Update tasks',
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        # collectors
+        {'name': 'collectors.view', 'desc': 'View Collectors',
+         'roles': [RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        {'name': 'collectors.create', 'desc': 'Create Collectors',
+         'roles': [RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        {'name': 'collectors.update', 'desc': 'Update Collectors',
+         'roles': [RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        # campaigns
+        {'name': 'campaigns.view', 'desc': 'View Campaigns',
+         'roles': [RACRoles.OPENER_MGR, RACRoles.SALES_MGR, RACRoles.SERVICE_MGR]},
+        {'name': 'campaigns.create', 'desc': 'Create Campaigns',
+         'roles': [RACRoles.OPENER_MGR, RACRoles.SALES_MGR, RACRoles.SERVICE_MGR]},
+        {'name': 'campaigns.update', 'desc': 'Update Campaigns',
+         'roles': [RACRoles.OPENER_MGR, RACRoles.SALES_MGR, RACRoles.SERVICE_MGR]},
+        # users view
+        {'name': 'users.view', 'desc': 'View Users',
+         'roles': [RACRoles.OPENER_MGR, RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN]},
+        {'name': 'users.create', 'desc': 'Create Users',
+         'roles': []},
+        {'name': 'users.update', 'desc': 'Update Users',
+         'roles': []},
+
+    ]
+
+    # clean up the resources
+    for rac_resource in RACResource.query.all():
+        db.session.delete(rac_resource)
+    db.session.commit()
+
+    for res in resources:
+        rac_resource = RACResource(name=res['name'],
+                                   description=res['desc'])
+        db.session.add(rac_resource)
+        db.session.commit()
+
+        # add roles
+        for role in res['roles']:
+            rac_role = RACRole.query.filter_by(name=role.value).first()
+            perm = RACPermission(rac_role_id=rac_role.id,
+                                 resource_id=rac_resource.id) 
+            db.session.add(perm)
+
+        # admin & super admin
+        superadmin_role = RACRole.query.filter_by(name=RACRoles.SUPER_ADMIN.value).first()
+        admin_role = RACRole.query.filter_by(name=RACRoles.ADMIN.value).first()
+        su_perm = RACPermission(rac_role_id=superadmin_role.id,
+                                 resource_id=rac_resource.id) 
+        db.session.add(su_perm)
+        perm = RACPermission(rac_role_id=admin_role.id,
+                             resource_id=rac_resource.id) 
+        db.session.add(perm)
+        db.session.commit()

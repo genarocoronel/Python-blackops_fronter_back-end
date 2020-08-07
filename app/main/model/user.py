@@ -7,10 +7,31 @@ from .. import db, flask_bcrypt
 
 
 class Department(enum.Enum):
+    ADMIN = 'administrators'
     OPENERS = 'openers'
     SALES = 'sales'
     SERVICE = 'service'
     DOCPROC = 'docproc'
+
+    @staticmethod
+    def from_role(role):
+        if role in [ RACRoles.SUPER_ADMIN.value,
+                     RACRoles.ADMIN.value ]:
+            return Department.ADMIN.name 
+        elif role in [ RACRoles.OPENER_REP.value,
+                       RACRoles.OPENER_MGR.value ]:
+            return Department.OPENERS.name
+        elif role in [ RACRoles.SALES_REP.value,
+                       RACRoles.SALES_MGR.value,
+                       RACRoles.SALES_ADMIN.value ]:
+            return Department.SALES.name
+        elif role in [ RACRoles.SERVICE_REP.value,
+                       RACRoles.SERVICE_MGR.value,
+                       RACRoles.SERVICE_ADMIN.value ]:
+            return Department.SERVICE.name
+        elif role in [ RACRoles.DOC_PROCESS_REP.value,
+                       RACRoles.DOC_PROCESS_MGR.value ]:
+            return Department.DOCPROC.name
 
 
 class User(db.Model):
@@ -19,10 +40,17 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     registered_on = db.Column(db.DateTime, nullable=False)
+    # modified date
+    modified_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    # date of starting work
+    start_date = db.Column(db.DateTime, nullable=True)
 
     # relationships
     rac_role_id = db.Column(db.Integer, db.ForeignKey('rac_role.id', name='fk_user_rac_role_id'))
     role = db.relationship(RACRole, uselist=False)
+    sales_board = db.relationship('SalesBoard', uselist=False, backref='agent')
+    # team membership ref
+    team_member = db.relationship('TeamMember', uselist=False, backref='member')
 
     # fields
     first_name = db.Column(db.String(25), nullable=False)

@@ -148,22 +148,17 @@ class TemplateMailManager(object):
             app.logger.info("Sending fax to client({}) doc({})".format(self.client.id, pdfdoc))
             to_addr = ''
             send_channel = DocprocChannel.MAIL.value
+            mb_channel = MailTransport.POST.name
             # send through fax 
             if self._is_via_fax:
                 send_channel = DocprocChannel.FAX.value
+                mb_channel = MailTransport.FAX.name
                 attachments = [pdfdoc, ]
                 # to address
                 to_addr = self.debt.debt_collector.fax
                 send_fax(self.debt.debt_collector.fax,
                          self._tmpl.subject,
                          attachments)             
-
-                # only for testing 
-                #send_mail(app.config['TMPL_DEFAULT_FROM_EMAIL'], 
-                #          [self.client.email,] , 
-                #          self._tmpl.action.lower(), 
-                #          html='<html><p>Fax send to debt collector attached.</p></html>', 
-                #          attachments=attachments)
 
             # upload files to S3
             upload_to_docproc(pdfdoc, doc_name) 
@@ -179,13 +174,14 @@ class TemplateMailManager(object):
             db.session.add(docproc)
 
             doc_info = [{'name': doc_name, 'path': ''}, ]          
- 
+            collector_id = self.debt.collector_id if self.debt else None 
             mbox = MailBox(timestamp=datetime.now(),
                            client_id=self.client.id,
                            template_id=self._tmpl.id,
                            to_addr=to_addr,
-                           channel=MailTransport.FAX.name,
-                           attachments=doc_info) 
+                           channel=mb_channel,
+                           attachments=doc_info,
+                           debt_collector_id=collector_id) 
             db.session.add(mbox)
             db.session.commit()
             # delete file

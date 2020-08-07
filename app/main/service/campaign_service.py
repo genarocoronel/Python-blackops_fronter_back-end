@@ -4,12 +4,12 @@ import uuid
 from app.main.model.campaign import Campaign, MarketingModel, MailType, PinnaclePhoneNumber
 from app.main.model.client import Client, ClientType, ClientCampaign
 from sqlalchemy import and_
-from .apiservice import ApiService, has_permissions
+from .apiservice import ApiService
+from app.main.core.rac import RACRoles
 
 class CampaignService(ApiService):
     _model = Campaign
-    _key_field   = 'public_id'
-    
+    _key_field = 'public_id'
     def _parse(self, data, insert=True):
         ## validate if necessary
         mkt_type = data.get('marketing_type')
@@ -85,7 +85,6 @@ class CampaignReportService(ApiService):
     _dealer  = 'ELITE DMS'
     _report_name = 'campaign_report.xlsx'
     
-    @has_permissions
     def generate_report(self):
         wb = Workbook()
         ws = wb.active
