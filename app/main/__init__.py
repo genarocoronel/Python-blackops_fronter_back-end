@@ -1,3 +1,5 @@
+import json
+
 import rq
 import ast
 from cryptography.fernet import Fernet
@@ -49,6 +51,8 @@ def create_app(config_name):
     app.s3_bucket_docproc = app.config['S3_BUCKET_DOCPROC']
     app.jive_queue_url = app.config['JIVE_QUEUE_URL']
     app.s3_signed_url_timeout_seconds = app.config['S3_SIGNED_URL_TIMEOUT_SEC']
+    comms_handler_map = app.config['COMMS_HANDLER_MAP']
+    app.comms_topic_to_handler_map = json.loads(comms_handler_map) if isinstance(comms_handler_map, str) else comms_handler_map
 
     app.smart_credit_url = app.config['SMART_CREDIT_URL']
     app.smart_credit_client_key = app.config['SMART_CREDIT_CLIENT_KEY']
