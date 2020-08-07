@@ -284,7 +284,7 @@ class JiveVoicemailHandler(Handler):
 
         received_date_raw = html.xpath('//td[contains(text(), "Time")]/following-sibling::td/text()')
         duration_raw = html.xpath('//td[contains(text(), "Duration")]/following-sibling::td/text()')
-        dest_mailbox = html.xpath('//td[contains(text(), "Voicemail Box")]/following-sibling::td/text()')[0]
+        dest_mailbox = html.xpath('//td[contains(text(), "Voicemail box")]/following-sibling::td/text()')[0]
         source_phone_raw = html.xpath('//td[contains(text(), "From")]/following-sibling::td/text()')
 
         received_date = date_parser.parse(received_date_raw[0]).replace(tzinfo=gettz('America/Los_Angeles'))
