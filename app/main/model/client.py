@@ -115,6 +115,19 @@ class Client(db.Model):
         return "{} {}".format(self.first_name, self.last_name)
 
     @property
+    def status(self):
+        result = ''
+        if self.disposition: 
+            result = self.disposition.value
+        return result
+
+    @status.setter
+    def status(self, value):
+        cd = ClientDisposition.query.filter_by(value=value).first()
+        if cd:
+            self.disposition_id = cd.id
+
+    @property
     def total_debt(self):
         from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
         result = 0
@@ -138,6 +151,7 @@ class Client(db.Model):
         if self.co_client:
             return self.enrolled_debts + self.co_client.enrolled_debts
         return self.enrolled_debts
+
 
 
 class ClientIncome(db.Model):

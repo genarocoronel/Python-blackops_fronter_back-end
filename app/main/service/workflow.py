@@ -296,6 +296,8 @@ def open_contract_flow(code, contract, revision=None):
                 
                 # Create initial service schedule for the client
                 create_svc_schedule(client)
+                client.status = 'Assign to Acct Manager'
+                db.session.commit() 
 
                 if account_manager:
                     wkchannel.WkClientNoticeChannel.send(account_manager.id,
