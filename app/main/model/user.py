@@ -5,6 +5,7 @@ from app.main.core.rac import RACRoles
 from app.main.model.rac import RACRole
 from .. import db, flask_bcrypt
 
+
 class Department(enum.Enum):
     ADMIN = 'administrators'
     OPENERS = 'openers'
