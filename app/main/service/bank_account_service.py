@@ -18,8 +18,9 @@ def create_bank_account(client, data):
     user_role = req_user['rac_role']
     override = data.get('override')
     # override is allowed only for service managers
-    if override and (user_role != RACRoles.SERVICE_MGR.value and 
-                     user_role != RACRoles.ADMIN.value):
+    if override and (user_role != RACRoles.SUPER_ADMIN.value and 
+                     user_role != RACRoles.ADMIN.value and
+                     user_role != RACRoles.SERVICE_MGR.value):
         override = False
     
     account_number = data.get('account_number')

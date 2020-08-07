@@ -4,6 +4,7 @@ from flask_restplus import Resource, Api
 from app.main.util.decorator import token_required
 from ..util.dto import DebtPaymentDto
 from ..service.debt_payment_service import fetch_debt_payment_stats
+from ..service.eft import EftFeeService
 from app.main.util.decorator import token_required
 
 api = DebtPaymentDto.api 
