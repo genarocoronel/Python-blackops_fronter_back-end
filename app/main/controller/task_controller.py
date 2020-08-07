@@ -29,7 +29,7 @@ class TaskList(Resource):
     @token_required
     @api.doc('create a new task and assign to the user')
     @api.marshal_with(_task)
-    def put(self):
+    def post(self):
         try:
             task = UserTaskService.new_task(request.json)
             return task

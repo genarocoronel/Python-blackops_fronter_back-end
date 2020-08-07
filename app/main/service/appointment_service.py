@@ -122,7 +122,18 @@ class AppointmentService(object):
             if not appt:
                 raise ValueError("Appointment not found")
 
+            client = Client.query.filter_by(public_id=data.get('client')['public_id']).first()
             # update the workflow
+            for attr in data:
+                if hasattr(appt, attr):
+                    if attr == 'client':
+                        setattr(appt, 'client_id', client.id)
+                    elif attr == 'agent':
+                        print("attr")
+                    elif attr == 'phone_number':
+                        setattr(appt, 'location', data.get(attr))
+                    else:
+                        setattr(appt, attr, data.get(attr))
             # change the status  
             if status and status in AppointmentStatus.__members__:
                 handler = "on_{}".format(status.lower())
