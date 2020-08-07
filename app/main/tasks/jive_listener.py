@@ -2,6 +2,7 @@ import abc
 import datetime
 import email
 import json
+import tempfile
 import uuid
 from dataclasses import dataclass
 from typing import Union
@@ -15,6 +16,7 @@ from phonenumbers import PhoneNumber
 from pytimeparse import parse as time_parser
 
 import phonenumbers
+from mutagen.mp3 import MP3
 from lxml import html as htmllib
 from email.message import Message
 
@@ -384,16 +386,26 @@ class JiveRecordingHandler(Handler):
             # resource_group_id = headers.get('x-amz-meta-resource_group_id')  # PBX UUID
             timezone = headers.get('x-amz-meta-timezone')  # PBX timezone
 
+            with tempfile.TemporaryFile() as temp:
+                s3.download_fileobj(bucket_name, object_key, temp)
+                audio = MP3(temp)
+                duration_seconds = int(audio.info.length)
+
             received_date = datetime.datetime.fromtimestamp(timestamp_mill / 1000, tz=pytz.timezone(timezone))
             communication_data = self._build_communication_data(source_number, destination_number)
             communication_data.provider_record_id = recording_id
             communication_data.receive_date = received_date.astimezone(pytz.UTC)
             communication_data.file_size_bytes = file_size_bytes
+            communication_data.duration_seconds = duration_seconds
             communication_data.s3_bucket_name = bucket_name
             communication_data.s3_object_key = object_key
             self._create_comm_records(communication_data, VoiceCommunicationType.RECORDING)
 
         current_app.logger.info('Voice recordings capture completed!')
+
+
+class UnprocessableMessageException(Exception):
+    pass
 
 
 class JiveListener(SqsListener):
@@ -407,11 +419,16 @@ class JiveListener(SqsListener):
         elif topic_source == self.JIVE_EMAIL_ID:
             return JiveEmailHandler()
         else:
-            raise Exception('Unprocessable message received')
+            current_app.logger.warn(f'Received unknown message: Message:\n{message}')
+            raise UnprocessableMessageException()
 
     def handle_message(self, body, attributes, messages_attributes):
-        handler = self._identify_handler(body)
-        handler.handle(body)
+        try:
+            handler = self._identify_handler(body)
+            handler.handle(body)
+        except UnprocessableMessageException:
+            current_app.logger.error('Unprocessable message received')
+            return
 
 
 def run():
