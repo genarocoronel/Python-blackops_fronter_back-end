@@ -31,7 +31,7 @@ class TaskList(Resource):
     @api.doc('create a new task and assign to the user')
     @api.marshal_with(_task)
     @user_has_permission('tasks.create') 
-    def put(self):
+    def post(self):
         try:
             task = UserTaskService.new_task(request.json)
             return task

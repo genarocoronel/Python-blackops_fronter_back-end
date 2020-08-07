@@ -258,7 +258,9 @@ class AppointmentDto:
     api = Namespace('appointments', description='appointment related operations')
     client = api.model('clients', {
         'public_id': fields.String(attribute='public_id'),
+        'friendly_id': fields.String(attribute='friendly_id'),
         'name': fields.String(attribute='full_name'),
+        'email': fields.String(attribute='email'),
         'disposition': fields.String(attribute='disposition.value')
     })
     user = api.model('users', {
@@ -270,9 +272,9 @@ class AppointmentDto:
         'client': fields.Nested(client),
         'agent': fields.Nested(user),
         'scheduled_at': DateTimeFormatField(attribute='scheduled_at'),
-        'end_at': ScheduleEndField(attribute='scheduled_at'),
+        'end_at': ScheduleEndField(attribute='modified_date'),
         'summary': fields.String(required=True, description='summary of appointment'),
-        'location': fields.String(),
+        'phone_number': fields.String(attribute='location'),
         'reminder_types': fields.String(required=True, description='type(s) of reminders to be sent to client'),
         'status': fields.String(description='status of appointment'),
     })
