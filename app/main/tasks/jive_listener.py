@@ -282,14 +282,14 @@ class JiveVoicemailHandler(Handler):
         charset = part.get_content_charset()
         html = htmllib.fromstring(payload.decode(charset))
 
-        received_date_raw = html.xpath('//div[contains(text(), "Received on")]/following-sibling::div/text()')
-        duration_raw = html.xpath('//div[contains(text(), "Duration")]/following-sibling::div/text()')
-        dest_mailbox = html.xpath('//div[contains(text(), "Voicemail Box")]/following-sibling::div/text()')[0]
-        source_phone_raw = html.xpath('//div[contains(text(), "From")]/following-sibling::div/div[2]/a/text()')
+        received_date_raw = html.xpath('//td[contains(text(), "Time")]/following-sibling::td/text()')
+        duration_raw = html.xpath('//td[contains(text(), "Duration")]/following-sibling::td/text()')
+        dest_mailbox = html.xpath('//td[contains(text(), "Voicemail Box")]/following-sibling::td/text()')[0]
+        source_phone_raw = html.xpath('//td[contains(text(), "From")]/following-sibling::td/text()')
 
         received_date = date_parser.parse(received_date_raw[0]).replace(tzinfo=gettz('America/Los_Angeles'))
-        source_number = phonenumbers.parse(source_phone_raw[0], DEFAULT_PHONE_REGION)
-        duration_seconds = time_parser(duration_raw[0])
+        source_number = phonenumbers.parse(source_phone_raw[0].split("&nbsp;")[-1][0], DEFAULT_PHONE_REGION)
+        duration_seconds = time_parser(duration_raw[0].replace("&nbsp;", ' '))
 
         part = find_part_by_content_type(message, "audio/mpeg")
         audio_filename = part.get_filename()
