@@ -3,7 +3,7 @@ from flask_restplus import Resource, Api
 
 from ..service.team import TeamService
 from ..service.teamrequest_service import fetch_team_requests, filter_team_requests, update_team_request
-from ..util.decorator import token_required
+from ..util.decorator import token_required, user_has_permission
 from ..util.dto import TeamDto
 
 api = TeamDto.api
@@ -16,6 +16,7 @@ class TeamList(Resource):
     @api.doc('List of teams')
     @api.marshal_list_with(_team)
     @token_required
+    @user_has_permission('teams.view')
     def get(self):
         try:
             """ List all teams """
@@ -27,6 +28,7 @@ class TeamList(Resource):
     @api.doc('Create a team')
     @api.marshal_with(_team)
     @token_required
+    @user_has_permission('teams.create')
     def post(self):
         try:
             """ Create a team """
@@ -41,6 +43,7 @@ class TeamList(Resource):
 class TeamRecord(Resource):
     @api.marshal_with(_team)
     @token_required
+    @user_has_permission('teams.update')
     def put(self, team_id):
         """ Update team Information """
         try:
@@ -58,6 +61,7 @@ class TeamRequestList(Resource):
     @api.doc('List of team requests for the given department')
     @api.marshal_list_with(_team_request)
     @token_required
+    @user_has_permission('tr.view')
     def get(self, team_name):
         try:
             """ List all clients """
@@ -73,6 +77,7 @@ class TeamRequestFilter(Resource):
     @api.doc('Filter the team requests')
     @api.marshal_list_with(_team_request)
     @token_required
+    @user_has_permission('tr.view')
     def get(self):
         try:
             """ Filter team requests based on field val """
@@ -89,6 +94,7 @@ class TeamRequestItem(Resource):
     @api.doc('get team request record by identifier')
     @api.marshal_with(_team_request)
     @token_required
+    @user_has_permission('tr.view')
     def get(self, team_name, req_id):
         try:
             """ get team request for the given id  """
@@ -102,6 +108,7 @@ class TeamRequestItem(Resource):
     @api.doc('update team request record')
     @api.marshal_with(_team_request)
     @token_required
+    @user_has_permission('tr.view')
     def put(self, team_name, req_id):
         try:
             """ Update team request record """

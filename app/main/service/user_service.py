@@ -108,10 +108,6 @@ def update_user(public_id, data):
 
 def get_all_users():
     """ Gets all Users """
-    user_role = g.current_user['rac_role']
-    if user_role not in (RACRoles.SUPER_ADMIN.value, RACRoles.ADMIN.value):
-            raise ForbiddenError('You do not have permissions to this resource.')
-
     return User.query.all()
 
 

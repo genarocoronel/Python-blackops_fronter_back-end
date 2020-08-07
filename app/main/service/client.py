@@ -23,11 +23,6 @@ class ClientService(ApiService):
 # Client Tasks
 class ClientTaskService(ClientService):
     _model = UserTask
-    _permissions = [ RACRoles.SUPER_ADMIN, 
-                     RACRoles.ADMIN, 
-                     RACRoles.SERVICE_ADMIN, 
-                     RACRoles.SERVICE_MGR, 
-                     RACRoles.SERVICE_REP ]
 
     def __init__(self, id=None, public_id=None):
         super().__init__(id, public_id)
@@ -38,9 +33,6 @@ class ClientTaskService(ClientService):
 # Client Team Requests
 class ClientTrService(ClientService):
     _model = TeamRequest
-    _permissions = [ RACRoles.SUPER_ADMIN, 
-                     RACRoles.ADMIN, 
-                     RACRoles.SERVICE_MGR ]
 
     def __init__(self, id=None, public_id=None):
         super().__init__(id, public_id)
