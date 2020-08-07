@@ -15,8 +15,6 @@ class RACResource(db.Model):
 class RACPermission(db.Model):
     __tablename__ = "rac_permission"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-
     # Relationships
     rac_role_id = db.Column(db.Integer, db.ForeignKey('rac_role.id', name='fk_rac_permission_rac_role_id'), primary_key=True)
     resource_id = db.Column(db.Integer, db.ForeignKey('rac_resource.id', name='fk_rac_permission_resource_id'), primary_key=True)
