@@ -30,7 +30,7 @@ from app.main.seed.rsign import seed_rsign_records
 from app.main.seed.bank_account import seed_datax_validation_codes
 from app.main.seed.checklist import seed_client_main_checklist
 from app.main.seed.rac import seed_rac_roles
-from app.main.seed.users_roles import seed_users_with_roles
+from app.main.seed.users_roles import seed_users_with_roles, seed_permissions
 from app.main.tasks import jive_listener
 from app.main.seed.team import seed_team_request_types
 from app.main.seed.docproc import seed_docproc_types
@@ -59,6 +59,7 @@ def worker(queue):
 def seed():
     seed_rac_roles()
     create_super_admin()
+    seed_permissions()
     seed_users_with_roles()
     seed_candidate_disposition_values()
     seed_client_disposition_values()

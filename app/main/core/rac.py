@@ -2,8 +2,9 @@ import enum
 from flask import g
 
 from app.main import db
-from app.main.model.rac import RACRole
+from app.main.model.rac import RACRole, RACPermission, RACResource
 from app.main.core.errors import NotFoundError
+from sqlalchemy import and_
 
 
 class RACRoles(enum.Enum):
@@ -81,6 +82,17 @@ class RACMgr():
             if g.current_user['rac_role'] == role_item.value:
                 return True
 
+        return False
+
+    @classmethod
+    def does_user_has_permission(cls, resource_name):
+        if not hasattr(g, 'current_user') or 'rac_role' not in g.current_user:
+            raise Exception("Unauthorized user")
+        # check permission in db
+        perm = RACPermission.query.outerjoin(RACRole, RACResource)\
+                                  .filter(and_(RACRole.name==g.current_user['rac_role'], RACResource.name==resource_name)).first()
+        if perm:
+            return True
         return False
 
     @classmethod

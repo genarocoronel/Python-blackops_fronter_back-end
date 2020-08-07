@@ -4,15 +4,12 @@ import uuid
 from app.main.model.campaign import Campaign, MarketingModel, MailType, PinnaclePhoneNumber
 from app.main.model.client import Client, ClientType, ClientCampaign
 from sqlalchemy import and_
-from .apiservice import ApiService, has_permissions
+from .apiservice import ApiService
 from app.main.core.rac import RACRoles
 
 class CampaignService(ApiService):
     _model = Campaign
     _key_field = 'public_id'
-    _permissions = [ RACRoles.SUPER_ADMIN, 
-                     RACRoles.ADMIN ] 
-    
     def _parse(self, data, insert=True):
         ## validate if necessary
         mkt_type = data.get('marketing_type')
@@ -73,8 +70,6 @@ class CampaignService(ApiService):
 
 class PinnaclePhoneNumService(ApiService):
     _model = PinnaclePhoneNumber
-    _permissions = [ RACRoles.SUPER_ADMIN, 
-                     RACRoles.ADMIN ] 
     
     def _queryset(self):
         return self._model.query.all()
@@ -89,10 +84,7 @@ class CampaignReportService(ApiService):
     _heading = 'DIRECT MAIL ZIP PERFORMANCE SUMMARY'
     _dealer  = 'ELITE DMS'
     _report_name = 'campaign_report.xlsx'
-    _permissions = [ RACRoles.SUPER_ADMIN, 
-                     RACRoles.ADMIN ] 
     
-    @has_permissions
     def generate_report(self):
         wb = Workbook()
         ws = wb.active

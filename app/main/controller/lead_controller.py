@@ -4,8 +4,7 @@ from flask_restplus import Resource
 
 from app.main.controller import _handle_get_client, _handle_get_credit_report, _convert_payload_datetime_values, _parse_datetime_values
 from app.main.core.errors import (BadRequestError, ServiceProviderError, ServiceProviderLockedError)
-from app.main.core.rac import RACRoles
-from app.main.util.decorator import (token_required, enforce_rac_required_roles)
+from app.main.util.decorator import (token_required, user_has_permission)
 from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.service.bank_account_service import create_bank_account
@@ -62,7 +61,7 @@ class LeadList(Resource):
     @api.doc('list_of_clients')
     @api.marshal_list_with(_lead, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self):
         """ List all clients """
         clients = get_all_clients(client_type=LEAD)
@@ -72,7 +71,7 @@ class LeadList(Resource):
     @api.doc('create new client')
     @api.expect(_lead, validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.create')
     def post(self):
         """ Creates new Client """
         data = request.json
@@ -84,7 +83,7 @@ class LeadFilter(Resource):
     @api.doc('Leads filter with pagination info')
     @api.marshal_with(_lead_pagination)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self):
         #filter args
         fargs = filter_request_parse(request)
@@ -99,7 +98,7 @@ class LeadNew(Resource):
     #@api.expect(_lead, validate=True)
     @api.marshal_with(_lead)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.create')
     def put(self):
         """Create a new Lead"""    
         data = request.json
@@ -113,7 +112,7 @@ class Lead(Resource):
     @api.doc('get client')
     @api.marshal_with(_lead)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, public_id):
         """ Get client with provided identifier"""
         client = get_client(public_id, client_type=LEAD)
@@ -126,7 +125,7 @@ class Lead(Resource):
     #@api.expect(_update_lead, validate=True)
     @api.marshal_with(_lead)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, public_id):
         """ Update lead with provided identifier"""
         lead = get_client(public_id, client_type=LEAD)
@@ -148,7 +147,7 @@ class Lead(Resource):
 class LeadAssignment(Resource):
     @api.doc('Assigns a Lead to a Sales Rep user')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.assignment')
     def put(self, public_id, user_public_id):
         """ Assigns a Lead to a Sales Rep user """
         lead = get_client(public_id, client_type=LEAD)
@@ -179,7 +178,7 @@ class LeadIncomeSources(Resource):
     @api.doc('get lead income sources')
     @api.marshal_list_with(_lead_income)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
         if not lead:
@@ -194,7 +193,7 @@ class LeadIncomeSources(Resource):
     @api.doc('update lead income sources')
     @api.expect([_update_lead_income], validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
         if not lead:
@@ -215,7 +214,7 @@ class LeadContactNumbers(Resource):
     @api.doc('get lead contact numbers')
     @api.marshal_list_with(_contact_number)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
         if not lead:
@@ -230,7 +229,7 @@ class LeadContactNumbers(Resource):
     @api.doc('update lead contact numbers')
     @api.expect([_update_contact_number], validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
         if not lead:
@@ -251,7 +250,7 @@ class LeadAddresses(Resource):
     @api.response(200, 'Address successfully created')
     @api.doc('create new address')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id):
         """ Creates new Address """
         addresses = request.json
@@ -263,7 +262,7 @@ class LeadAddresses(Resource):
     @api.doc('get Lead addresses')
     @api.marshal_list_with(_lead_address)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
         if not lead:
@@ -284,7 +283,7 @@ class LeadCommunications(Resource):
     @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
     @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         """ Get all forms of communication for given client """
         try:
@@ -309,7 +308,7 @@ class LeadCommunications(Resource):
 class LeadCommunicationsFile(Resource):
     @api.doc('Get communications audio file')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id, communication_id):
         """ Get voice communication file url """
         try:
@@ -340,7 +339,7 @@ class ClientMonthlyExpenses(Resource):
     @api.doc('get lead monthly expenses')
     @api.marshal_list_with(_lead_monthly_expense)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
         if not lead:
@@ -355,7 +354,7 @@ class ClientMonthlyExpenses(Resource):
     @api.doc('update lead monthly expenses')
     @api.expect([_update_lead_monthly_expense], validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id):
         lead, error_response = _handle_get_client(lead_id, client_type=LEAD)
         if not lead:
@@ -376,7 +375,7 @@ class LeadEmployments(Resource):
     @api.doc('get lead employments')
     @api.marshal_list_with(_lead_employment)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, public_id):
         lead, error_response = _handle_get_client(public_id, client_type=LEAD)
         if not lead:
@@ -390,7 +389,7 @@ class LeadEmployments(Resource):
 
     @api.doc('update lead employment')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, public_id):
         lead, error_response = _handle_get_client(public_id, client_type=LEAD)
         if not lead:
@@ -412,7 +411,7 @@ class LeadEmployments(Resource):
 class LeadCreditReportDebts(Resource):
     @api.doc('fetch credit report data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.view')
     def put(self, public_id):
         """ Fetch Credit Report Data"""
         lead, error_response = _handle_get_client(public_id, ClientType.lead)
@@ -433,7 +432,7 @@ class LeadCreditReportDebts(Resource):
     @api.doc('view credit report data')
     @api.marshal_list_with(_credit_report_debt, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.view')
     def get(self, public_id):
         """ View Credit Report Data """
         lead, error_response = _handle_get_client(public_id, ClientType.lead)
@@ -446,7 +445,7 @@ class LeadCreditReportDebts(Resource):
     @api.doc('add credit report data')
     @api.expect([_credit_report_debt], validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.create')
     def post(self, public_id):
         """ add Credit Report Data"""
         lead, error_response = _handle_get_client(public_id, ClientType.lead)
@@ -463,7 +462,7 @@ class LeadCreditReportDebts(Resource):
 
     @api.doc('delete debts')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.delete')
     def delete(self, public_id):
         """Delete Debts"""
         request_data = request.json
@@ -476,7 +475,7 @@ class CreateCreditReportAccount(Resource):
     @api.doc('Create credit report account for Lead. This is Step #1 in process.')
     @api.expect(_new_credit_report_account, validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.create')
     def post(self, public_id):
         request_data = request.json
 
@@ -531,7 +530,7 @@ class UpdateCreditReportAccount(Resource):
     @api.doc('update credit report account. This is step #2, and #4 in the process.')
     @api.expect(_update_credit_report_account, validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.update')
     def put(self, lead_public_id, public_id):
         """ Update Credit Report Account """
         lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
@@ -602,7 +601,7 @@ class UpdateCreditReportAccount(Resource):
 class CreditReportAccountSecurityQuestions(Resource):
     @api.doc('get credit report account security questions. This is step #3 in process.')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.view')
     def get(self, lead_public_id, credit_account_public_id):
         """ Get Available Security Questions"""
         lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
@@ -647,7 +646,7 @@ class CreditReportAccountSecurityQuestions(Resource):
 class CreditReporAccounttVerification(Resource):
     @api.doc('get verification questions. Step #5 in process.')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.view')
     def get(self, lead_public_id, public_id):
         """ Get Account Verification Questions """
         lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
@@ -695,7 +694,7 @@ class CreditReporAccounttVerification(Resource):
     @api.doc('Submit answers to verification questions. Step #6 in process.')
     @api.expect(_credit_account_verification_answers, validate=False)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.view')
     def put(self, lead_public_id, public_id):
         """ Submit Account Verification Answers """
         lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
@@ -753,7 +752,7 @@ class CreditReporAccounttVerification(Resource):
 class CompleteCreditReportAccount(Resource):
     @api.doc('Complete credit report account signup. Step #7 and final step in process.')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.view')
     def put(self, lead_public_id, credit_account_public_id):
         """ Complete Credit Report Account Sign Up"""
         lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
@@ -802,7 +801,7 @@ class CompleteCreditReportAccount(Resource):
 class CandidateToLead(Resource):
     @api.doc('Pull Credit Report for a Lead')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.view')
     def get(self, lead_public_id):
         """ Pull Credit Report for Lead and Import Debts """
         lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
@@ -825,7 +824,7 @@ class CandidateToLead(Resource):
 class LeadCreditReportPushDebts(Resource):
     @api.doc('Update credit report data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.update')
     def put(self, public_id):
         """Push Debts"""
         request_data = request.json
@@ -839,7 +838,7 @@ class LeadCreditReportPushDebts(Resource):
 class LeadCreditReportUpdateDebt(Resource):
     @api.doc('fetch credit report data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.debts.update')
     def put(self, public_id):
         """Push Debts"""
         request_data = request.json
@@ -855,7 +854,7 @@ class LeadBankAccount(Resource):
     @api.doc('create payment information')
     @api.expect(_new_bank_account, validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def post(self, lead_id):
         """ Create/Update Payment Information """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -877,7 +876,7 @@ class LeadCoClient(Resource):
     @api.doc('fetch co-client for the account')
     @api.marshal_with(_co_client)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         """ fetch co-client for the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -893,7 +892,7 @@ class LeadCoClient(Resource):
     @api.doc('add co-client')
     @api.marshal_with(_co_client)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id):
         """Adds co-clien to the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -915,7 +914,7 @@ class LeadCoClient(Resource):
 class LeadChecklist(Resource):
     @api.doc('fetch checklist for the lead')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         """ fetch checklist for the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -930,7 +929,7 @@ class LeadChecklist(Resource):
 
     @api.doc('update checklist for the lead')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id):
         """ update checklist for the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -951,7 +950,7 @@ class LeadChecklist(Resource):
 class LeadNotificationPrefs(Resource):
     @api.doc('update notification preferences')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id):
         """ update notification preferences for the lead"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -972,7 +971,7 @@ class LeadNotificationPrefs(Resource):
 class LeadPaymentPlan(Resource):
     @api.doc('fetch payment plan')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.contract.view')
     def get(self, lead_id):
         """ Fetch payment plan for the client """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -987,7 +986,7 @@ class LeadPaymentPlan(Resource):
 
     @api.doc('save payment plan')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.contract.create')
     def post(self, lead_id):
         """ Save payment plan for the client """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -1010,7 +1009,7 @@ class LeadPaymentPlan(Resource):
 class LeadAmendmentPlanById(Resource):
     @api.doc('fetch amendment plan')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('clients.amendment.view')
     def get(self, lead_id, plan_id):
         """ Fetch amended contract for the client """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -1029,7 +1028,7 @@ class LeadAmendmentPlanById(Resource):
 class LeadAmendmentPlan(Resource):
     @api.doc('fetch amendment plan')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('clients.amendment.view')
     def get(self, lead_id):
         """ Fetch amendment plan for the client """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -1046,7 +1045,7 @@ class LeadAmendmentPlan(Resource):
 
     @api.doc('save amendment plan')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('clients.amendment.update')
     def put(self, lead_id):
         """ Save amendment plan for the client """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -1069,7 +1068,7 @@ class LeadAmendmentPlan(Resource):
 class LeadApprovePlanRequest(Resource):
     @api.doc('request for approval')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('clients.amendment.request')
     def post(self, lead_id):
         """ Request for approval"""
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -1094,7 +1093,7 @@ class LeadApprovePlanRequest(Resource):
 class LeadActionPlan(Resource):
     @api.doc('sends docusign document')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.contract.send')
     def post(self, lead_id):
         """ Sends a docusign document """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
@@ -1113,7 +1112,7 @@ class LeadActionPlan(Resource):
 class LeadPaymentSchedule(Resource):
     @api.doc('fetches payment schedule')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
@@ -1133,7 +1132,7 @@ class LeadPaymentSchedule(Resource):
 class LeadPaymentRecord(Resource):
     @api.doc('Updates payment schedule record')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.update')
     def put(self, lead_id, record_id):
         client = get_client(public_id=lead_id, client_type=ClientType.lead)
         if not client:
@@ -1153,8 +1152,7 @@ class LeadDocs(Resource):
     @api.doc('Get Lead documents')
     @api.marshal_list_with(_doc)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
-        RACRoles.DOC_PROCESS_REP, RACRoles.SALES_MGR, RACRoles.SALES_REP])
+    @user_has_permission('leads.view')
     def get(self, lead_id):
         """ Get Lead documents """
         client = get_client(public_id=lead_id, client_type=ClientType.lead)

@@ -487,7 +487,7 @@ class DaysDelinquentReportSvc(ReportService):
             debts = query.order_by(desc(CreditReportData.last_update)).all()
             for debt in debts:
                 record = {
-                    'status': debt.status,
+                    'status': '',
                     'days_delinquent': debt.days_delinquent,
                     'last_update': self._dt2str(debt.last_update),
                 } 
@@ -550,7 +550,7 @@ class PostMailReportSvc(ReportService):
             filts.append(MailBox.channel==TemplateMedium.POST.name)
             if len(filts) > 0:
                query = query.filter(and_(*filts))
-            mails = query.order_by(desc(Mailbox.timestamp)).all()
+            mails = query.order_by(desc(MailBox.timestamp)).all()
             for mail in mails:
                 client = mail.client
                 debt_collector = mail.debt_collector
@@ -755,7 +755,9 @@ class StatusReportSvc(ReportService):
                     continue
                 client = credit_account.client
                 diff = (datetime.now() - debt.enrolled_date)
-                days_delinquent = debt.days_delinquent + diff.days
+                days_delinquent = 0
+                if debt.days_delinquent:
+                    days_delinquent = int(debt.days_delinquent) + diff.days
                 
                 record = {
                     'client_id': client.friendly_id,

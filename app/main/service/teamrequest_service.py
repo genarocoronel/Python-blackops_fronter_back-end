@@ -4,8 +4,6 @@ from app.main.model.team import TeamRequestType, TeamRequest, TeamRequestStatus,
 from app.main.model.debt_payment import DebtPaymentContract
 from app.main.model.client import Client
 from app.main.model.notes import Note
-from app.main.util.decorator import enforce_rac_required_roles
-from app.main.core.rac import RACRoles
 from sqlalchemy import func
 from flask import g
 from datetime import datetime
@@ -14,8 +12,6 @@ from app.main.service.workflow import open_contract_flow
 from app.main.channels.notification import TeamRequestChannel
 
 # fetch team requests for a team
-# @enforce_rac_required_roles(['service_mgr'])
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR,])
 def fetch_team_requests(team_name):
     team_requests = TeamRequest.query.outerjoin(DebtPaymentContract)\
                                      .outerjoin(Client)\
@@ -61,7 +57,6 @@ def create_team_request(requestor, team_manager, note, contract, revision=None):
     return team_request
 
 # update team requests
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR,])
 def update_team_request(team_request_id, data):
     user = get_request_user() 
     # fetch the team request based on ID

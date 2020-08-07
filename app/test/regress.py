@@ -38,7 +38,7 @@ class RegressionTest(object):
         {'api': 'leads/{{lead_id}}/payment/plan', 'roles': ['admin', 'salesmgr', 'servicemgr']},
         #{'api': 'leads/{{lead_id}}/amendment/plan', 'roles': ['admin', 'salesmgr', 'servicemgr']},
         {'api': 'leads/{{lead_id}}/payment/schedule', 'roles': ['admin', 'salesmgr', 'servicemgr']},
-        {'api': 'leads/{{lead_id}}/docs', 'roles': ['admin', 'salesmgr', 'servicemgr']},
+        {'api': 'leads/{{lead_id}}/docs', 'roles': ['admin', 'salesmgr', 'servicemgr', 'docprocmgr']},
         {'api': 'clients', 'get_client_id': True, 'roles': ['admin', 'salesmgr', 'servicemgr',]},
         {'api': 'clients/{{client_id}}', 'roles': ['admin', 'salesmgr', 'servicemgr',]},
         {'api': 'clients/{{client_id}}/income-sources', 'roles': ['admin', 'salesmgr', 'servicemgr',]},
@@ -52,21 +52,21 @@ class RegressionTest(object):
         {'api': 'clients/{{client_id}}/service-schedule', 'roles': ['admin', 'salesmgr', 'servicemgr',]},
         {'api': 'clients/{{client_id}}/docs', 'roles': ['admin', 'salesmgr', 'servicemgr',]},
         {'api': 'clients/{{client_id}}/tasks', 'roles': ['admin', 'salesmgr', 'servicemgr',]},
-        {'api': 'clients/{{client_id}}/teamrequests', 'roles': ['admin', 'salesmgr', 'servicemgr',]},
+        {'api': 'clients/{{client_id}}/teamrequests', 'roles': ['admin', 'servicemgr', 'salesmgr']},
         {'api': 'clients/{{client_id}}/payment/contract', 'roles': ['admin', 'salesmgr', 'servicemgr',]},
         {'api': 'appointments', 'roles': ['admin', 'salesmgr', 'servicemgr']},
-        {'api': 'campaigns', 'roles': ['admin', 'salesmgr']},
-        {'api': 'campaigns/pin-phone-nums', 'roles': ['admin', 'salesmgr']},
-        {'api': 'campaigns/report', 'roles': ['admin', 'salesmgr']},
-        {'api': 'collectors', 'roles': ['admin', 'salesmgr', 'servicemgr']},
+        {'api': 'campaigns', 'roles': ['admin', 'openermgr', 'salesmgr', 'servicemgr']},
+        {'api': 'campaigns/pin-phone-nums', 'roles': ['admin', 'openermgr', 'salesmgr', 'servicemgr']},
+        {'api': 'campaigns/report', 'roles': ['admin', 'openermgr', 'salesmgr', 'servicemgr']},
+        {'api': 'collectors', 'roles': ['admin', 'docprocmgr']},
         {'api': 'creditors', 'roles': ['admin', 'salesmgr', 'servicemgr']},
         {'api': 'debtpayment/eft-fee', 'roles': ['admin', 'salesmgr', 'servicemgr']},
         {'api': 'creditors', 'roles': ['admin', 'salesmgr', 'servicemgr']},
-        {'api': 'docproc', 'get_doc_id': True, 'roles': ['admin', 'salesmgr', 'servicemgr']},
-        {'api': 'docproc/{{doc_id}}/file',  'roles': ['admin', 'salesmgr', 'servicemgr']},
+        {'api': 'docproc', 'get_doc_id': True, 'roles': ['admin',  'docprocmgr']},
+        {'api': 'docproc/{{doc_id}}/file',  'roles': ['admin', 'docprocmgr']},
         {'api': 'lead-distro/agents', 'roles': ['admin', 'salesmgr', 'servicemgr']},
         {'api': 'tasks', 'roles': ['admin', 'salesmgr', 'servicemgr']},
-        {'api': 'teams', 'roles': ['admin', 'salesmgr', 'servicemgr']},
+        {'api': 'teams', 'roles': ['admin',  'servicemgr']},
         {'api': 'teams/service/requests', 'roles': ['admin', 'salesmgr', 'servicemgr']},
         {'api': 'tickets', 'roles': ['admin', 'salesmgr', 'servicemgr']},
         {'api': 'users', 'get_user_id': True, 'roles': ['admin', 'salesmgr', 'servicemgr']},
@@ -154,31 +154,32 @@ class RegressionTest(object):
 
             try:
                 assert response.status_code == expected_code, 'Test case failed'
-                if 'get_lead_id' in api_data:
-                    result = response.json()
-                    leads = result['data']
-                    if len(leads) > 0:
-                        self._lead_id = leads[0]['public_id']
-                elif 'get_candidate_id' in api_data:
-                    result = response.json()
-                    candidates = result['candidates']
-                    if len(candidates) > 0:
-                        self._candidate_id = candidates[0]['public_id']
-                elif 'get_client_id' in api_data:
-                    result = response.json()
-                    clients = result['data']
-                    if len(clients) > 0:
-                        self._client_id = clients[0]['public_id']
-                elif 'get_doc_id' in api_data:
-                    result = response.json()
-                    docs = result['data']
-                    if len(docs) > 0:
-                        self._doc_id = docs[0]['public_id']
-                elif 'get_user_id' in api_data:
-                    result = response.json()
-                    users = result['data']
-                    if len(users) > 0:
-                        self._user_id = users[0]['public_id']
+                if expected_code == 200:
+                    if 'get_lead_id' in api_data:
+                        result = response.json()
+                        leads = result['data']
+                        if len(leads) > 0:
+                            self._lead_id = leads[0]['public_id']
+                    elif 'get_candidate_id' in api_data:
+                        result = response.json()
+                        candidates = result['candidates']
+                        if len(candidates) > 0:
+                            self._candidate_id = candidates[0]['public_id']
+                    elif 'get_client_id' in api_data:
+                        result = response.json()
+                        clients = result['data']
+                        if len(clients) > 0:
+                            self._client_id = clients[0]['public_id']
+                    elif 'get_doc_id' in api_data:
+                        result = response.json()
+                        docs = result['data']
+                        if len(docs) > 0:
+                            self._doc_id = docs[0]['public_id']
+                    elif 'get_user_id' in api_data:
+                        result = response.json()
+                        users = result['data']
+                        if len(users) > 0:
+                            self._user_id = users[0]['public_id']
 
                 print('test successful')
             except AssertionError:
