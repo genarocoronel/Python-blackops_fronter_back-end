@@ -288,7 +288,7 @@ class JiveVoicemailHandler(Handler):
         source_phone_raw = html.xpath('//td[contains(text(), "From")]/following-sibling::td/text()')
 
         received_date = date_parser.parse(received_date_raw[0]).replace(tzinfo=gettz('America/Los_Angeles'))
-        source_number = phonenumbers.parse(source_phone_raw[0].split("&nbsp;")[-1][0], DEFAULT_PHONE_REGION)
+        source_number = phonenumbers.parse(source_phone_raw[0].split("&nbsp;")[-1], DEFAULT_PHONE_REGION)
         duration_seconds = time_parser(duration_raw[0].replace("&nbsp;", ' '))
 
         part = find_part_by_content_type(message, "audio/mpeg")
