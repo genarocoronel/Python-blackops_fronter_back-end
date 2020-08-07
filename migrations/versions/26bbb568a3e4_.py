@@ -1,7 +1,7 @@
-"""empty message
+"""Resource Permission
 
 Revision ID: 26bbb568a3e4
-Revises: 257ec1874a37
+Revises: 3c9572e63ad0
 Create Date: 2020-08-07 12:50:30.347749
 
 """
@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '26bbb568a3e4'
-down_revision = '257ec1874a37'
+down_revision = '3c9572e63ad0'
 branch_labels = None
 depends_on = None
 
