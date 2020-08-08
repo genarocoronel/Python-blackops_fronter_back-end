@@ -7,7 +7,7 @@ from app.main.service.config_service import (get_contact_number_types, get_incom
                                              get_all_candidates_dispositions, get_all_clients_dispositions, get_all_docproc_types,
                                              get_registered_pbx_numbers, register_pbx_number, get_registered_pbx_number_records,
                                              update_pbx_number)
-from app.main.util.decorator import token_required, enforce_rac_required_roles
+from app.main.util.decorator import token_required, enforce_rac_required_roles, user_has_permission
 
 from ..util.dto import ConfigDto, CandidateDto, ClientDto, AuthDto
 from app.main.core.rac import RACMgr, RACRoles
@@ -103,7 +103,7 @@ class ClientDispositionsList(Resource):
     @api.doc('list_of_client_dispositions')
     @api.marshal_list_with(_client_dispositions, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('clients.view')
     def get(self):
         """ List all client dispositions"""
         client_disposiitions = get_all_clients_dispositions()
@@ -115,7 +115,7 @@ class PBXNumberResource(Resource):
     @api.param('enabled', 'Retrieve PBX Numbers based on whether or not enabled. Default: true')
     @api.marshal_list_with(_pbx_number, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    @user_has_permission('clients.view')
     def get(self):
         enabled = request.args.get('enabled', True)
         return get_registered_pbx_number_records(enabled=enabled)

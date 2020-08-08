@@ -2,7 +2,7 @@ from app.main import db
 from app.main.service.docusign_service import DocuSign
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from app.main.model.client import Client, ClientDisposition
+from app.main.model.client import Client
 from app.main.model.credit_report_account import CreditPaymentPlan
 from app.main.model.docsign import *
 from app.main.model.credit_report_account import *
@@ -69,11 +69,10 @@ def check_sessions():
 
             if new_status != status:
                 # update client disposition
-
-                #client = session.contract.client  
-                #disposition = _to_disposition(env_status)
-                #client.disposition_id = disposition.id
-                #db.session.commit()
+                client = contract.client  
+                disp_value = _to_disposition(env_status)
+                client.status = disp_value
+                db.session.commit()
 
                 # failed status
                 if new_status == DocusignSessionStatus.DECLINED:
@@ -116,21 +115,17 @@ def _to_disposition(status_txt):
     status_txt = status_txt.lower()
     result = "Contract Sent"
     if 'delivered' in status_txt:
-        result = "Contract Opened"
+        result = "Contract Received"
     elif 'signed' in status_txt:
         result = "Contract Signed"
     elif 'completed' in status_txt:
-        result = "Contract Completed"
+        result = "Contract Complete"
     elif 'declined' in status_txt:
         result = "Contract Declined"
     elif 'voided' in status_txt:
         result = "Contract Voided"
-    elif 'deleted' in status_txt:
-        result = "Contract Deleted"
     
-    print(result)
-    cd = ClientDisposition.query.filter_by(value=result).first()    
-    return cd
+    return result
 
 # test routines
 def send_contract_for_signature(client_id):
@@ -352,11 +347,9 @@ def send_contract_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
-        db.session.commit()
 
-        #disp = ClientDisposition.query.filter_by(value='Contract Sent').first()
-        #client.disposition = disp
-        #db.session.commit()
+        client.status = 'Contract Sent'
+        db.session.commit()
 
     except Exception as err:
         app.logger.warning('Error in sending contract {}'.format(str(err)))
