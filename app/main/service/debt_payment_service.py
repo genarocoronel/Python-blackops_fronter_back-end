@@ -145,7 +145,18 @@ def fetch_active_contract(client):
     contract = DebtPaymentContract.query.filter_by(client_id=client.id,
                                                    status=ContractStatus.ACTIVE).first()
     if not contract:
-        raise ValueError("Contract not present")
+        result = {
+            "term": 24,
+            "total_debt": '',
+            "enrolled_debt": '',
+            "monthly_fee": '',
+            "total_paid": '',
+            "num_term_paid": '',
+            "term_left": '',
+            "balance": '',
+            "payment_1st_date": ''
+        }
+        return result
 
     term = contract.term
     pymt_start = contract.payment_start_date
@@ -502,12 +513,12 @@ def fetch_payment_schedule(client):
     result = []
 
     # fetch the active contract
-    active_contract = DebtPaymentContract.query.filter_by(status=ContractStatus.ACTIVE).first()
+    active_contract = DebtPaymentContract.query.filter_by(client_id=client.id, status=ContractStatus.ACTIVE).first()
     # not an error scenario
     if active_contract is None:
         return result
 
-    initial_contract = DebtPaymentContract.query.filter_by(status=ContractStatus.REPLACED)\
+    initial_contract = DebtPaymentContract.query.filter_by(client_id=client.id, status=ContractStatus.REPLACED)\
                                                 .order_by(asc(DebtPaymentContract.id)).first()
     if initial_contract is None:
         initial_contract = active_contract

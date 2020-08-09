@@ -4,7 +4,6 @@ from . import template
 from . import ticket
 from . import creditor
 from . import sales_board
-from . import debt
 
 class Language(enum.Enum):
     ENGLISH = 'english'

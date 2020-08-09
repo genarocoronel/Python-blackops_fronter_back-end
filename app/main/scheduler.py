@@ -35,10 +35,17 @@ def register_jobs(scheduler):
                        repeat=None)
 
         # every day 12 PM, send payment reminders
-        scheduler.cron('0 20 * * *',
+        scheduler.cron('0 12 * * *',
                        func='app.main.tasks.debt_payment.process_upcoming_payments',
                        args=[],
                        description='kron: process_upcoming_payments',
+                       repeat=None)
+
+        # midnight
+        scheduler.cron('0 0 * * *',
+                       func='app.main.tasks.debt_dispute.on_timer_expiry',
+                       args=[],
+                       description='kron: debt dispute daily stus',
                        repeat=None)
 
     except Exception as err:

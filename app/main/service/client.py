@@ -3,7 +3,6 @@ from app.main.model.team import TeamRequest, TeamRequestNote
 from app.main.model.usertask import UserTask
 from app.main.model.client import Client
 from .apiservice import ApiService
-from app.main.core.rac import RACRoles
 
 ## this file contains Class based services
 ## function based services -- client_service.py
