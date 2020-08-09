@@ -20,7 +20,7 @@ from mutagen.mp3 import MP3
 from lxml import html as htmllib
 from email.message import Message
 
-from sqlalchemy import or_, desc
+from sqlalchemy import or_
 from sqs_listener import SqsListener
 import boto3
 
@@ -28,8 +28,9 @@ from app.main import db
 from app.main.model.candidate import Candidate, CandidateVoiceCommunication, CandidateFaxCommunication
 from app.main.model.client import Client, ClientVoiceCommunication, ClientFaxCommunication
 from app.main.model.pbx import VoiceCommunication, CommunicationType, PBXNumber, FaxCommunication, VoiceCommunicationType, \
-    TextCommunicationType, CallEventType, VoiceCallEvent, PBXSystem, PBXSystemVoiceCommunication, PBXSystemFaxCommunication
+    TextCommunicationType, CallEventType, PBXSystem, PBXSystemVoiceCommunication, PBXSystemFaxCommunication
 from app.main.model.user import User, UserVoiceCommunication, UserFaxCommunication
+from app.main.service.communication_service import get_missed_call_event
 from app.main.service.customer_service import identify_customer_by_phone
 from app.main.service.user_service import get_user_by_mailbox_id
 from app.main.service.docproc_service import create_doc_from_fax
@@ -118,8 +119,8 @@ class Handler(abc.ABC):
         pbx_system = PBXSystem.query.filter_by(name=self.pbx_system_name).one_or_none()
 
         if communication_type in [VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL]:
-            missed_call_event = self._get_missed_call_event(customer_number, status=CallEventType.GOING_TO_VOICEMAIL,
-                                                            based_on_date=communication_data.receive_date, time_lapse=240)
+            missed_call_event = get_missed_call_event(customer_number, status=CallEventType.GOING_TO_VOICEMAIL,
+                                                      based_on_date=communication_data.receive_date, time_lapse=240)
 
             if VoiceCommunicationType.RECORDING == communication_type and missed_call_event:
                 # Not saving the recording since this was a missed call. Voicemail will be captured and saved
@@ -220,18 +221,6 @@ class Handler(abc.ABC):
             db.session.rollback()
             current_app.logger.error(f'Failed to save voice recording: Error: {e}')
             raise Exception('Failed to save voice recording!')
-
-    def _get_missed_call_event(self, source_number: phonenumbers.PhoneNumber, status: CallEventType = None,
-                               based_on_date: datetime = datetime.datetime.utcnow(), time_lapse: int = 600):
-        call_event_stmt = VoiceCallEvent.query.filter(VoiceCallEvent.caller_number == source_number.national_number)
-
-        if status:
-            call_event_stmt = call_event_stmt.filter(VoiceCallEvent.status == status)
-
-        call_event_stmt = call_event_stmt.filter(
-            VoiceCallEvent.updated_on >= based_on_date - datetime.timedelta(seconds=time_lapse))
-
-        return call_event_stmt.order_by(desc(VoiceCallEvent.updated_on)).first()
 
 
 class JiveFaxHandler(Handler):

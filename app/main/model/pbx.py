@@ -52,8 +52,9 @@ class TextCommunicationType(CommunicationType):
 
 
 class VoiceCommunicationType(CommunicationType):
-    RECORDING = 'recording'
-    VOICEMAIL = 'voicemail'
+    RECORDING   = 'recording'
+    VOICEMAIL   = 'voicemail'
+    MISSED_CALL = 'missed_call'
 
 
 class VoiceCommunication(db.Model):
@@ -150,6 +151,7 @@ class VoiceCallEvent(db.Model):
     public_id = db.Column(db.String(100), unique=True)
     inserted_on = db.Column(db.DateTime, nullable=False)
     updated_on = db.Column(db.DateTime, nullable=False)
+    receive_date = db.Column(db.DateTime, nullable=True)
 
     pbx_id = db.Column(db.String, unique=False, nullable=False)
     pbx_call_id = db.Column(db.String, unique=True, nullable=False)
