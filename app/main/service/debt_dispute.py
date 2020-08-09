@@ -7,7 +7,7 @@ from flask import current_app as app
 class DebtDisputeService(object):
 
 
-    @classsmethod
+    @classmethod
     def process_collection_letter(cls, client, debt):
         # retreive active dispute item 
         debt_dispute = DebtDispute.query.filter_by(client_id=client.id,
@@ -15,7 +15,7 @@ class DebtDisputeService(object):
                                                    is_active=True).first()
         # create a debt dispute
         if not debt_dispute:
-            today = datetime.utcnow()
+            now = datetime.utcnow()
             # determine the sold package or not
             task_func = 'send_initial_dispute_mail'
             status = DebtDisputeStatus.P1_SEND.name
@@ -29,7 +29,9 @@ class DebtDisputeService(object):
                                        debt_id=debt.id,
                                        status=status,
                                        is_active=True,
-                                       p1_date=today,)
+                                       p1_date=now,
+                                       created_date=now,
+                                       modified_date=now)
             db.session.add(debt_dispute)
             db.session.commit()
         else:
