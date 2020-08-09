@@ -32,8 +32,8 @@ class WebhookResource(Resource):
     def _get_call_numbers(self, request):
         args = request.args
 
-        caller_number = args.get('caller', None)
-        dialed_number = args.get('dialed', None)
+        caller_number = args.get('caller', None) or args.get('CALLER', None)
+        dialed_number = args.get('dialed', None) or args.get('DIALED', None)
 
         assert caller_number is not None
         assert dialed_number is not None
@@ -41,7 +41,7 @@ class WebhookResource(Resource):
         return caller_number, dialed_number
 
     def _create_or_update_call_event(self, pbx_call_id, request, call_status: CallEventType):
-        request_data = request.json
+        request_data = request.form
         caller_number, dialed_number = self._get_call_numbers(request)
 
         call_event = VoiceCallEvent.query.filter_by(pbx_call_id=pbx_call_id).first()
@@ -55,7 +55,7 @@ class WebhookResource(Resource):
             app.logger.info(f"Call event is being created with '{call_status.name}'")
             call_event = VoiceCallEvent(
                 public_id=str(uuid.uuid4()),
-                pbx_id=request_data.get('pbx_id'),
+                pbx_id=request_data.get('pbx_id', None) or request_data.get('PBX_ID'),
                 pbx_call_id=pbx_call_id,
                 caller_number=phonenumbers.parse(caller_number, DEFAULT_PHONE_REGION).national_number,
                 dialed_number=phonenumbers.parse(dialed_number, DEFAULT_PHONE_REGION).national_number,
@@ -76,8 +76,9 @@ class CallInitiatedWebhookResource(WebhookResource):
     @api.expect(_call_initiated_notification, validate=True)
     def post(self):
         """ Webhook for notifying a Call has been initiated from the PBX provider """
-        request_data = request.json
-        pbx_call_id = request_data.get('call_id')
+        request_data = request.form
+        pbx_call_id = request_data.get('call_id', None) or request_data.get('CALL_ID', None)
+        assert pbx_call_id is not None
         app.logger.info(f"Initiated Call event notification received for PBX Call ID '{pbx_call_id}'")
         app.logger.debug(f"Notification Message: \n{request_data}")
 

@@ -1,6 +1,6 @@
 import os
 
-from flask_restplus import Namespace, fields
+from flask_restplus import Namespace, fields, reqparse
 
 from app.main.model import Language, Frequency
 from app.main.model.candidate import CandidateImportStatus, CandidateStatus, CandidateDispositionType
@@ -1423,19 +1423,19 @@ class ReportDto:
     });
 
 
-call_notification = {
-    'call_id': fields.String(),
-    'caller_id_name': fields.String(),
-    'caller_id_number': fields.String(),
-    'dialed_number': fields.String(),
-    'pbx_id': fields.String()
-}
+call_notification_parser = parser = reqparse.RequestParser()
+call_notification_parser.add_argument('call_id', type=str, location='form')
+call_notification_parser.add_argument('caller_id_name', type=str, location='form')
+call_notification_parser.add_argument('caller_id_number', type=str, location='form')
+call_notification_parser.add_argument('dialed_number', type=str, location='form')
+call_notification_parser.add_argument('pbx_id', type=str, location='form')
 
 
 class WebhookDto:
     api = Namespace('webhooks', description='Webhook definitions')
-    call_initiated = api.model('call_initiated', call_notification)
-    call_missed = api.model('call_missed', call_notification)
+    call_initiated = call_notification_parser
+    call_missed = call_notification_parser
+
 
 class LeadDistroDto:
     api = Namespace('lead-distro', description='Lead Distribution related end points')
