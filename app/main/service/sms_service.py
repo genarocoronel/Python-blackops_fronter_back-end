@@ -315,9 +315,9 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
     if to_phone:
         # Ensure phone belongs to client when given
         app.logger.info(f'A TO phone given: {to_phone}')
-        client = get_client_by_phone(clean_phone_to_tenchars(to_phone))
-        if not client or client.public_id != client_public_id:
-            raise BadRequestError(f'Client ID {client_public_id} does not own the TO phone {to_phone}. SMS not sent.')
+        # client = get_client_by_phone(clean_phone_to_tenchars(to_phone))
+        # if not client or client.public_id != client_public_id:
+        #     raise BadRequestError(f'Client ID {client_public_id} does not own the TO phone {to_phone}. SMS not sent.')
 
         destination_phone = to_phone
     else:
@@ -372,9 +372,10 @@ def send_message_to_candidate(candidate_public_id, from_phone, message_body, to_
     destination_phone = None
 
     if to_phone:
-        candidate = get_candidate_by_phone(clean_phone_to_tenchars(to_phone))
-        if not candidate or candidate.public_id != candidate_public_id:
-            raise BadRequestError(f'Candidate ID {candidate_public_id} does not own the TO phone {to_phone}. SMS not sent.')
+        app.logger.info(f'A TO phone given: {to_phone}')
+        # candidate = get_candidate_by_phone(clean_phone_to_tenchars(to_phone))
+        # if not candidate or candidate.public_id != candidate_public_id:
+        #     raise BadRequestError(f'Candidate ID {candidate_public_id} does not own the TO phone {to_phone}. SMS not sent.')
 
         destination_phone = to_phone
     else:
