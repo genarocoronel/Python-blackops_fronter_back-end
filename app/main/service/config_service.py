@@ -2,6 +2,9 @@ import datetime
 import uuid
 
 import phonenumbers
+from typing import List
+
+from sqlalchemy import or_
 from werkzeug.exceptions import NotFound
 
 from app.main import db
@@ -11,6 +14,7 @@ from app.main.model.candidate import CandidateDisposition
 from app.main.model.client import ClientDisposition
 from app.main.model.monthly_expense import ExpenseType
 from app.main.model.pbx import PBXNumber
+from app.main.model.user import Department
 from app.main.service.docproc_service import get_docproc_types
 
 DEFAULT_PHONE_REGION = 'US'
@@ -36,8 +40,12 @@ def get_all_clients_dispositions():
     return ClientDisposition.query.filter_by().all()
 
 
-def get_registered_pbx_numbers(enabled=True):
-    return [pbx.number for pbx in PBXNumber.query.filter_by(enabled=enabled).all()]
+def get_registered_pbx_numbers(enabled=True, departments: List[Department] = None):
+    pbx_numbers_stmt = PBXNumber.query.filter_by(enabled=enabled)
+    if departments:
+        pbx_numbers_stmt = pbx_numbers_stmt.filter(or_(PBXNumber.department == department for department in departments))
+
+    return [pbx.number for pbx in pbx_numbers_stmt.all()]
 
 
 def get_registered_pbx_number_records(enabled=True):

@@ -45,10 +45,12 @@ class WebhookResource(Resource):
         caller_number, dialed_number = self._get_call_numbers(request)
 
         call_event = VoiceCallEvent.query.filter_by(pbx_call_id=pbx_call_id).first()
+        utcnow = datetime.datetime.utcnow()
         if call_event:
             app.logger.info(f"Call event for {call_event.public_id} is being updated with '{call_status.name}'")
 
-            call_event.updated_on = datetime.datetime.utcnow()
+            call_event.updated_on = utcnow
+            call_event.receive_date = utcnow,
             call_event.status = call_status
         else:
             app.logger.warn(f"Call event for PBX Call ID '{pbx_call_id}' does not exist")
@@ -59,8 +61,9 @@ class WebhookResource(Resource):
                 pbx_call_id=pbx_call_id,
                 caller_number=phonenumbers.parse(caller_number, DEFAULT_PHONE_REGION).national_number,
                 dialed_number=phonenumbers.parse(dialed_number, DEFAULT_PHONE_REGION).national_number,
-                inserted_on=datetime.datetime.utcnow(),
-                updated_on=datetime.datetime.utcnow(),
+                receive_date=utcnow,
+                inserted_on=utcnow,
+                updated_on=utcnow,
                 status=call_status
             )
 

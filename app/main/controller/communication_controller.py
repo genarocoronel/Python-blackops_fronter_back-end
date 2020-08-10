@@ -3,7 +3,7 @@ from flask_restplus import Resource
 
 from app.main.service.communication_service import parse_communication_types, date_range_filter, \
     get_voice_communication, create_presigned_url, get_opener_communication_records, get_sales_and_service_communication_records, \
-    get_communication_records, get_unassigned_voice_communication_records
+    get_communication_records, get_unassigned_voice_communication_records, update_voice_communication, get_missed_calls
 from app.main.service.user_service import get_request_user
 from app.main.util.decorator import token_required
 from app.main.util.dto import CommunicationDto
@@ -20,7 +20,7 @@ class Communications(Resource):
     @api.param('_dt', 'Comma separated date fields to be filtered')
     @api.param('_from', 'Start date of communications to query (YYYY-MM-DD)')
     @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
-    @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
+    @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', 'missed_call', or 'sms'")
     @api.doc(security='apikey')
     @api.doc('Get all forms of communication for candidates/clients depending on the requesting user')
     def get(self):
@@ -68,6 +68,7 @@ class CommunicationsFile(Resource):
         if not voice_communication:
             api.abort(404, message='Voice communication not found', success=False)
         else:
+            update_voice_communication({'is_viewed': True}, voice_communication=voice_communication)
             expiration_seconds = app.s3_signed_url_timeout_seconds
             file_url = create_presigned_url(voice_communication, expiration=expiration_seconds)
             response_object = {
