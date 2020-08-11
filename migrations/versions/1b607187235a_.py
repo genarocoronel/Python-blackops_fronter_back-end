@@ -1,7 +1,7 @@
-"""empty message
+"""Dispute letter dates
 
 Revision ID: 1b607187235a
-Revises: 26bbb568a3e4
+Revises: 924b0251bdaf
 Create Date: 2020-08-09 21:06:10.360691
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '1b607187235a'
-down_revision = '26bbb568a3e4'
+down_revision = '924b0251bdaf'
 branch_labels = None
 depends_on = None
 
