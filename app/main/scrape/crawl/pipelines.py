@@ -80,6 +80,7 @@ class CreditReportPipeline(object):
             existing_debt_entry.balance_original = _sanitize_dollar_amount(item.get('balance_original'))
             existing_debt_entry.payment_amount = _sanitize_dollar_amount(item.get('payment_amount'))
             existing_debt_entry.credit_limit = _sanitize_dollar_amount(item.get('credit_limit'))
+            existing_debt_entry.collector_ref_no = item.get('collector_account_number')
             existing_debt_entry.graduation = graduation
             existing_debt_entry.last_update = datetime.datetime.utcnow()
 
@@ -98,6 +99,7 @@ class CreditReportPipeline(object):
                 balance_original=_sanitize_dollar_amount(item.get('balance_original')),
                 payment_amount=_sanitize_dollar_amount(item.get('payment_amount')),
                 credit_limit=_sanitize_dollar_amount(item.get('credit_limit')),
+                collector_ref_no=item.get('collector_account_number'),
                 graduation=graduation,
                 last_update=datetime.datetime.utcnow(),
                 enrolled_date=datetime.datetime.utcnow(),

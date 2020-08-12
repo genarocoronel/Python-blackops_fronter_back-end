@@ -31,6 +31,7 @@ class TemplateMailManager(object):
     _debt = None
     _payment_schedule = None
     _appointment = None
+    _p1date = None
     _is_via_fax = False
     _org = None
 
@@ -60,6 +61,14 @@ class TemplateMailManager(object):
     @debt.setter
     def debt(self, debt):
         self._debt = debt
+
+    @property
+    def p1date(self):
+        return self._p1date
+
+    @p1date.setter
+    def p1date(self, value):
+        self._p1date = value
 
     @property
     def payment(self):
@@ -104,8 +113,10 @@ class TemplateMailManager(object):
             result['appointment'] = self.appointment
         if self.org:
             result['org'] = self.org
+        if self.p1date:
+            result['date_p1_receipt'] = self.p1date 
 
-        result['date_now'] = datetime.now().strftime("%m/%d/%Y")
+        result['date_now'] = datetime.utcnow().strftime("%m/%d/%Y")
         result['is_via_fax'] = self._is_via_fax
 
         return result
@@ -457,13 +468,14 @@ def send_noir_2_notice(client_id, debt_id):
 
 # NON_RESPONSE_NOTICE
 # FAX
-def send_non_response_notice(client_id, debt_id):
+def send_non_response_notice(client_id, debt_id, p1_date):
     """
     Send non response notice to debt collector
     : param int client_id: Client Identifier (required)
     : param int debt_id: Debt Identifier (required)
+    : param datetime p1_date: P1 send date (required)
     """
-    kwargs = { 'client_id': client_id, 'debt_id': debt_id }
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'p1_date': p1_date }
     send_template(TemplateAction.NON_RESPONSE_NOTICE.name,
                   **kwargs)
 
@@ -694,6 +706,11 @@ def send_template(action, **kwargs):
         # set the appointment property
         mail_mgr.appointment = appointment
         mail_mgr.appointment.schedule = appointment.scheduled_at.strftime("%m/%d/%Y %H:%M")
+
+    # p1 date
+    if kwargs.get('p1_date'):
+        p1_date = kwargs.get('p1_date')
+        mail_mgr.p1date = p1_date.strftime("%m/%d/%Y")
 
     ## Organization
     ## tmp: fetch the first

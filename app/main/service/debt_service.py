@@ -50,16 +50,25 @@ def save_new_debt(data, account):
 
     # debt collectors
     coll_id = None 
-    prev_coll_id = None
-    collector = data.get('collector_account')
-    last_collector = data.get('last_collector')
 
-    if collector:
-        dc = DebtCollector.query.filter_by(account_number=collector).first()
+    collector_name = data.get('collector_name')
+    if collector_name:
+        dc = DebtCollector.query.filter_by(name=collector_name).first()
+        if not dc:
+            dc = DebtCollector(public_id=str(uuid.uuid4()),
+                               name=collector_name,
+                               phone=data.get('collector_phone'),
+                               fax=data.get('collector_fax'),
+                               address=data.get('collector_address'),
+                               city=data.get('collector_city'),
+                               state=data.get('collector_state'),
+                               zip_code=data.get('collector_state'),
+                               inserted_on=datetime.datetime.utcnow(),
+                               updated_on=datetime.datetime.utcnow())
+            db.session.add(dc)
+            db.session.commit()
+
         coll_id = dc.id
-    if last_collector:
-        dc = DebtCollector.query.filter_by(account_number=last_collector).first()
-        prev_coll_id = dc.id
 
     debt_data = CreditReportData(
         account_id=account.id,
@@ -68,10 +77,10 @@ def save_new_debt(data, account):
         creditor=data.get('creditor'),
         ecoa=data.get('ecoa'),
         account_number=data.get('account_number'),
+        collector_ref_no=data.get('collector_ref_no'),
         account_type=data.get('account_type'),
         push=data.get('push'),
         collector_id=coll_id,
-        prev_collector_id=prev_coll_id,
         last_debt_status=data.get('last_debt_status'),
         bureaus=data.get('bureaus'),
         days_delinquent=data.get('days_delinquent'),
@@ -93,6 +102,29 @@ def update_debt(data):
             if hasattr(debt_data, attr):
                 setattr(debt_data, attr, data.get(attr))
         setattr(debt_data, 'last_update', datetime.datetime.utcnow())
+
+        # check for collector information
+        collector_name = data.get('collector_name')
+        if collector_name:
+            dc = DebtCollector.query.filter_by(name=collector_name).first()
+            if not dc:
+                dc = DebtCollector(public_id=str(uuid.uuid4()),
+                                   name=collector_name,
+                                   phone=data.get('collector_phone'),
+                                   fax=data.get('collector_fax'),
+                                   address=data.get('collector_address'),
+                                   city=data.get('collector_city'),
+                                   state=data.get('collector_state'),
+                                   zip_code=data.get('collector_state'),
+                                   inserted_on=datetime.datetime.utcnow(),
+                                   updated_on=datetime.datetime.utcnow())
+                db.session.add(dc)
+                db.session.commit()
+           
+            # debt collector has changed
+            if debt_data.collector_id and debt_data.collector_id != dc.id:
+                debt_data.prev_collector_id = debt_data.collector_id 
+            debt_data.collector_id = dc.id
 
         save_changes(debt_data)
 
