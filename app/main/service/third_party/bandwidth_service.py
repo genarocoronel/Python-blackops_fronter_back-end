@@ -56,7 +56,10 @@ def sms_send(from_phone, to_phone, message_body):
 
 def download_mms_media(media_uri):
     """ Fetches MMS media file """
-    media_file_name = media_uri.split('/')[-1]
+    mms_media_id = media_uri.split('/')[-3]
+    mms_seq = media_uri.split('/')[-2]
+    mms_file_name = media_uri.split('/')[-1]
+    mms_resource_name = '{}/{}/{}'.format(mms_media_id, mms_seq, mms_file_name)
 
     if not current_app.bandwidth_api_endpoint:
         raise ConfigurationError("Bandwidth API endpoint not configured")
@@ -66,7 +69,7 @@ def download_mms_media(media_uri):
         raise ConfigurationError("Bandwidth app ID not configured")
 
     bw_user_id = current_app.bandwidth_user_id
-    media_api_endpoint = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/{media_file_name}'
+    media_api_endpoint = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/{mms_resource_name}'
     rheaders = _create_headers()
 
     try:
