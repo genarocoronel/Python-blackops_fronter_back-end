@@ -37,3 +37,8 @@ class ForbiddenError(Exception):
     """ App exception representing permission error """
     def __init(self, arg):
         self.args = arg
+
+class BadParamsError(Exception):
+    """ App exception representing bad params/params not present. """
+    def __init(self, arg):
+        self.args = arg
