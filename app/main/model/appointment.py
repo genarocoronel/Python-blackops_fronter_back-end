@@ -30,11 +30,15 @@ class Appointment(db.Model):
     agent = db.relationship('User', backref='appointments', foreign_keys=[agent_id])
     team_manager = db.relationship('User', backref='team_appointments', foreign_keys=[team_manager_id])
 
-    scheduled_at = db.Column(db.DateTime, nullable=False)
+    loc_time_zone = db.Column(db.String(3), nullable=True)
+    
+    scheduled_at = db.Column(db.String(100), nullable=False)
     # summary/title 
     summary = db.Column(db.String(255), nullable=False)
     # phone number / location of meet 
-    location = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(255), nullable=False)
+    # email / location of meet 
+    email = db.Column(db.String(255), nullable=False)
 
     # status (appointmentstatus)
     status = db.Column(db.String(64), nullable=False)
