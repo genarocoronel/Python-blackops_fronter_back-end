@@ -2,8 +2,10 @@ from flask import request
 from flask_restplus import Resource
 
 from ..util.dto import SmsDto
+from app.main.util.decorator import token_required
 from app.main.service.sms_service import (register_new_sms_mssg, whois_webhook_token,
-    get_convo_for_client, send_message_to_client, get_convo_for_candidate, send_message_to_candidate)
+    get_convo_for_client, send_message_to_client, get_convo_for_candidate, 
+    send_message_to_candidate, get_media_by_pubid)
 from app.main.core.errors import BadRequestError, NotFoundError
 from flask import current_app
 
@@ -51,6 +53,7 @@ class SmsRegistration(Resource):
 @api.param('client_public_id', 'Client public ID')
 class SmsClientConversation(Resource):
     @api.doc('Get a SMS/MMS Conversation for a Lead/Client')
+    @token_required
     def get(self, client_public_id):
         """ Get a SMS/MMS Conversation for a Lead/Client """
         try:
@@ -72,6 +75,7 @@ class SmsClientConversation(Resource):
 @api.param('client_public_id', 'Client public ID')
 class SmsSendSendToClient(Resource):
     @api.doc('Send a SMS message to a Lead/Client')
+    @token_required
     def post(self, client_public_id):
         """ Sends a SMS Message to a Lead/Client """
         if not client_public_id:
@@ -101,6 +105,7 @@ class SmsSendSendToClient(Resource):
 @api.param('candidate_public_id', 'Candidate public ID')
 class SmsCandidateConversation(Resource):
     @api.doc('Get a SMS/MMS Conversation for a Candidate')
+    @token_required
     def get(self, candidate_public_id):
         """ Get a SMS/MMS Conversation for a Candidate """
         try:
@@ -122,6 +127,7 @@ class SmsCandidateConversation(Resource):
 @api.param('candidate_public_id', 'Candidate public ID')
 class SmsSendSendToCandidate(Resource):
     @api.doc('Send a SMS/MMS message to a Candidate')
+    @token_required
     def post(self, candidate_public_id):
         if not candidate_public_id:
             return 'Bad request: the Candidate ID was not given.', 400
@@ -144,3 +150,30 @@ class SmsSendSendToCandidate(Resource):
             api.abort(404, message='Error sending SMS to Candidate, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to send SMS messge to Candidate with ID {candidate_public_id}', success=False)
+
+
+@api.route('/media/<media_pub_id>/file/')
+@api.param('media_pub_id', 'MMS media public ID')
+class MediaFile(Resource):
+    @api.doc('Gets a MMS Media File')
+    @token_required
+    def get(self, media_pub_id):
+        """ Gets a Doc File stream """
+        mms_media = get_media_by_pubid(media_pub_id)
+        if not mms_media:
+            api.abort(404, message='That SMS Media could not be found.', success=False)
+        
+        from app.main.service.docproc_service import get_doc_for_mms, stream_doc_file
+        doc = get_doc_for_mms(mms_media)
+        if not doc:
+            api.abort(404, message='That Doc for MMS Media could not be found.', success=False)
+
+        try:
+            return stream_doc_file(doc, True)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error getting MMS Media File for Doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error getting MMS Media File for Doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to get MMS Media File for Doc with ID {doc_public_id}', success=False)

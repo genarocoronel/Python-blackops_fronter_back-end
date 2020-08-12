@@ -71,6 +71,11 @@ def get_doc_by_pubid(public_id):
     return Docproc.query.filter_by(public_id=public_id).first()
 
 
+def get_doc_for_mms(mms_media):
+    """ Gets a Doc for a MMS Media """
+    return Docproc.query.filter_by(file_name=mms_media.file_uri, source_channel=DocprocChannel.SMS.value).first()
+
+
 def get_docproc_types():
     """ Gets all known Doc Process Types """
     return DocprocType.query.filter_by().all()
@@ -187,7 +192,7 @@ def attach_file_to_doc(doc, file):
     return update_doc(doc, dict(file_name=secure_filename, orig_file_name=orig_filename))
 
 
-def stream_doc_file(doc):
+def stream_doc_file(doc, send_as_attachment=False):
     """ Streams File associated with Doc """
     file_ext = get_extension_for_filename(doc.file_name)
     mime = get_mime_from_extension(file_ext)
@@ -202,7 +207,7 @@ def stream_doc_file(doc):
     # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
     download_from_docproc(doc.source_channel, doc.file_name, filepath)
 
-    return stream_file(upload_location, doc.file_name, as_attachment=False, mimetype=mime)
+    return stream_file(upload_location, doc.file_name, as_attachment=send_as_attachment, mimetype=mime)
 
 
 def create_doc_manual(data, client = None):

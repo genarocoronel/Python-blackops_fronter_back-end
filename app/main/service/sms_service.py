@@ -520,8 +520,8 @@ def _handle_new_media(media_data, message):
                 app.logger.error(f'Error saving MMS media locally, {str(e)}')
 
             try:
-                remote_filename = upload_to_docproc(secure_file_path, secure_filename)
-                app.logger.info(f'Successfully saved MMS media to S3 {saved_file_uri}')
+                upload_to_docproc(secure_file_path, secure_filename)
+                app.logger.info(f'Successfully saved MMS media to S3 {secure_filename}')
 
             except Exception as e:
                 app.logger.error(f'Error saving MMS media to S3, {str(e)}')
@@ -543,7 +543,7 @@ def _handle_new_media(media_data, message):
                 app.logger.error(f'Error creating a Doc from MMS, {str(e)}')
 
             # This is the AWS S3 file URI (not Bandwidth)
-            tmp_media_item.file_uri = remote_filename
+            tmp_media_item.file_uri = secure_filename
             db.session.add(tmp_media_item)
             save_changes()
 
@@ -619,6 +619,10 @@ def _save_bandwidth_sms_message(messg_data):
     }
 
     return crm_mssg_data
+
+def get_media_by_pubid(pub_id):
+    """ Gets a SMS Media by its public ID """
+    return SMSMediaFile.query.filter_by(public_id=pub_id).first()
 
 
 def _handle_get_media_for_messg(message):
