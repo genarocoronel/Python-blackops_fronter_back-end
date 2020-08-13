@@ -95,9 +95,7 @@ class AppointmentService(object):
                             agent_id=agent_id,
                             scheduled_at=data.get('scheduled_at'),
                             summary=data.get('summary'),
-                            email=data.get('email'),
                             loc_time_zone=data.get('loc_time_zone'),
-                            phone_number=data.get('phone_number'),
                             status=status.name,
                             reminder_types=data.get('reminder_types'),)
             db.session.add(appt)

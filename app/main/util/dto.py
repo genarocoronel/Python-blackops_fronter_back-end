@@ -274,8 +274,6 @@ class AppointmentDto:
         'scheduled_at': fields.String(attribute='scheduled_at'),
         'end_at': ScheduleEndField(attribute='modified_date'),
         'summary': fields.String(required=True, description='summary of appointment'),
-        'phone_number': fields.String(attribute='phone_number'),
-        'email': fields.String(attribute='email'),
         'loc_time_zone': fields.String(attribute='loc_time_zone'),
         'reminder_types': fields.String(required=True, description='type(s) of reminders to be sent to client'),
         'status': fields.String(attribute='status', description='status of appointment'),
