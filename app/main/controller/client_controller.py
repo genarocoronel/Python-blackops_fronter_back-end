@@ -17,7 +17,8 @@ from app.main.service.communication_service import parse_communication_types, da
     create_presigned_url, get_sales_and_service_communication_records
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             get_verification_questions, answer_verification_questions,
-                                                            get_security_questions, complete_signup, pull_credit_report)
+                                                            get_security_questions, complete_signup, pull_credit_report,
+                                                            get_account_credentials)
 from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data
 from app.main.service.debt_service import scrape_credit_report
@@ -778,6 +779,26 @@ class CandidateToLead(Resource):
 
         return {"success": True,
                 "message": "Successfully created job to pull Credit Report and import Debts. Check for new Debts in a few minutes."}, 200
+
+
+@api.route('/<client_public_id>/credit-report/account/credentials')
+@api.param('client_public_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientCReportCredentials(Resource):
+    @api.doc('Get Client SCredit Acc credentials')
+    @token_required
+    @user_has_permission('clients.debts.view')
+    def get(self, client_public_id):
+        """ Get Client SCredit Acc credentials """
+        client, error_response = _handle_get_client(client_public_id, ClientType.client)
+        if not client:
+            api.abort(404, **error_response)
+
+        if not client.credit_report_account:
+            api.abort(404, 'This Client does not have a SCredit account')
+
+        credentials_decrypted = get_account_credentials(client)
+        return credentials_decrypted, 200
 
 
 @api.route('/<public_id>/service-schedule')
