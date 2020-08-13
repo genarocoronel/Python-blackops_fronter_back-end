@@ -76,40 +76,41 @@ class AppointmentService(object):
         appts = Appointment.query.all()        
         return appts
 
-    @classmethod    
+    @classmethod
     def save(cls, request):
-        data = request.json
-        status = AppointmentStatus.SCHEDULED
-        # fetch the account_manager for the client
+        try:
+            data = request.json
+            status = AppointmentStatus.SCHEDULED
+            # fetch the account_manager for the client
 
-        note = data.get('note')
-        client = Client.query.filter_by(public_id=data.get('client_id')).first()
-        if not client:
-            raise ValueError("Client not found")
-   
-        # assign to the service user in client file.
-        agent_id = client.account_manager_id
+            note = data.get('note')
+            client = Client.query.filter_by(friendly_id=data.get('client')['friendly_id']).first()
+            if not client:
+                raise ValueError('Client not exist')
+            # assign to the service user in client file.
+            agent_id = client.account_manager_id
 
-        scheduled_date = dt_parse(data.get('scheduled_on'))
-        appt = Appointment(public_id=str(uuid.uuid4()),
-                           client_id=client.id,
-                           agent_id=agent_id,
-                           scheduled_at=scheduled_date,
-                           summary=data.get('summary'),
-                           location=data.get('loc'),
-                           status=status.name,
-                           reminder_types=data.get('reminder_types'),)
-        db.session.add(appt)
-        db.session.commit()
+            appt = Appointment(public_id=str(uuid.uuid4()),
+                            client_id=client.id,
+                            agent_id=agent_id,
+                            scheduled_at=data.get('scheduled_at'),
+                            summary=data.get('summary'),
+                            loc_time_zone=data.get('loc_time_zone'),
+                            status=status.name,
+                            reminder_types=data.get('reminder_types'),)
+            db.session.add(appt)
+            db.session.commit()
 
-        # add a note 
-        if note and note.strip() != '':
-            appt_note = AppointmentNote(author_id=data.get('employee_id'),
-                                        appointment_id=appt.id,
-                                        content=note)
-            db.session.add(appt_note)
+            # add a note 
+            if note and note.strip() != '':
+                appt_note = AppointmentNote(author_id=data.get('employee_id'),
+                                            appointment_id=appt.id,
+                                            content=note)
+                db.session.add(appt_note)
+        except Exception as err:
+            raise ValueError("New Appointment failed: {}".format(str(err)))
 
-        return appt 
+        return appt
 
     @classmethod
     def update(cls, appt_id, request):
@@ -130,8 +131,6 @@ class AppointmentService(object):
                         setattr(appt, 'client_id', client.id)
                     elif attr == 'agent':
                         print("attr")
-                    elif attr == 'phone_number':
-                        setattr(appt, 'location', data.get(attr))
                     else:
                         setattr(appt, attr, data.get(attr))
             # change the status  

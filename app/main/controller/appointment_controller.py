@@ -19,7 +19,7 @@ class AppointmentList(Resource):
         """ List all appointments """
         return AppointmentService.list()
 
-    @api.response(201, 'Appointment successfully created')
+    @api.response(201, 'New Appointment successfully created')
     @api.doc('create new appointment')
     @api.marshal_with(_appointment)
     @token_required
@@ -27,11 +27,10 @@ class AppointmentList(Resource):
     def post(self):
         try:
             """ Creates new Appointment """
-            return AppointmentService.save(request) 
+            return AppointmentService.save(request)
 
         except Exception as err:
-            api.abort(500, "{}".format(str(err))) 
-
+            api.abort(500, message=str(err), success=False)
 
 @api.route('/<public_id>')
 @api.param('public_id', 'The Appointment Identifier')
