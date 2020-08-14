@@ -52,6 +52,7 @@ _new_credit_report_account = LeadDto.new_credit_report_account
 _update_credit_report_account = LeadDto.update_credit_report_account
 _credit_account_verification_answers = LeadDto.account_verification_answers
 _doc = LeadDto.doc
+_doc_create = LeadDto.doc_create
 
 LEAD = ClientType.lead
 
@@ -1162,3 +1163,28 @@ class LeadDocs(Resource):
         docs = get_docs_for_client(client)
 
         return docs, 200
+
+
+    @api.doc('Creates a Doc for a Lead')
+    @api.expect(_doc_create, validate=True)
+    @token_required
+    @user_has_permission('leads.view')
+    def post(self, lead_id):
+        """ Creates a Doc manually """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        request_data = request.json
+
+        try:
+            doc = create_doc_manual(request_data, client)
+
+        except BadRequestError as e:
+            api.abort(400, message='Error creating doc, {}'.format(str(e)), success=False)
+        except NotFoundError as e:
+            api.abort(404, message='Error creating doc, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to create Doc', success=False)
+
+        return doc, 200
