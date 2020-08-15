@@ -43,10 +43,10 @@ client_dispositions = [
     {"value": 'Fulfillment',"select_type": 'AUTO', "name":'Service_ActiveStatus_Fulfillment'},
     {"value": 'Graduated',"select_type": 'MANUAL', "name":'Service_ActiveStatus_Graduated'},
     {"value": 'Assign to Acct Manager',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_AssignAcctManager' },
-    {"value": 'Acct Manager Intro Incomplete',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_AcctManagerIntroIncomplete' },
-    {"value": 'Deal Rejected',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealRejected' },
-    {"value": 'Request Cancellation',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_RequestCancellation' },
-    {"value": 'Deal Complete',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealComplete' },
+    {"value": 'Sales:  Acct Manager Intro Incomplete',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_AcctManagerIntroIncomplete' },
+    {"value": 'Sales: Deal Rejected',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealRejected' },
+    {"value": 'Sales: Request Cancellation',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_RequestCancellation' },
+    {"value": 'Sales: Deal Complete',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealComplete' },
     {"value": 'Service Issue:NSF',"select_type": 'AUTO', "name":'Service_ActiveStatus_NSF'},
     {"value": 'Service Issue:Draft/Banking Change',"select_type": 'MANUAL', "name":'Service_ActiveStatus_DraftBankingChange' },
     {"value": 'Service Issue:Program Change Request',"select_type": 'MANUAL', "name":'Service_ActiveStatus_ProgramChangeRequest' },
@@ -105,9 +105,15 @@ client_dispositions = [
 
 
 def seed_client_disposition_values():
-    for disposition in client_dispositions:
-        existing_disposition_value = ClientDisposition.query.filter_by(value=disposition['value']).first()
-        if not existing_disposition_value:
-            new_disposition = ClientDisposition(public_id=str(uuid.uuid4()), value=disposition['value'], select_type=disposition['select_type'], name=disposition['name'], inserted_on=datetime.datetime.now(tz=utc))
-            db.session.add(new_disposition)
+    for dispo_item in client_dispositions:    
+        existing_dispo = ClientDisposition.query.filter_by(name=dispo_item['name']).first()
+        if not existing_dispo:
+            new_dispo = ClientDisposition(
+                public_id=str(uuid.uuid4()), 
+                value=dispo_item['value'], 
+                select_type=dispo_item['select_type'], 
+                name=dispo_item['name'], 
+                inserted_on=datetime.datetime.now(tz=utc)
+            )
+            db.session.add(new_dispo)
     db.session.commit()
