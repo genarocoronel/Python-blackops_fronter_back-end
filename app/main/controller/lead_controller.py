@@ -18,7 +18,8 @@ from app.main.service.communication_service import parse_communication_types, da
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
                                                             create_manual_creport_account,
                                                             get_verification_questions, answer_verification_questions,
-                                                            get_security_questions, complete_signup, pull_credit_report)
+                                                            get_security_questions, complete_signup, pull_credit_report,
+                                                            get_account_credentials)
 from app.main.service.debt_payment_service import fetch_payment_contract, update_payment_contract, payment_contract_action, \
     payment_contract_req4approve, fetch_amendment_plan, update_amendment_plan, \
     fetch_payment_schedule, update_payment_schedule
@@ -793,6 +794,26 @@ class CompleteCreditReportAccount(Resource):
             'message': 'Successfully completed credit account signup for this Lead'
         }
         return response_object, 200
+
+
+@api.route('/<lead_public_id>/credit-report/account/credentials')
+@api.param('candidate_id', 'Lead public identifier')
+@api.response(404, 'Lead not found')
+class LeadCReportCredentials(Resource):
+    @api.doc('Get Lead SCredit Acc credentials')
+    @token_required
+    @user_has_permission('leads.debts.view')
+    def get(self, lead_public_id):
+        """ Get Lead SCredit Acc credentials """
+        lead, error_response = _handle_get_client(lead_public_id, ClientType.lead)
+        if not lead:
+            api.abort(404, **error_response)
+
+        if not lead.credit_report_account:
+            api.abort(404, 'This Lead does not have a SCredit account')
+
+        credentials_decrypted = get_account_credentials(lead)
+        return credentials_decrypted, 200
 
 
 @api.route('/<lead_public_id>/credit-report/account/pull')
