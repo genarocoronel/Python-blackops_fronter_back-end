@@ -172,7 +172,7 @@ def fetch_active_contract(client):
         "num_term_paid": contract.num_inst_completed,
         "term_left": term_left,
         "balance" : balance,
-        "payment_1st_date": pymt_start.strftime('%m-%d-%Y'),
+        "payment_1st_date": pymt_start.strftime('%Y-%m-%d'),
     }  
 
     return result
