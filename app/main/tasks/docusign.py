@@ -491,6 +491,9 @@ def send_additional_debts_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
+      
+        #client disposition
+        client.status = 'Service Issue:Signature Pending'
         db.session.commit()
 
 
@@ -646,6 +649,9 @@ def _handle_removal_debts(client_id,
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
+
+        #client disposition
+        client.status = 'Service Issue:Signature Pending'
         db.session.commit()
 
     except Exception as err:
@@ -789,6 +795,9 @@ def send_modify_debts_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=approved_contract.id)
         db.session.add(session)
+
+        #client disposition
+        client.status = 'Service Issue:Signature Pending'
         db.session.commit()
 
         # add client disposition
@@ -907,6 +916,9 @@ def send_term_change_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
+
+        #client disposition
+        client.status = 'Service Issue:Signature Pending'
         db.session.commit()
 
     except Exception as err:
@@ -1021,6 +1033,9 @@ def send_eft_authorization_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
+
+        #client disposition
+        client.status = 'Service Issue:Signature Pending'
         db.session.commit()
 
     except Exception as err:
@@ -1172,6 +1187,9 @@ def send_add_coclient_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
+
+        #client disposition
+        client.status = 'Service Issue:Signature Pending'
         db.session.commit()
 
 
@@ -1322,6 +1340,9 @@ def send_remove_coclient_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
+        #client disposition
+        client.status = 'Service Issue:Signature Pending'
+
         db.session.commit()
 
 

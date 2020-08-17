@@ -20,11 +20,16 @@ from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
 from app.main.channels import notification
+from app.main.service.lead_distro import LeadDistroSvc
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
+    newlead_dispo = ClientDisposition.query.filter_by(name='Sales_ActiveStatus_NewLead').first()
+    if not newlead_dispo:
+        raise Exception('Error finding Client disposition record for "NewLead"')
+
     total_debt = data.get('estimated_debt')
     total_debt = 0 if total_debt is None else int(total_debt)
 
@@ -38,6 +43,7 @@ def save_new_client(data, client_type=ClientType.lead):
         language=data.get('language'),
         ssn=data.get('ssn'),
         type=client_type,
+        disposition_id=newlead_dispo.id,
         inserted_on=datetime.datetime.utcnow()
     )
     save_changes(new_client)
@@ -142,6 +148,15 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
                                campaign_id=candidate.campaign_id)
         db.session.add(ccamp)
         db.session.commit()
+
+    # auto lead assignment
+    # TODO Spanish clients
+    svc = LeadDistroSvc()
+    user = svc.assign_lead(new_client)
+    if user:
+        new_client.msg = 'New Lead assigned, Please follow up.'
+        notification.ClientNoticeChannel.send(user.id,
+                                              new_client)
 
     return new_client
 
