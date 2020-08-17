@@ -183,12 +183,14 @@ def check_eft_status():
                         payment.on_eft_transmitted()
                     elif eft.status == EftStatus.Failed or eft.status == EftStatus.Error:
                         payment.on_eft_failed()
+                        client.status = 'Service Issue:NSF'
                         # send NSF draft issue notice
                         send_nsf_draft_issue(client.id)
                         wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
                         wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
                     elif eft.status == EftStatus.Returned or eft.status == EftStatus.Voided:
                         payment.on_eft_failed()
+                        client.status = 'Service Issue:NSF'
                         # send NSF draft issue notice
                         send_nsf_draft_issue(client.id)
                         # Create a task 

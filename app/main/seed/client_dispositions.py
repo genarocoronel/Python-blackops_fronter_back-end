@@ -50,7 +50,7 @@ client_dispositions = [
     {"value": 'Service Issue:NSF',"select_type": 'AUTO', "name":'Service_ActiveStatus_NSF'},
     {"value": 'Service Issue:Draft/Banking Change',"select_type": 'MANUAL', "name":'Service_ActiveStatus_DraftBankingChange' },
     {"value": 'Service Issue:Program Change Request',"select_type": 'MANUAL', "name":'Service_ActiveStatus_ProgramChangeRequest' },
-    {"value": 'Service Issue:Signature Pending',"select_type": 'MANUAL', "name":'Service_ActiveStatus_SignaturePending' },
+    {"value": 'Service Issue:Signature Pending',"select_type": 'AUTO', "name":'Service_ActiveStatus_SignaturePending' },
     {"value": 'Sales Issue:NSF',"select_type": 'AUTO', "name":'Sales_ActiveStatus_NSF'},
     {"value": 'Sales Issue:Draft/Banking Change',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DraftBankingChange' },
     {"value": 'Sales Issue:Program Change Request',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_ProgramChangeRequest' },
