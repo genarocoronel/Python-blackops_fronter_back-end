@@ -4,7 +4,8 @@ from werkzeug.exceptions import Unauthorized
 
 from app.main.service.communication_service import parse_communication_types, date_range_filter, \
     get_voice_communication, create_presigned_url, get_opener_communication_records, get_sales_and_service_communication_records, \
-    get_communication_records, get_unassigned_voice_communication_records, update_voice_communication, get_missed_calls
+    get_communication_records, get_all_unassigned_voice_communication_records, update_voice_communication, get_missed_calls, \
+    get_sales_and_service_unassigned_voice_communication_records, get_opener_unassigned_voice_communication_records
 from app.main.service.user_service import get_request_user
 from app.main.util.decorator import token_required
 from app.main.util.dto import CommunicationDto
@@ -41,16 +42,20 @@ class Communications(Resource):
 
             if current_user.is_opener_account:
                 result = get_opener_communication_records(filter, comm_types_set, None, date_filter_fields)
+                if current_user.is_manager and not current_user.is_admin:
+                    result.extend(get_opener_unassigned_voice_communication_records(filter, comm_types_set, date_filter_fields))
 
             elif current_user.is_sales_account or current_user.is_service_account:
                 result = get_sales_and_service_communication_records(filter, comm_types_set, None, date_filter_fields)
+                if current_user.is_manager and not current_user.is_admin:
+                    result.extend(get_sales_and_service_unassigned_voice_communication_records(filter, comm_types_set, date_filter_fields))
 
             else:
                 # current_user has access to all data - get all communication records
                 result = get_communication_records(filter, comm_types_set, None, None, date_filter_fields)
 
-            if current_user.is_admin or current_user.is_manager:
-                result.extend(get_unassigned_voice_communication_records(filter, comm_types_set, date_filter_fields))
+            if current_user.is_admin:
+                result.extend(get_all_unassigned_voice_communication_records(filter, comm_types_set, date_filter_fields))
 
             return sorted(result, key=lambda record: record.receive_date, reverse=True)
 
