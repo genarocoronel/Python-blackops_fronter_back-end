@@ -1,5 +1,6 @@
 from flask import request, current_app as app
 from flask_restplus import Resource
+from werkzeug.exceptions import Unauthorized
 
 from app.main.service.communication_service import parse_communication_types, date_range_filter, \
     get_voice_communication, create_presigned_url, get_opener_communication_records, get_sales_and_service_communication_records, \
@@ -53,6 +54,8 @@ class Communications(Resource):
 
             return sorted(result, key=lambda record: record.receive_date, reverse=True)
 
+        except Unauthorized:
+            raise
         except Exception as e:
             api.abort(500, message=f'Failed to retrieve communication records for {current_user.username}. Error: {e}', success=False)
 
