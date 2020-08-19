@@ -671,6 +671,9 @@ def convert_candidate_to_lead(candidate, prequal_number):
 
 def get_last_prequal_number():
     """ Gets the last Candidate Prequalification number """
+    last_prequal = None
     last_candidate = Candidate.query.filter(Candidate.prequal_number != None).order_by(desc(Candidate.id)).first()
-    return last_candidate.prequal_number
+    if last_candidate:
+        last_prequal = last_candidate.prequal_number
+    return last_prequal
     
