@@ -10,6 +10,7 @@ from flask import current_app
 from app import blueprint
 from app import portal_blueprint
 from app.main import create_app, db, wscomm
+from app.main.core.auth import Auth
 from app.main.model.credit_report_account import CreditReportAccount
 from app.main.seed.admins import create_super_admin
 
@@ -38,7 +39,8 @@ from app.main.seed.organization import seed_organizations
 from app.main.seed.template import seed_templates
 from app.main.seed.campaign import seed_pinnacle_phone_numbers
 
-app = create_app(os.getenv('BOILERPLATE_ENV') or 'dev')
+environment = os.getenv('BOILERPLATE_ENV') or 'dev'
+app = create_app(environment)
 app.register_blueprint(blueprint, url_prefix='/api/v1')
 app.register_blueprint(portal_blueprint, url_prefix='/portal-api/v1')
 app.app_context().push()
@@ -57,9 +59,16 @@ def worker(queue):
 @manager.command
 def seed():
     seed_rac_roles()
-    create_super_admin()
+
+    super_admin_email = 'admin@localhost.com'
+    super_admin_password = Auth.generate_password(20)
+    if environment != 'prod' and environment != 'production':
+        super_admin_password = 'password'
+        seed_users_with_roles()
+        seed_pinnacle_phone_numbers()
+
+    create_super_admin(email=super_admin_email, password=super_admin_password)
     seed_permissions()
-    seed_users_with_roles()
     seed_candidate_disposition_values()
     seed_client_disposition_values()
     seed_contact_number_types()
@@ -73,7 +82,6 @@ def seed():
     seed_debt_collectors()
     seed_organizations()
     seed_templates()
-    seed_pinnacle_phone_numbers()
 
 
 ## launching development server
