@@ -8,14 +8,8 @@ from app.main.model.user import User, Department
 
 role_records = None
 
-def seed_users_with_roles():
-    # If the existing Super Admin does not have a RAC Role 
-    existing_super_admin = User.query.filter_by(email='admin@localhost.com').first()
-    if existing_super_admin and existing_super_admin.role == None:
-        existing_super_admin = RACMgr.assign_role_to_user(RACRoles.SUPER_ADMIN, existing_super_admin)
-        db.session.add(existing_super_admin)
-    existing_super_admin.language = 'ENGLISH'
 
+def seed_users_with_roles():
     # Service Dept
     svc_mgr_email = 'peterp.dstar@localhost.com'
     svc_mgr = User.query.filter_by(email=svc_mgr_email).first()
