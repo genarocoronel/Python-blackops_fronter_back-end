@@ -27,6 +27,8 @@ from app.main.service.debt_service import check_existing_scrape_task, scrape_cre
     push_debts, update_debt
 from app.main.service.user_service import get_request_user, get_a_user
 from app.main.service.docproc_service import get_docs_for_client, create_doc_manual, get_doc_by_pubid, update_doc
+from app.main.service.audit_service import get_last_audit_item
+from app.main.model.audit import Auditable
 from ..util.dto import LeadDto, ClientDto
 from ..util.parsers import filter_request_parse
 
@@ -52,8 +54,10 @@ _co_client = LeadDto.co_client
 _new_credit_report_account = LeadDto.new_credit_report_account
 _update_credit_report_account = LeadDto.update_credit_report_account
 _credit_account_verification_answers = LeadDto.account_verification_answers
+_last_action = ClientDto.last_action
 _doc = LeadDto.doc
 _doc_create = LeadDto.doc_create
+_last_action = LeadDto.last_action
 
 LEAD = ClientType.lead
 
@@ -1209,3 +1213,20 @@ class LeadDocs(Resource):
             api.abort(500, message=f'Failed to create Doc', success=False)
 
         return doc, 200
+
+
+@api.route('/<lead_id>/last-action')
+@api.param('lead_id', 'Lead public identifier')
+class LeadLastAction(Resource):
+    @api.doc('Get Lead last action')
+    @api.marshal_list_with(_last_action)
+    @token_required
+    def get(self, lead_id):
+        """ Get Lead last action """
+        client = get_client(public_id=lead_id, client_type=ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        last_action = get_last_audit_item(client.public_id, Auditable.LEAD)
+
+        return last_action, 200
