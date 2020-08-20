@@ -426,6 +426,19 @@ class ConfigDto:
         'department': DepartmentTypeField(required=False),
         'enabled': fields.Boolean(required=False),
     })
+    pbx_system = api.model('pbx_system', {
+        'public_id': fields.String(required=True),
+        'name': fields.String(required=True),
+        'enabled': fields.Boolean(required=True),
+        'pbx_numbers': fields.List(fields.Nested(pbx_number))
+    })
+    new_pbx_system = api.model('new_pbx_system', {
+        'name': fields.String(required=True),
+        'enabled': fields.Boolean(required=True)
+    })
+    update_pbx_system = api.model('update_pbx_system', {
+        'enabled': fields.Boolean(required=True)
+    })
 
 
 class ClientDto:

@@ -5,8 +5,9 @@ from werkzeug.exceptions import NotFound
 from app.main.core.errors import NotFoundError
 from app.main.service.config_service import (get_contact_number_types, get_income_types, get_expense_types,
                                              get_all_candidates_dispositions, get_all_clients_dispositions, get_all_docproc_types,
-                                             get_registered_pbx_numbers, register_pbx_number, get_registered_pbx_number_records,
-                                             update_pbx_number)
+                                             register_pbx_number, get_registered_pbx_number_records,
+                                             update_pbx_number, get_pbx_systems, register_pbx_system, delete_pbx_system,
+                                             map_number_to_pbx_system, update_pbx_system)
 from app.main.util.decorator import token_required, enforce_rac_required_roles, user_has_permission
 
 from ..util.dto import ConfigDto, CandidateDto, ClientDto, AuthDto
@@ -21,6 +22,9 @@ _candidate_dispositions = CandidateDto.candidate_dispositions
 _client_dispositions = ClientDto.client_dispositions
 _rac_roles = AuthDto.rac_roles
 _docproc_types = ConfigDto.docproc_types
+_pbx_system = ConfigDto.pbx_system
+_new_pbx_system = ConfigDto.new_pbx_system
+_update_pbx_system = ConfigDto.update_pbx_system
 _pbx_number = ConfigDto.pbx_number
 _new_pbx_number = ConfigDto.new_pbx_number
 _update_pbx_number = ConfigDto.update_pbx_number
@@ -110,9 +114,79 @@ class ClientDispositionsList(Resource):
         return client_disposiitions
 
 
+@api.route('/pbx-systems')
+class PBXSystemListResource(Resource):
+    @api.param('enabled', 'Retrieve PBX Systems based on whether or not enabled. Default: true. Options: true, false, all')
+    @api.marshal_list_with(_pbx_system, envelope='data')
+    @token_required
+    @user_has_permission('clients.view')
+    def get(self):
+        enabled = request.args.get('enabled', True)
+        return get_pbx_systems(enabled)
+
+    @api.response(201, 'PBX System successfully created.')
+    @api.doc('Define a PBX System for CRM system')
+    @api.expect(_new_pbx_system, validate=True)
+    @api.marshal_with(_pbx_system)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    def post(self):
+        data = request.json
+
+        try:
+            return register_pbx_system(marshal(data, _new_pbx_system))
+        except Exception as e:
+            api.abort(500, message=f'Failed to register new PBX System. Error: {e}', success=False)
+
+
+@api.route('/pbx-systems/<pbx_system_public_id>')
+@api.param('pbx_system_public_id', 'PBX System Public Identifier')
+class PBXSystemResource(Resource):
+    @api.response(200, 'PBX System successfully updated.')
+    @api.doc('Update a PBX System in CRM system')
+    @api.expect(_update_pbx_system, validate=True)
+    @api.marshal_with(_pbx_system)
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    def put(self, pbx_system_public_id):
+        try:
+            return update_pbx_system(pbx_system_public_id, marshal(request.json, _update_pbx_system))
+        except NotFound:
+            api.abort(404, message='PBX System does not exist', success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to update PBX System. Error: {e}', success=False)
+
+    @api.response(200, 'PBX System successfully deleted.')
+    @api.doc('Delete a PBX System from CRM system')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
+    def delete(self, pbx_system_public_id):
+        try:
+            delete_pbx_system(pbx_system_public_id)
+            return dict(message='Successfully deleted PBX System', success=True), 200
+        except NotFound:
+            api.abort(404, message='PBX System does not exist', success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed to delete PBX System. Error: {e}', success=False)
+
+
+@api.route('/pbx-systems/<pbx_system_public_id>/pbx-number/<pbx_number_public_id>')
+@api.param('pbx_system_public_id', 'PBX System Public Identifier')
+@api.param('pbx_number_public_id', 'PBX Number Public Identifier')
+class PBXSystemNumberResource(Resource):
+    def put(self, pbx_system_public_id, pbx_number_public_id):
+        try:
+            map_number_to_pbx_system(pbx_system_public_id, pbx_number_public_id)
+            return dict(message='Successfully mapped number to PBX system', success=True)
+        except NotFound:
+            api.abort(404, 'PBX system or number does not exist', success=False)
+        except Exception as e:
+            api.abort(500, f'Failed to map number to PBX system. Error: {e}', success=False)
+
+
 @api.route('/pbx-number')
 class PBXNumberResource(Resource):
-    @api.param('enabled', 'Retrieve PBX Numbers based on whether or not enabled. Default: true')
+    @api.param('enabled', 'Retrieve PBX Numbers based on whether or not enabled. Default: true. Options: true, false, all')
     @api.marshal_list_with(_pbx_number, envelope='data')
     @token_required
     @user_has_permission('clients.view')

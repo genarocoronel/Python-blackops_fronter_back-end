@@ -15,7 +15,7 @@ from app.main.core.errors import ServiceProviderError
 from app.main.model.candidate import CandidateVoiceCommunication, Candidate
 from app.main.model.client import ClientVoiceCommunication, Client
 from app.main.model.pbx import VoiceCommunicationType, TextCommunicationType, VoiceCommunication, CommunicationType, PBXNumber, \
-    VoiceCallEvent, CallEventType
+    VoiceCallEvent, CallEventType, PBXSystem, PBXSystemVoiceCommunication
 from app.main.model.sms import SMSMessage, SMSConvo
 from app.main.model.user import Department
 from app.main.service.config_service import get_registered_pbx_numbers
@@ -244,19 +244,51 @@ def get_opener_communication_records(request_filter: Mapping[str, Any],
 
 def get_unassigned_voice_communication_records(request_filter: Mapping[str, Any],
                                                comm_types_set: AbstractSet[CommunicationType],
-                                               date_filter_fields: List[str] = {}):
-    unassigned_comms_filter = VoiceCommunication.query.outerjoin(CandidateVoiceCommunication).outerjoin(ClientVoiceCommunication)
+                                               date_filter_fields: List[str] = {},
+                                               pbx_systems: List[PBXSystemVoiceCommunication] = []):
+    unassigned_comms_filter = VoiceCommunication.query. \
+        outerjoin(PBXSystemVoiceCommunication). \
+        outerjoin(CandidateVoiceCommunication). \
+        outerjoin(ClientVoiceCommunication)
 
     unassigned_comms_filter = build_query_from_dates(unassigned_comms_filter, request_filter['from_date'], request_filter['to_date'],
                                                      VoiceCommunication,
                                                      *date_filter_fields)
     unassigned_comms_filter = unassigned_comms_filter.filter(and_(
+        or_(PBXSystemVoiceCommunication.pbx_system == pbx_system for pbx_system in pbx_systems),
         or_(VoiceCommunication.type == comm_type for comm_type in comm_types_set if isinstance(comm_type, VoiceCommunicationType)),
         and_(CandidateVoiceCommunication.voice_communication_id == None, ClientVoiceCommunication.voice_communication_id == None))
     )
 
     unassigned_voice_comms = unassigned_comms_filter.all()
     return unassigned_voice_comms
+
+
+def get_all_unassigned_voice_communication_records(request_filter: Mapping[str, Any],
+                                                   comm_types_set: AbstractSet[CommunicationType],
+                                                   date_filter_fields: List[str] = {}):
+    pbx_systems = PBXSystem.query.outerjoin(PBXNumber).filter(
+        or_(PBXNumber.department == department for department in [Department.OPENERS, Department.SALES, Department.SERVICE])
+    ).all()
+    return get_unassigned_voice_communication_records(request_filter, comm_types_set, date_filter_fields, pbx_systems)
+
+
+def get_opener_unassigned_voice_communication_records(request_filter: Mapping[str, Any],
+                                                      comm_types_set: AbstractSet[CommunicationType],
+                                                      date_filter_fields: List[str] = {}):
+    pbx_systems = PBXSystem.query.outerjoin(PBXNumber).filter(
+        or_(PBXNumber.department == department for department in [Department.OPENERS])
+    ).all()
+    return get_unassigned_voice_communication_records(request_filter, comm_types_set, date_filter_fields, pbx_systems)
+
+
+def get_sales_and_service_unassigned_voice_communication_records(request_filter: Mapping[str, Any],
+                                                                 comm_types_set: AbstractSet[CommunicationType],
+                                                                 date_filter_fields: List[str] = {}):
+    pbx_systems = PBXSystem.query.outerjoin(PBXNumber).filter(
+        or_(PBXNumber.department == department for department in [Department.SALES, Department.SERVICE])
+    ).all()
+    return get_unassigned_voice_communication_records(request_filter, comm_types_set, date_filter_fields, pbx_systems)
 
 
 def get_sales_and_service_communication_records(request_filter: Mapping[str, Any],
