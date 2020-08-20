@@ -12,6 +12,8 @@ from app.main.core.rac import RACRoles
 from app.main.util.decorator import (token_required, enforce_rac_required_roles)
 from app.main.core.types import CustomerType
 from app.main.model.candidate import CandidateImport
+from app.main.model.audit import Auditable
+from app.main.service.audit_service import get_last_audit_item
 from app.main.service.candidate_service import (save_new_candidate_import, save_changes, get_all_candidate_imports,
                                                 get_candidate, update_candidate, get_candidate_employments, update_candidate_employments,
                                                 update_candidate_contact_numbers, get_candidate_contact_numbers,
@@ -56,6 +58,7 @@ _update_candidate_addresses = CandidateDto.update_candidate_addresses
 _candidate_assign = CandidateDto.candidate_assign
 _candidate_doc = CandidateDto.candidate_doc
 _doc_upload = CandidateDto.doc_upload
+_last_action = CandidateDto.last_action
 
 
 #### request params
@@ -1064,3 +1067,20 @@ class DocFile(Resource):
             api.abort(404, message='Error getting File for Doc, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to get File for Doc with ID {doc_id}', success=False)
+
+
+@api.route('/<pub_id>/last-action')
+@api.param('pub_id', 'Candidate public identifier')
+class CandidateLastAction(Resource):
+    @api.doc('Get Candidate last action')
+    @api.marshal_list_with(_last_action)
+    @token_required
+    def get(self, pub_id):
+        """ Get Candidate last action """
+        candidate, error_response = _handle_get_candidate(pub_id)
+        if not candidate:
+            api.abort(404, **error_response)
+
+        last_action = get_last_audit_item(candidate.public_id, Auditable.CANDIDATE)
+
+        return last_action, 200

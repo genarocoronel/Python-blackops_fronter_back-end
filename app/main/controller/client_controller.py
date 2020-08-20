@@ -7,6 +7,8 @@ from app.main.core.errors import (BadRequestError, NotFoundError, ServiceProvide
 from app.main.util.decorator import (token_required, user_has_permission)
 from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
+from app.main.model.audit import Auditable
+from app.main.service.audit_service import get_last_audit_item
 from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments,
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
@@ -56,7 +58,7 @@ _doc_update = ClientDto.doc_update
 _doc_note_create = ClientDto.doc_note_create
 _task = TaskDto.user_task
 _team_request = TeamDto.team_request
-
+_last_action = ClientDto.last_action
 CLIENT = ClientType.client
 
 
@@ -109,6 +111,23 @@ class Client(Resource):
             api.abort(404)
         else:
             return update_client(client, request.json, client_type=CLIENT)
+
+
+@api.route('/<public_id>/last-action')
+@api.param('public_id', 'Client public identifier')
+class ClientLastAction(Resource):
+    @api.doc('Get Client last action')
+    @api.marshal_list_with(_last_action)
+    @token_required
+    def get(self, public_id):
+        """ Get Client last action """
+        client, error_response = _handle_get_client(public_id, client_type=CLIENT)
+        if not client:
+            api.abort(404, **error_response)
+
+        last_action = get_last_audit_item(client.public_id, Auditable.CLIENT)
+
+        return last_action, 200
 
 
 @api.route('/<public_id>/assign/<user_public_id>/')

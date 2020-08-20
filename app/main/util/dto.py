@@ -638,7 +638,23 @@ class ClientDto:
         'status': fields.String(required=False),
         'is_published': fields.Boolean(required=False)
     })
-
+    last_action = api.model('last_action', {
+        'id': fields.String(attribute='public_id'),
+        'auditable': fields.String(attribute='full_name', example='client'),
+        'auditable_subject_id': fields.String(attribute='auditable_subject_id', example='xzy123'),
+        'action': fields.Integer(attribute='', example='pulled credit report'),
+        'requestor_username': fields.Boolean(attribute='foo'),
+        'message': fields.String(attribute='Failed to get credit report'),
+        'created_on': fields.DateTime(required=False)
+    });
+    last_action = api.model('last_action', {
+        'id': fields.String(attribute='public_id'),
+        'auditable': fields.String(required=True, description='The top-level Auditable type.'),
+        'auditable_subject_pubid': fields.String(required=True, description='The top-level subject public ID.'),
+        'action': fields.String(required=True, description='The action recorded', example='client.call.outbound'),
+        'message': fields.String(required=False, description='An optional message', example='Initial welcome call'),
+        'inserted_on': fields.String(),
+    })
 
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
@@ -845,7 +861,14 @@ class LeadDto:
         'updated_on': fields.DateTime(required=False),
         'updated_by_username': fields.String(required=False),
     })
-
+    last_action = api.model('last_action', {
+        'id': fields.String(attribute='public_id'),
+        'auditable': fields.String(required=True, description='The top-level Auditable type.'),
+        'auditable_subject_pubid': fields.String(required=True, description='The top-level subject public ID.'),
+        'action': fields.String(required=True, description='The action recorded', example='client.call.outbound'),
+        'message': fields.String(required=False, description='An optional message', example='Initial welcome call'),
+        'inserted_on': fields.String(),
+    })
 
 # End LeadDTO
 
@@ -1063,6 +1086,14 @@ class CandidateDto:
         'updated_on': fields.DateTime(required=False),
     })
     doc_upload = parsers.doc_upload
+    last_action = api.model('last_action', {
+        'id': fields.String(attribute='public_id'),
+        'auditable': fields.String(required=True, description='The top-level Auditable type.'),
+        'auditable_subject_pubid': fields.String(required=True, description='The top-level subject public ID.'),
+        'action': fields.String(required=True, description='The action recorded', example='client.call.outbound'),
+        'message': fields.String(required=False, description='An optional message', example='Initial welcome call'),
+        'inserted_on': fields.String(),
+    })
 
 
 class TestAPIDto:
@@ -1463,3 +1494,12 @@ class LeadDistroDto:
         'agents': fields.List(fields.Nested(agent)),
     });
 
+
+class AuditDto(object):
+    api = Namespace('audit', description='Audit related operations')
+    audit = api.model('audit', {
+        'auditable': fields.String(required=True, description='The Auditable type', example='candidate, lead or client'),
+        'auditable_subject_pubid': fields.String(required=True, description='The top-level subject public ID. For example, if Auditable is "client", then give the Client public ID.'),
+        'action': fields.String(required=True, description='The action to record', example='client.call.outbound'),
+        'message': fields.String(required=False, description='An optional message', example='Initial welcome call')
+    })
