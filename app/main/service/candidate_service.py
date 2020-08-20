@@ -115,6 +115,20 @@ def update_candidate(public_id, data):
                     # Do not udpate candidates.email with empty string, since it violates unique constraint
                     if data.get(attr) and data.get(attr) != '':
                         setattr(candidate, attr, data.get(attr))
+
+                elif attr == 'loc_time_zone':
+                    print(f'JAJ {attr}')
+                    if data.get(attr) == 'America/Los_Angeles':
+                        candidate.loc_time_zone = 'PST'
+                    elif data.get(attr) == 'America/New_York':
+                        candidate.loc_time_zone = 'EST'
+                    elif data.get(attr) == 'America/Chicago':
+                        candidate.loc_time_zone = 'CST'
+                    elif data.get(attr) == 'America/Denv':
+                        candidate.loc_time_zone = 'MST'
+                    else:
+                        candidate.loc_time_zone = None
+                    
                 else:
                     setattr(candidate, attr, data.get(attr))
 
