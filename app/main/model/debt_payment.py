@@ -10,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import desc, asc, and_
 from app.main.core.errors import StateMachineError
 from app.main.channels.notification import TaskChannel
+from app.main.model.sales_board import SalesCommission
 import inflect
 
 class DebtEftStatus(enum.Enum):
@@ -89,7 +90,7 @@ class DebtPaymentContract(db.Model):
     # service agent id
     agent_id  = db.Column(db.Integer, db.ForeignKey('users.id', name='debt_payment_contract_agent_id_fkey'))
     # relationship 
-    client = db.relationship('Client', backref=backref('payment_contracts', lazy='dynamic'))
+    client = db.relationship('Client', backref=backref('payment_contracts', lazy='dynamic', cascade="all, delete-orphan"))
     agent = db.relationship('User', backref=backref('payment_contracts', lazy='dynamic'))
     # previous contract
     prev_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_contract_prev_id_fkey'))
@@ -153,6 +154,21 @@ class DebtPaymentSchedule(db.Model):
             if contract:
                 contract.total_paid = contract.total_paid + self.amount
                 contract.num_inst_completed = contract.num_inst_completed + 1
+                # check the installments
+                if contract.num_inst_completed == 1 or contract.num_inst_completed == 2:
+                    client = contract.client
+                    amount = round( contract.total_debt * (contract.commission_rate / 100), 2)
+                    desc = 'Commission from 1st Payment'
+                    if contract.num_inst_completed == 2:
+                        desc = 'Commission from 2nd Payment'
+                    sc = SalesCommision(agent_id=client.sales_rep_id,
+                                        client_id=client.id,
+                                        transaction_id=self.transaction.id,
+                                        amount=amount,
+                                        description=desc,
+                                        created_date=datetime.utcnow())
+                    db.session.add(sc)
+
             self.status = DebtEftStatus.CLEARED.name
             db.session.commit()
 
@@ -202,6 +218,8 @@ class DebtPaymentTransaction(db.Model):
     modified_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     # payment schedule foriegn key 
     payment_id = db.Column(db.Integer, db.ForeignKey(DebtPaymentSchedule.id))
+    # sales commission
+    commission = db.relationship("SalesCommission", backref="payment_transaction", uselist=False) 
 
 
 ## Non debt based contract revisions

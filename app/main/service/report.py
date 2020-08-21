@@ -146,8 +146,12 @@ class ClientReportSvc(ReportService):
     def _fields(self):
         return ['Campaign Name', 'Interest Level', 'First Name', 'Last Name', 'DOB', 
                 'Lead Source', 'Disposition', 'Lead Type', 'Salesman', 
-                'Account Manager', 'Email', 'Client ID'
-                ]
+                'Account Manager', 'Team Manager', 'Attorney', 'Contact #', 
+                'Email', 'State', 'Fico', 'Smart Credit', 'Latest Action', 
+                'Last Appt', 'Client ID', 'Last Call', 'Calls', 'Total Call Duration',
+                'Task', 'BackEnd', 'Term', 'Days Remain', 'Commission Rate(%)',
+                'Total Debt', 
+               ]
 
     def _records(self, data):
         try:
@@ -183,28 +187,29 @@ class ClientReportSvc(ReportService):
                     'state': '', 
                     'fico': '', 
                     'smart_credit': '',
-                    'smart_credit_email': '',
-                    'smart_credit_token': '',
+                    #'smart_credit_email': '',
+                    #'smart_credit_token': '',
                     'latest_action': '',
                     'last_appt': '',
                     'client_id': client.friendly_id,
-                    'created_date': '',
+                    #'created_date': '',
                     'last_call': '',
-                    'age': '',
+                    #'age': '',
                     'calls': '',
                     'total_call_duration': '',
                     'task': '',
                     'backend': '',
+                    'term': '',
                     'days_remain': '',
                     'commission_rate': '',
                     'total_debt': '',
-                    'next_draft_date': '',
-                    'num_payments': '',
-                    'total_payment': '',
-                    'sale_date': '',
-                    'first_payment_date': '',
-                    'balance': '',
-                    'last_update': '',
+                    #'next_draft_date': '',
+                    #'num_payments': '',
+                    #'total_payment': '',
+                    #'sale_date': '',
+                    #'first_payment_date': '',
+                    #'balance': '',
+                    #'last_update': '',
                 } 
                 records.append(record)
 
@@ -783,5 +788,27 @@ class StatusReportSvc(ReportService):
 
         except Exception as err:
             app.logger.warning("Status report service {}".format(str(err)))
+            return []
+
+# Service Status Report
+class AccountAdminReportSvc(ReportService):
+    _heading = 'Account Admin Report'
+    _report_name = 'account_admin_report.xlsx'
+
+    @property
+    def _fields(self):
+        return [ 'Account Tranaction ID', 'Transaction Date', 'Post Date', 'Client ID' 
+                 'Amount', 'Balance', 'For/From', 'Description',
+               ]
+
+    
+    def _records(self, data):
+        try:
+            records = []
+            filts = []
+            return records
+    
+        except Exception as err:
+            app.logger.warning("Account Admin report service {}".format(str(err)))
             return []
 

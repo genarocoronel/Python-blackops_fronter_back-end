@@ -1,5 +1,6 @@
 import enum
 from .. import db
+from sqlalchemy.orm import backref
 
 class BankAccountType(enum.Enum):
     checking = "checking"
@@ -57,8 +58,8 @@ class BankAccountValidationHistory(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), nullable=False)
     bav_status_id = db.Column(db.Integer, db.ForeignKey('bank_account_validation_status.id'), nullable=True)
     # relationships
-    bav_status = db.relationship("BankAccountValidationStatus", backref="bav_history")
-    client = db.relationship("Client", backref="bav_history")
+    bav_status = db.relationship("BankAccountValidationStatus", backref=backref('bav_history', cascade="all, delete-orphan"))
+    client = db.relationship("Client", backref=backref('bav_history', cascade="all, delete-orphan"))
 
     account_number = db.Column(db.String(100), nullable=False)
     routing_number = db.Column(db.String(9), nullable=False)

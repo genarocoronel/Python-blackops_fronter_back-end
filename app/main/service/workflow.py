@@ -5,6 +5,7 @@ from app.main.model.credit_report_account import CreditReportAccount, CreditRepo
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from app.main.model.docproc import DocprocStatus
 from app.main.model.client import ClientType
+from app.main.model.sales_board import SalesFlow
 from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
 from app.main.tasks import channel as wkchannel
@@ -290,18 +291,26 @@ def open_contract_flow(code, contract, revision=None):
                 # download the signed document
                 docusign.download_documents(self._object) 
 
-                # Send a notification through worker channel
-                client.msg = "Client signed the contract."
-                account_manager = client.account_manager
                 
                 # Create initial service schedule for the client
                 create_svc_schedule(client)
                 client.status = 'Assign to Acct Manager'
+
+                # update the sales board and sales flow
+                if client.sales_rep:
+                    sales_rep = client.sales_rep
+                    sales_flow = SalesFlow.query.filter_by(agent_id=sales_rep.id,
+                                                           lead_id=client.id).first()
+                    if sales_flow:
+                        sales_flow.ON_CONVERTED()
+
+                    # Send a notification through worker channel
+                    client.msg = "Client signed the contract."
+                    wkchannel.WkClientNoticeChannel.send(sales_rep.id,
+                                                         client)
+
                 db.session.commit() 
 
-                if account_manager:
-                    wkchannel.WkClientNoticeChannel.send(account_manager.id,
-                                                         client)                       
               
     class TermChange(ContractWorkflow): 
         _rsign_worker_func = 'send_term_change_for_signature'

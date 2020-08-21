@@ -77,7 +77,7 @@ class Client(db.Model):
     employments = db.relationship('ClientEmployment')
     income_sources = db.relationship('ClientIncome')
     monthly_expenses = db.relationship('ClientMonthlyExpense')
-    addresses = db.relationship("Address", backref="client")
+    addresses = db.relationship("Address", backref='client')
     contact_numbers = db.relationship('ClientContactNumber')
     # account manager
     team_manager = db.relationship('User', backref='team_accounts', foreign_keys=[team_manager_id])
@@ -161,8 +161,8 @@ class ClientIncome(db.Model):
     income_id = db.Column(db.Integer, db.ForeignKey('income_sources.id'), primary_key=True)
 
     # relationships
-    client = db.relationship('Client', backref='income_source_client_assoc')
-    income_source = db.relationship('Income', backref='client_income_source_assoc')
+    client = db.relationship('Client', backref=backref('income_source_client_assoc', cascade="all, delete-orphan"))
+    income_source = db.relationship('Income', backref=backref('client_income_source_assoc', cascade="all, delete-orphan"))
 
 
 class ClientMonthlyExpense(db.Model):
@@ -172,8 +172,8 @@ class ClientMonthlyExpense(db.Model):
     expense_id = db.Column(db.Integer, db.ForeignKey('monthly_expenses.id'), primary_key=True)
 
     # relationships
-    client = db.relationship('Client', backref='monthly_expense_client_assoc')
-    monthly_expense = db.relationship('MonthlyExpense', backref='client_monthly_expense_assoc')
+    client = db.relationship('Client', backref=backref('monthly_expense_client_assoc', cascade="all, delete-orphan"))
+    monthly_expense = db.relationship('MonthlyExpense', backref=backref('client_monthly_expense_assoc', cascade="all, delete-orphan"))
 
 
 class ClientEmployment(db.Model):
@@ -183,8 +183,8 @@ class ClientEmployment(db.Model):
     employment_id = db.Column(db.Integer, db.ForeignKey('employments.id'), primary_key=True)
 
     # relationships
-    client = db.relationship('Client', backref='client_employment_assoc')
-    employment = db.relationship('Employment', backref='employment_client_assoc')
+    client = db.relationship('Client', backref=backref('client_employment_assoc', cascade="all, delete-orphan"))
+    employment = db.relationship('Employment', backref=backref('employment_client_assoc', cascade="all, delete-orphan"))
 
 
 class ClientContactNumber(db.Model):
@@ -194,8 +194,8 @@ class ClientContactNumber(db.Model):
     contact_number_id = db.Column(db.Integer, db.ForeignKey('contact_numbers.id'), primary_key=True)
 
     # relationships
-    client = db.relationship('Client', backref='contact_number_client_assoc')
-    contact_number = db.relationship('ContactNumber', backref='client_contact_number_assoc')
+    client = db.relationship('Client', backref=backref('contact_number_client_assoc', cascade="all, delete-orphan"))
+    contact_number = db.relationship('ContactNumber', backref=backref('client_contact_number_assoc', cascade="all, delete-orphan"))
 
 
 class ClientCheckList(db.Model):

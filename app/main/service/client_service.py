@@ -19,6 +19,7 @@ from app.main.model.credit_report_account import CreditReportAccount, CreditRepo
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
+from app.main.model.user import User
 from app.main.channels import notification
 from app.main.service.lead_distro import LeadDistroSvc
 from sqlalchemy import desc, asc, or_, and_
@@ -26,9 +27,9 @@ from flask import current_app as app
 
 
 def save_new_client(data, client_type=ClientType.lead):
-    newlead_dispo = ClientDisposition.query.filter_by(name='Sales_ActiveStatus_NewLead').first()
-    if not newlead_dispo:
-        raise Exception('Error finding Client disposition record for "NewLead"')
+    dispo = ClientDisposition.query.filter_by(name='Sales_ActiveStatus_InsertedLead').first()
+    if not dispo:
+        raise Exception('Error finding Client disposition record for "Inserted"')
 
     total_debt = data.get('estimated_debt')
     total_debt = 0 if total_debt is None else int(total_debt)
@@ -43,7 +44,7 @@ def save_new_client(data, client_type=ClientType.lead):
         language=data.get('language'),
         ssn=data.get('ssn'),
         type=client_type,
-        disposition_id=newlead_dispo.id,
+        disposition_id=dispo.id,
         inserted_on=datetime.datetime.utcnow()
     )
     save_changes(new_client)
@@ -78,6 +79,14 @@ def save_new_client(data, client_type=ClientType.lead):
     # notification preference
     np = NotificationPreference(client_id=new_client.id)
     save_changes(np)
+
+    # auto assignment
+    svc = LeadDistroSvc()
+    user = svc.assign_lead(new_client)
+    if user:
+        new_client.msg = 'New Lead assigned, Please follow up.'
+        notification.ClientNoticeChannel.send(user.id,
+                                              new_client)
 
     return new_client, 201
 
@@ -390,45 +399,54 @@ def update_client(client, data, client_type=ClientType.client):
         return response_object, 404
 
 
-def assign_salesrep(client, user_id):
+def assign_salesrep(client, user_public_id):
     """ Assigns a Sales Rep user to a Lead """
+    # fetch the user
+    user = User.query.filter_by(public_id=user_public_id).first()
+    if not user:
+        raise ValueError('Sales Rep not found')
+
     assignment = UserLeadAssignment.query.filter_by(client_id=client.id).first()
     if assignment:
-        assignment.user_id = user_id
+        assignment.user_id = user.id
     else:
         assignment = UserLeadAssignment(
-            user_id = user_id,
+            user_id = user.id,
             client_id = client.id
         )
     # set in client 
-    client.sales_rep_id = user_id
+    client.sales_rep_id = user.id
 
     db.session.add(assignment)
     save_changes()
     
-    client.msg = 'Client assigned to sales team.'
-    notification.ClientNoticeChannel.send(user_id,
+    client.msg = 'New lead assigned, please follow up.'
+    notification.ClientNoticeChannel.send(user.id,
                                           client)
     return True
 
-def assign_servicerep(client, user_id):
+def assign_servicerep(client, user_public_id):
     """ Assigns a Service Rep user to a Client """
+    user = User.query.filter_by(public_id=user_public_id).first()
+    if not user:
+        raise ValueError('Service Rep not found')
+
     assignment = UserClientAssignment.query.filter_by(client_id=client.id).first()
     if assignment:
-        assignment.user_id = user_id
+        assignment.user_id = user.id
     else:
         assignment = UserClientAssignment(
-            user_id = user_id,
+            user_id = user.id,
             client_id = client.id
         )
 
     db.session.add(assignment)
     # tmp: support for legacy features
-    client.account_manager_id = user_id 
+    client.account_manager_id = user.id 
 
     save_changes()
-    client.msg = 'Client assigned to service team.'
-    notification.ClientNoticeChannel.send(user_id,
+    client.msg = 'New Client assigned, please follow up.'
+    notification.ClientNoticeChannel.send(user.id,
                                           client)            
     
     return True

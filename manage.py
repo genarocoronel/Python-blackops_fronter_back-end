@@ -34,6 +34,7 @@ from app.main.seed.collector import seed_debt_collectors
 from app.main.seed.organization import seed_organizations
 from app.main.seed.template import seed_templates
 from app.main.seed.campaign import seed_pinnacle_phone_numbers
+from app.main.seed.sales_board import seed_lead_distro_profile
 
 environment = os.getenv('BOILERPLATE_ENV') or 'dev'
 app = create_app(environment)
@@ -78,6 +79,8 @@ def seed():
     seed_debt_collectors()
     seed_organizations()
     seed_templates()
+    seed_pinnacle_phone_numbers()
+    seed_lead_distro_profile() 
 
 
 ## launching development server
