@@ -4,7 +4,8 @@ from flask_restplus import Resource
 
 from app.main.controller import _convert_payload_datetime_values, _handle_get_client, _handle_get_credit_report
 from app.main.core.errors import (BadRequestError, NotFoundError, ServiceProviderError, ServiceProviderLockedError)
-from app.main.util.decorator import (token_required, user_has_permission)
+from app.main.core.rac import RACRoles
+from app.main.util.decorator import (token_required, user_has_permission, enforce_rac_required_roles)
 from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.model.audit import Auditable
@@ -935,7 +936,8 @@ class ClientDocs(Resource):
     @api.doc('Get Client documents')
     @api.marshal_list_with(_doc)
     @token_required
-    @user_has_permission('clients.docs.view') 
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR,
+            RACRoles.SALES_REP, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
     def get(self, client_id):
         """ Get Client documents """
         client, error_response = _handle_get_client(client_id)
@@ -949,7 +951,8 @@ class ClientDocs(Resource):
     @api.doc('Creates a Doc')
     @api.expect(_doc_create, validate=True)
     @token_required
-    @user_has_permission('clients.docs.create') 
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR,
+            RACRoles.SALES_REP, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP]) 
     def post(self, client_id):
         """ Creates a Doc manually """
         client, error_response = _handle_get_client(client_id)
@@ -977,7 +980,8 @@ class ClientDocs(Resource):
 class ClientDocFile(Resource):
     @api.doc('Get a Doc file for a given Client')
     @token_required
-    @user_has_permission('clients.docs.view') 
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR,
+            RACRoles.SALES_REP, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
     def get(self, client_id, public_id):
         """ Get a Doc file for a given Client """
         client, error_response = _handle_get_client(client_id)
