@@ -409,6 +409,9 @@ class ConfigDto:
         'inserted_on': fields.DateTime(required=True),
         'updated_on': fields.DateTime(required=True),
     })
+    docproc_statuses = api.model('docproc_statuses', {
+        'name': fields.String(required=True)
+    })
     pbx_number = api.model('pbx_number', {
         'public_id': fields.String(required=True),
         'number': fields.String(required=True),

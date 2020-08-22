@@ -5,7 +5,7 @@ from werkzeug.exceptions import NotFound
 from app.main.core.errors import NotFoundError
 from app.main.service.config_service import (get_contact_number_types, get_income_types, get_expense_types,
                                              get_all_candidates_dispositions, get_all_clients_dispositions, get_all_docproc_types,
-                                             register_pbx_number, get_registered_pbx_number_records,
+                                             get_all_docproc_statuses, register_pbx_number, get_registered_pbx_number_records,
                                              update_pbx_number, get_pbx_systems, register_pbx_system, delete_pbx_system,
                                              map_number_to_pbx_system, update_pbx_system)
 from app.main.util.decorator import token_required, enforce_rac_required_roles, user_has_permission
@@ -22,6 +22,7 @@ _candidate_dispositions = CandidateDto.candidate_dispositions
 _client_dispositions = ClientDto.client_dispositions
 _rac_roles = AuthDto.rac_roles
 _docproc_types = ConfigDto.docproc_types
+_docproc_statuses = ConfigDto.docproc_statuses
 _pbx_system = ConfigDto.pbx_system
 _new_pbx_system = ConfigDto.new_pbx_system
 _update_pbx_system = ConfigDto.update_pbx_system
@@ -44,6 +45,22 @@ class DocprocTypes(Resource):
             api.abort(500, message=f'Failed get Doc Process types. Please report this issue.', success=False)    
         
         return types, 200
+
+
+@api.route('/docproc-statuses')
+class DocprocStatuses(Resource):
+    @api.doc('Get known Doc Process Statuses')
+    @api.marshal_list_with(_docproc_statuses, envelope='data')
+    def get(self):
+        """ Get all Doc process Statuses """
+        try:
+            statuses = get_all_docproc_statuses()
+        except NotFoundError as e:
+            api.abort(404, message='Error getting Doc Process statuses, {}'.format(str(e)), success=False)
+        except Exception as e:
+            api.abort(500, message=f'Failed get Doc Process statuses. Please report this issue.', success=False)    
+        
+        return statuses, 200
 
 
 @api.route('/rac-roles')

@@ -23,8 +23,8 @@ from app.main.service.credit_report_account_service import (creport_account_sign
                                                             get_security_questions, complete_signup, pull_credit_report,
                                                             get_account_credentials)
 from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
-from app.main.service.debt_service import check_existing_scrape_task, get_report_data
-from app.main.service.debt_service import scrape_credit_report
+from app.main.service.debt_service import check_existing_scrape_task, get_report_data, scrape_credit_report
+from app.main.service.debt_dispute import DebtDisputeService
 from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc,
                                               allowed_doc_file_kinds, create_doc_manual, attach_file_to_doc, create_doc_note)
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
@@ -408,11 +408,34 @@ class ClientCommunicationsFile(Resource):
             return response_object, 200
 
 
+@api.route('/<public_id>/debt/<debt_id>/dispute')
+@api.param('public_id', 'The client Identifier')
+@api.response(404, 'client or credit report account does not exist')
+class ClientDebtDispute(Resource):
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP])
+    def post(self, public_id, debt_id):
+        """ Creates a Dispute Debt action to send out automated letter """
+        client, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        credit_account, error_response = _handle_get_credit_report(client)
+        if not credit_account:
+            api.abort(404, **error_response)
+        
+        for debt_item in credit_account.records:
+            if debt_item.public_id == debt_id:
+                DebtDisputeService.process_collection_letter(client, debt_item)
+
+        return "Successfully triggered debt dispute", 200
+
+
 @api.route('/<public_id>/credit-report/debts')
 @api.param('public_id', 'The client Identifier')
 @api.response(404, 'client or credit report account does not exist')
 class ClientCreditReportDebts(Resource):
-    @api.doc('fetch credit report data')
+    @api.doc('Update credit report debts')
     @token_required
     @user_has_permission('clients.debts.update')
     def put(self, public_id):

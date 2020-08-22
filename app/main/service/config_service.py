@@ -16,7 +16,7 @@ from app.main.model.client import ClientDisposition
 from app.main.model.monthly_expense import ExpenseType
 from app.main.model.pbx import PBXNumber, PBXSystem
 from app.main.model.user import Department
-from app.main.service.docproc_service import get_docproc_types
+from app.main.service.docproc_service import get_docproc_types, get_docproc_statuses
 
 DEFAULT_PHONE_REGION = 'US'
 
@@ -154,3 +154,7 @@ def update_pbx_number(public_id, data):
 
 def get_all_docproc_types():
     return get_docproc_types()
+
+
+def get_all_docproc_statuses():
+    return get_docproc_statuses()
