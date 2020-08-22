@@ -734,6 +734,7 @@ class LeadDto:
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
         'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber', attribute='contact_numbers'),
         'notification_pref': fields.Nested(notification_preference),
+        'type': ClientTypeField(attribute='type'),
     })
     lead_pagination = api.model('lead_pagination', {
         'page_number': fields.Integer(),
