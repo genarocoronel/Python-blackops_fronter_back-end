@@ -48,10 +48,10 @@ def download_from_docproc(src_channel, obj_name, dest_filepath):
             raise ConfigurationError('The app is missing Fax bucket configuration. Please rectify and try again.')
         bucket = app.s3_bucket_fax
     
-    if src_channel == DocprocChannel.EMAIL.value:
-        if not app.s3_bucket_email:
-            raise ConfigurationError('The app is missing Email bucket configuration. Please rectify and try again.')
-        bucket = app.s3_bucket_email
+    # if src_channel == DocprocChannel.EMAIL.value:
+    #     if not app.s3_bucket_email:
+    #         raise ConfigurationError('The app is missing Email bucket configuration. Please rectify and try again.')
+    #     bucket = app.s3_bucket_email
 
     if not does_bucket_exist(bucket):
         raise ServiceProviderError('That bucket {bucket} does not exist at Service Provider.')
