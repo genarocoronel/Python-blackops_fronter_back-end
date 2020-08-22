@@ -78,7 +78,6 @@ class UsersRoleMembers(Resource):
     @api.doc('Get users that are members of a RAC Role')
     @api.marshal_with(_user_supressed, envelope='data')
     @token_required
-    @user_has_permission('users.view')
     def get(self, role_pub_id):
         """ Get all users (supressed) by RAC role membership """
         users = []
