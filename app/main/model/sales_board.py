@@ -41,6 +41,7 @@ class SalesBoard(db.Model):
     # time per lead  
     time_per_lead = db.Column(db.Float, default=0) # minutes
 
+
 # Sales Flow
 # Lead conversion flow
 class SalesFlow(db.Model):
@@ -67,6 +68,22 @@ class SalesFlow(db.Model):
     # recycled lead
     is_recycled = db.Column(db.Boolean, default=False)
 
+    # CONVERTED event
+    def ON_CONVERTED(self):
+        if self.status == SalesStatus.ASSIGNED.name:
+            self.status = SalesStatus.CONVERTED.name
+            now = datetime.utcnow()
+            diff = now - self.assigned_on
+
+            # fetch the sales board
+            board = SalesBoard.query.filter_by(agent_id=self.agent_id).first()
+            if board:
+                tot_deals = board.tot_deals + 1
+                board.tot_deals = tot_deals
+
+            db.session.commit()
+        
+
 
 class LeadDistributionProfile(db.Model):
     """ db model for storing lead distribution config """
@@ -80,4 +97,24 @@ class LeadDistributionProfile(db.Model):
     
     # last added board
     last_added_id = db.Column(db.Integer, db.ForeignKey('sales_board.id', name='lead_distribution_profile_last_added_id_fkey'))
+
+
+class SalesCommission(db.Model):
+    """ db model for storing sales commissions """
+    __tablename__ = "sales_commissions"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    agent_id = db.Column(db.Integer, db.ForeignKey('users.id', name='sales_commissions_agent_id_fkey'))
+    client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='sales_commissions_client_id_fkey'))
+    transaction_id = db.Column(db.Integer, db.ForeignKey('debt_payment_transaction.id', name='sales_commissions_transaction_id_fkey')) 
+
+    # relationships
+    agent = db.relationship('User', backref='sales_commissions')
+    client = db.relationship('Client', backref='sales_commissions')
+
+    amount = db.Column(db.Integer, default=0)
+    
+    description = db.Column(db.String(200), nullable=True) 
+    created_date = db.Column(db.DateTime, nullable=False)
 

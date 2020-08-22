@@ -1,5 +1,6 @@
 import enum
 from .. import db
+from sqlalchemy.orm import backref
 
 
 class ServiceScheduleStatus(enum.Enum):
@@ -31,3 +32,4 @@ class ServiceSchedule(db.Model):
     tot_reschedule = db.Column(db.Integer, default=0)
 
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_svc_schedule_client_id'), nullable=True)
+    client = db.relationship('Client', backref=backref('service_schedule', cascade="all, delete-orphan"))

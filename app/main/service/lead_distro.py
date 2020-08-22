@@ -37,6 +37,11 @@ class LeadDistroSvc(object):
                 user.sales_board.priority = priority
                 user.sales_board.is_active = agent['is_active']
             db.session.commit()
+
+        # user
+        if user:
+            self._profile.last_added_id = user.sales_board.id
+            db.session.commit()
  
         result = {
             'success': True,
@@ -73,7 +78,7 @@ class LeadDistroSvc(object):
                 for board in boards:
                     if assign_next == True:
                         sales_board = board
-
+                        break
                     if board.id == self._profile.last_added_id:
                         assign_next = True
 

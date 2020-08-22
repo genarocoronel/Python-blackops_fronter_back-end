@@ -1,5 +1,6 @@
 import datetime
 import enum
+from sqlalchemy.orm import backref
 
 from app.main.core.rac import RACRoles
 from app.main.model.rac import RACRole
@@ -206,8 +207,8 @@ class UserLeadAssignment(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True, unique=True)
 
     # relationships
-    user = db.relationship('User', backref='lead_assignment_user_assoc')
-    client = db.relationship('Client', backref='user_lead_assignment_assoc')
+    user = db.relationship('User', backref=backref('lead_assignment_user_assoc', cascade="all, delete-orphan"))
+    client = db.relationship('Client', backref=backref('user_lead_assignment_assoc', cascade="all, delete-orphan"))
 
 
 class UserClientAssignment(db.Model):
@@ -217,5 +218,5 @@ class UserClientAssignment(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id'), primary_key=True, unique=True)
 
     # relationships
-    user = db.relationship('User', backref='client_assignment_user_assoc')
-    client = db.relationship('Client', backref='user_client_assignment_assoc')
+    user = db.relationship('User', backref=backref('client_assignment_user_assoc', cascade="all, delete-orphan"))
+    client = db.relationship('Client', backref=backref('user_client_assignment_assoc', cascade="all, delete-orphan"))
