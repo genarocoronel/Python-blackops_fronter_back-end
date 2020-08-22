@@ -81,6 +81,20 @@ def get_docproc_types():
     return DocprocType.query.filter_by().all()
 
 
+def get_docproc_statuses():
+    """ Gets all known Doc Process Statuses """
+    statuses = [
+        {'name':DocprocStatus.NEW.value}, 
+        {'name':DocprocStatus.PENDING.value},
+        {'name':DocprocStatus.REJECT.value},
+        {'name':DocprocStatus.WAIT_AM_REVIEW.value},
+        {'name':DocprocStatus.APPROVED.value},
+        {'name':DocprocStatus.NEW_REJECT.value}
+    ]
+
+    return statuses
+
+
 def get_doctype_by_pubid(public_id):
     """ Gets a Doc Type Public ID """
     return DocprocType.query.filter_by(public_id=public_id).first()
