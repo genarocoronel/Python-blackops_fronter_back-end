@@ -236,8 +236,9 @@ def process_new_sms_mssg(mssg_data, direction: MessageDirection):
                     sms_mssg_record = _process_with_candidate_context(person, mssg_data)
             
                 else:
-                    app.logger.error(f'Could not match a Client/Lead nor a Candidate for inbound SMS message from {mssg_data["from_phone"]}')
-                    raise NotFoundError(f'Could not match a Client/Lead nor a Candidate for inbound SMS message from {mssg_data["from_phone"]}')
+                    # Handle UNKOWN sender usecase
+                    app.logger.info(f'Could not match a Client/Lead nor a Candidate for inbound SMS message from {mssg_data["from_phone"]}')
+                    sms_mssg_record = _process_with_unkown_context(mssg_data)
         
         elif direction == MessageDirection.OUT:
             person = get_client_by_phone(mssg_data['to_phone'])
@@ -285,6 +286,27 @@ def _process_with_candidate_context(candidate, mssg_data):
         raise Exception('Could not create a SMS message for a Candidate conversation!')
 
     return sms_mssg_record
+
+
+def _process_with_unkown_context(mssg_data):
+    """ Process a new SMS message where sender is UNKNOWN (unmatched) """
+    app.logger.info("Processing SMS message with Unkown context. Will create detached SMS convo")
+    sms_mssg_recod = None
+
+    detached_conversation = SMSConvo(
+        public_id = str(uuid.uuid4()),
+        inserted_on = datetime.datetime.utcnow(),
+        updated_on = datetime.datetime.utcnow()
+    )
+    db.session.add(detached_conversation)
+    save_changes()
+
+    sms_mssg_record = _handle_new_sms_message(mssg_data, detached_conversation)
+    if not sms_mssg_record:
+        raise Exception('Could not create a Detached SMS message for a Candidate conversation!')
+    
+    return sms_mssg_recod
+
 
 def sms_send_raw(phone_target, sms_text, user_id):
     return None
