@@ -105,8 +105,9 @@ class Candidate(db.Model):
 
     @property
     def ssn4(self):
-        if len(self._ssn) > 5:
-            return self._ssn[-4:]            
+        if self._ssn:
+            if len(self._ssn) > 5:
+                return self._ssn[-4:]            
         return ''
 
 
