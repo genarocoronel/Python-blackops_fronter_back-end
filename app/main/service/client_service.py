@@ -369,8 +369,9 @@ def update_client(client, data, client_type=ClientType.client):
             if hasattr(client, attr):
                 if attr == 'disposition':
                     disposition = ClientDisposition.query.filter_by(value=data.get(attr)).first()
-                    if disposition.select_type == ClientDispositionType.MANUAL:
-                        setattr(client, 'disposition_id', disposition.id)
+                    if disposition:
+                        if disposition.select_type == ClientDispositionType.MANUAL:
+                            setattr(client, 'disposition_id', disposition.id)
                     else:
                         response_object = {
                             'success': False,
