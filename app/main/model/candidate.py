@@ -86,6 +86,7 @@ class Candidate(db.Model):
     best_time = db.Column(db.String(5), nullable=True) # Best time to call
     estimated_debt = db.Column(db.Integer, nullable=False)
     loc_time_zone = db.Column(db.String(3), nullable=True) # PST/EST/etc.
+    _ssn = db.Column('ssn', db.String(10), nullable=True)
 
     # mailer fields
     debt3 = db.Column(db.Integer, nullable=False)  # Debt3 = 3% of revolving debt so =DEBT*3% assuming Debt is column L
@@ -101,6 +102,12 @@ class Candidate(db.Model):
     sav215 = db.Column(db.Integer, nullable=False)  # SAV215 = (((O9*0.03)-P9)*12)-4 Assuming that O is the Debt 2 column and P is the Debt215 column
     sav15 = db.Column(db.Integer, nullable=False)  # SAV15 = (M9*12)-(N9*12) assuming that column M is Debt3 and Column N is Debt15
     sav315 = db.Column(db.Integer, nullable=False)  # Sav315 = (((Q9*0.03)-R9)*12)+4 assuming that Q is the Debt3 column and R is the Debt 315 column
+
+    @property
+    def ssn4(self):
+        if len(self._ssn) > 5:
+            return self._ssn[-4:]            
+        return ''
 
 
 class CandidateContactNumber(db.Model):
