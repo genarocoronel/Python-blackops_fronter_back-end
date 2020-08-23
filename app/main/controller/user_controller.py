@@ -3,7 +3,7 @@ from flask_restplus import Resource
 
 from ..core.errors import BadRequestError, ForbiddenError, NotFoundError
 from ..util.decorator import (token_required, enforce_rac_policy, 
-        enforce_rac_same_user_policy, user_has_permission)
+        enforce_rac_same_user_policy, user_has_permission, enforce_rac_required_roles)
 from ..util.dto import UserDto, TaskDto
 from ..core.rac import RACRoles
 from ..service.user_service import (save_new_user, get_all_users, get_a_user, get_department_users,
@@ -28,17 +28,19 @@ class UserList(Resource):
     @api.expect(_new_user, validate=True)
     @api.marshal_with(_user, envelope='data')
     @token_required
-    @user_has_permission('users.create')
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def post(self):
         """Creates a new User """
         data = request.json
-        try:
-            new_user = save_new_user(data=data)
-            return new_user
-        except BadRequestError as e:
-            api.abort(400, message='Error creating new user, {}'.format(str(e)), success=False)
-        except Exception as e:
-            api.abort(500, message=f'Failed to create new user. Please report this issue.', success=False)
+        new_user = save_new_user(data=data)
+        return new_user
+        # try:
+        #     new_user = save_new_user(data=data)
+        #     return new_user
+        # except BadRequestError as e:
+        #     api.abort(400, message='Error creating new user, {}'.format(str(e)), success=False)
+        # except Exception as e:
+        #     api.abort(500, message=f'Failed to create new user, {str(e)}', success=False)
 
     @api.doc('List all registered users')
     @api.marshal_list_with(_user, envelope='data')
@@ -143,7 +145,7 @@ class UpdateUser(Resource):
     @api.doc('update user')
     @api.expect(_update_user, validate=True)
     @token_required
-    @enforce_rac_same_user_policy
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def put(self, user_id):
         """Update User Account"""
         return update_user(user_id, request.json)
