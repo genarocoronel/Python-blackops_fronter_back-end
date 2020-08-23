@@ -168,27 +168,27 @@ class UserDto:
     new_user = api.model('new_user', {
         'email': fields.String(required=True, description='user email address'),
         'username': fields.String(required=True, description='user username'),
-        'password': fields.String(required=True, description='user password', example=Auth.generate_password()),
+        'password': fields.String(required=True, description='user password'),
         'first_name': fields.String(required=True, description='user first name'),
         'last_name': fields.String(required=True, description='user last name'),
-        'title': fields.String(required=True, description='user title', example='Opener Rep'),
-        'rac_role': fields.Nested(rac_role),
-        'language': fields.String(required=True, description='user language preference', example='en'),
+        'rac_role_id': fields.String(required=True, description='The pub ID for desired RAC Role'),
+        'language': fields.String(required=False, description='user language preference', example='en'),
         'personal_phone': fields.String(required=True, description='user personal phone number'),
-        'department': DepartmentTypeField(required=True, description="department in which user belongs"),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
-        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id')
-
+        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id'),
+        'is_disabled': fields.Boolean(required=False)
     })
     update_user = api.model('update_user', {
         'email': fields.String(required=False, description='user email address'),
+        'password': fields.String(required=False, description='user password'),
         'first_name': fields.String(required=False, description='user first name'),
         'last_name': fields.String(required=False, description='user last name'),
-        'title': fields.String(required=False, description='user title', example='Opener Rep'),
+        'rac_role_id': fields.String(required=False, description='The pub ID for desired RAC Role'),
         'language': fields.String(required=False, description='user language preference', example='en'),
         'personal_phone': fields.String(required=False, description='user personal phone number'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
-        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id')
+        'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id'),
+        'is_disabled': fields.Boolean(required=False)
 
     })
     user = api.model('user', {
@@ -206,6 +206,7 @@ class UserDto:
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
         'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id'),
         'rac_role': fields.String(required=False, description='RAC Role'),
+        'is_disabled': fields.Boolean(required=False)
     })
     user_supressed = api.model('user_supressed', {
         'id': fields.Integer(),
@@ -215,7 +216,8 @@ class UserDto:
         'last_name': fields.String(required=True, description='user last name'),
         'voip_route_number': fields.String(required=False, description='user VOIP routing number'),
         'pbx_mailbox_id': fields.String(required=False, description='user PBX voicemail box number/id'),
-        'rac_role': fields.String(required=False, description='RAC Role')
+        'rac_role': fields.String(required=False, description='RAC Role'),
+        'is_disabled': fields.Boolean(required=False)
     })
     new_user_number = api.model('new_user_number', {
         'pbx_numbers': fields.List(fields.String, required=True, desciption='PBX Number to assign to user')

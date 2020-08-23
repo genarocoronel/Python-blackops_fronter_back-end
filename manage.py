@@ -15,6 +15,7 @@ from app.main.model.credit_report_account import CreditReportAccount
 from app.main.seed.admins import create_super_admin
 
 from app.main.model import *
+from app.main.model.user import User
 
 from app.main.background.worker import run_worker
 from app.main.seed.candidate_dispositions import seed_candidate_disposition_values

@@ -27,6 +27,7 @@ def get_request_user():
     return user
 
 
+
 def save_new_user(data, desired_role: RACRoles = None):
     """ Saves a new User
 
@@ -37,24 +38,16 @@ def save_new_user(data, desired_role: RACRoles = None):
         desired_role : RACRoles
             Optional role to assign during creation of new user
     """
-    if not data.get('email'):
-        raise BadRequestError('Cannot create a new User without providing an email')
-    elif not data.get('username'):
-        raise BadRequestError('Cannot create a new User without providing a desired username')
-    elif not data.get('password'):
-        raise BadRequestError('Cannot create a new User without providing a desired password')
-
     # HTTP request
+    desired_role = RACMgr.get_role_record_by_pubid(data.get('rac_role_id'))
     if not desired_role:
-        role = data.get('rac_role') 
-        if not role:
-            raise BadRequestError('Cannot crate a user without providing a role')
-        desired_role = RACRoles(role)
+        raise Exception('Could not find that role by its ID {}'.format(data.get('rac_role_id')))
 
     user = User.query.filter_by(email=data['email']).first()
     if not user:
         # department
-        dept = Department.from_role(desired_role.value)
+        dept = Department.from_role(desired_role.name)
+        
         new_user = User(
             public_id=str(uuid.uuid4()),
             email=data.get('email'),
@@ -62,11 +55,10 @@ def save_new_user(data, desired_role: RACRoles = None):
             password=data.get('password'),
             first_name=data.get('first_name'),
             last_name=data.get('last_name'),
-            title=data.get('title'),
-            language=data.get('language'),
+            language=data.get('language') if 'language' in data else 'en',
             personal_phone=data.get('personal_phone'),
-            voip_route_number=data.get('voip_route_number'),
-            pbx_mailbox_id=data.get('pbx_mailbox_id'),
+            voip_route_number=data.get('voip_route_number') if 'voip_route_number' in data else None,
+            pbx_mailbox_id=data.get('pbx_mailbox_id') if 'pbx_mailbox_id' in data else None,
             department=dept,
             registered_on=datetime.datetime.utcnow()
         )
@@ -88,7 +80,17 @@ def update_user(public_id, data):
     user = User.query.filter_by(public_id=public_id).first()
     if user:
         for attr in data:
-            if hasattr(user, attr):
+            if attr == 'rac_role_id':
+                desired_role = RACMgr.get_role_record_by_pubid(data.get('rac_role_id'))
+                
+                if not desired_role:
+                    raise Exception('Could not find that role by its ID {}'.format(data.get('rac_role_id')))
+                
+                dept = Department.from_role(desired_role.name)
+                user.department = Department.from_role(desired_role.name)
+                user = RACMgr.assign_role_to_user(desired_role, user)
+            
+            elif hasattr(user, attr):
                 setattr(user, attr, data.get(attr))
 
         save_changes(user)

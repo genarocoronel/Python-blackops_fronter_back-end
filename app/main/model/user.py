@@ -68,6 +68,7 @@ class User(db.Model):
     public_id = db.Column(db.String(100), unique=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(100))
+    is_disabled = db.Column(db.Boolean, default=False)
 
     @property
     def password(self):

@@ -221,8 +221,16 @@ class RACMgr():
     @classmethod
     def assign_role_to_user(cls, desired_role, user):
         # TODO: enforce policy on who can assign role to user (watch for Admin)
-        desired_role_record = cls._handle_get_role_by_name(desired_role.value)
+        if isinstance(desired_role, RACRole):
+            print("Is instance indeed")
+            desired_role_record = desired_role
+        else:
+            print("Is not instance")
+            desired_role_record = cls._handle_get_role_by_name(desired_role.value)
+        
         user.role = desired_role_record
+        user.title = desired_role_record.name_friendly
+
         return user
 
     @classmethod
@@ -235,4 +243,5 @@ class RACMgr():
 
     @classmethod
     def _handle_get_role_by_pubid(cls, pub_id):
+        print(f"The PUB id for RAC ROLE is {pub_id}")
         return RACRole.query.filter_by(public_id=pub_id).first()

@@ -22,7 +22,7 @@ class Auth():
     def login_user(data):
         """ Logs in a User for a given credential pair """
         try:
-            user = User.query.filter_by(username=data.get('username')).first()
+            user = User.query.filter_by(username=data.get('username'), is_disabled=False).first()
             if user and user.check_password(data.get('password')):
                 auth_token = Auth.encode_auth_token(user.id)
 
@@ -426,6 +426,13 @@ class Auth():
     
     @staticmethod
     def generate_password(password_length=16):
+        """ Generates a random Password """
+        s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ@3_*"
+        return ''.join(random.sample(s, password_length))
+
+
+    @staticmethod
+    def generate_password_from_string(desired_password, password_length=16):
         """ Generates a random Password """
         s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ@3_*"
         return ''.join(random.sample(s, password_length))
