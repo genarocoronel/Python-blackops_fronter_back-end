@@ -74,7 +74,7 @@ def save_new_user(data, desired_role: RACRoles = None):
 
         return new_user
     else:
-        raise BadRequestError('User with email adready present in the system')
+        raise BadRequestError('User with email already present in the system')
 
 def update_user(public_id, data):
     user = User.query.filter_by(public_id=public_id).first()
@@ -89,6 +89,9 @@ def update_user(public_id, data):
                 dept = Department.from_role(desired_role.name)
                 user.department = Department.from_role(desired_role.name)
                 user = RACMgr.assign_role_to_user(desired_role, user)
+            
+            if attr == 'password':
+                setattr(user, attr, data.get(attr))
             
             elif hasattr(user, attr):
                 setattr(user, attr, data.get(attr))

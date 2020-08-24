@@ -57,6 +57,7 @@ class UserList(Resource):
                 'username': user_record_item.username,
                 'password': None,
                 'email': user_record_item.email,
+                'is_disabled': user_record_item.is_disabled,
                 'first_name': user_record_item.first_name,
                 'last_name': user_record_item.last_name,
                 'title': user_record_item.title,
