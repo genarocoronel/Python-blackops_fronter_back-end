@@ -56,6 +56,9 @@ def sms_send(from_phone, to_phone, message_body):
 
 def download_mms_media(media_uri):
     """ Fetches MMS media file """
+    if ',' in media_uri:
+        media_uri = media_uri.split(',')[-1]
+    
     mms_media_id = media_uri.split('/')[-3]
     mms_seq = media_uri.split('/')[-2]
     mms_file_name = media_uri.split('/')[-1]
