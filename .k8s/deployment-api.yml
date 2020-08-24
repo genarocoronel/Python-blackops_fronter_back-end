@@ -17,9 +17,177 @@ spec:
         workload.user.cattle.io/workloadselector: deployment-default-elite-api
     spec:
       containers:
-      - name: elite-api
-        image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
-        lifecycle:
-          postStart:
-            exec:
-              command: ["python", "/app/manage.py", "db", "upgrade"]
+        - name: elite-api
+          image: registry.thedeathstarco.com/api:dev-${CICD_GIT_COMMIT}
+          lifecycle:
+            postStart:
+              exec:
+                command: ["python", "/app/manage.py", "db", "upgrade"]
+          env:
+            - name: BOILERPLATE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: environment-config
+                  key: BOILERPLATE_ENV
+                  optional: false
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: SECRET_KEY
+                  optional: false
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql
+                  key: postgresql-connection-string
+                  optional: false
+            - name: REDIS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: environment-config
+                  key: REDIS_URL
+                  optional: false
+            - name: AWS_ACCOUNT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: environment-config
+                  key: AWS_ACCOUNT_ID
+                  optional: false
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: AWS_ACCESS_KEY_ID
+                  optional: false
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: S3_BUCKET_DOCPROC
+              valueFrom:
+                configMapKeyRef:
+                  name: environment-config
+                  key: S3_BUCKET_DOCPROC
+                  optional: false
+            - name: DATAX_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: datax-config
+                  key: URL
+                  optional: false
+            - name: DATAX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: datax-secret
+                  key: PASSWORD
+            - name: DATAX_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datax-secret
+                  key: LICENSE_KEY
+            - name: SCRAPYJS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: scrapyjs-config
+                  key: URL
+                  optional: false
+            - name: SCRAPYJS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: scrapyjs-config
+                  key: SETTINGS_MODULE
+                  optional: false
+            - name: SMART_CREDIT_PUBLISHER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: smart-credit-config
+                  key: PUBLISHER_ID
+                  optional: false
+            - name: SMART_CREDIT_SPONSOR_CODE
+              valueFrom:
+                configMapKeyRef:
+                  name: smart-credit-config
+                  key: SPONSOR_CODE
+                  optional: false
+            - name: SMART_CREDIT_CLIENT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smart-credit-secret
+                  key: CLIENT_KEY
+                  optional: false
+            - name: BANDWIDTH_API_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: bandwidth-config
+                  key: API_ENDPOINT
+                  optional: false
+            - name: BANDWIDTH_APP_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: bandwidth-config
+                  key: APP_ID
+                  optional: false
+            - name: BANDWIDTH_USER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: bandwidth-config
+                  key: USER_ID
+                  optional: false
+            - name: BANDWIDTH_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: bandwidth-secret
+                  key: API_TOKEN
+                  optional: false
+            - name: BANDWIDTH_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: bandwidth-secret
+                  key: API_SECRET
+                  optional: false
+            - name: SMS_WEBHOOK_IDENTITIES
+              valueFrom:
+                secretKeyRef:
+                  name: api-secret
+                  key: SMS_WEBHOOK_IDENTITIES
+                  optional: false
+            - name: DOCUSIGN_USER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: docusign-config
+                  key: USER_ID
+                  optional: false
+            - name: DOCUSIGN_ACCOUNT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: docusign-config
+                  key: ACCOUNT_ID
+                  optional: false
+            - name: DOCUSIGN_RSA_PRIVATE_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: docusign-config
+                  key: RSA_PRIVATE_KEY
+                  optional: false
+            - name: DOCUSIGN_INTEGRATION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: docusign-secret
+                  key: INTEGRATION_KEY
+                  optional: false
+            - name: EPPS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: epps-secret
+                  key: USERNAME
+                  optional: false
+            - name: EPPS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: epps-secret
+                  key: PASSWORD
+                  optional: false
+      imagePullSecrets:
+        - name: elite-docker-registry
