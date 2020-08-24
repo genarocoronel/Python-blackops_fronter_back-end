@@ -32,8 +32,8 @@ class WebhookResource(Resource):
     def _get_call_numbers(self, request):
         args = request.args
 
-        caller_number = args.get('caller', None) or args.get('CALLER', None)
-        dialed_number = args.get('dialed', None) or args.get('DIALED', None)
+        caller_number = args.get('caller', None) or args.get('CALLER_ID_NUMBER', None)
+        dialed_number = args.get('dialed', None) or args.get('DIALED_NUMBER', None)
 
         assert caller_number is not None
         assert dialed_number is not None
