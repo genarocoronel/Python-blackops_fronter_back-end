@@ -39,19 +39,19 @@ spec:
             - name: S3_BUCKET_VOICEMAIL
               valueFrom:
                 configMapKeyRef:
-                  name: comms-listener
+                  name: comms-listener-config
                   key: S3_BUCKET_VOICEMAIL
                   optional: false
             - name: S3_BUCKET_FAX
               valueFrom:
                 configMapKeyRef:
-                  name: comms-listener
+                  name: comms-listener-config
                   key: S3_BUCKET_FAX
                   optional: false
             - name: JIVE_QUEUE_URL
               valueFrom:
                 configMapKeyRef:
-                  name: comms-listener
+                  name: comms-listener-config
                   key: QUEUE_URL
                   optional: false
             - name: AWS_ACCOUNT_ID
@@ -63,25 +63,25 @@ spec:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: comms-listener
+                  name: comms-listener-secret
                   key: AWS_ACCESS_KEY_ID
                   optional: false
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: comms-listener
+                  name: comms-listener-secret
                   key: AWS_SECRET_ACCESS_KEY
                   optional: false
             - name: REQUIRE_SMS_WEBHOOK_IDS
               valueFrom:
                 configMapKeyRef:
-                  name: comms-listener
+                  name: comms-listener-config
                   key: REQUIRE_SMS_WEBHOOK_IDS
                   optional: false
             - name: S3_BUCKET_DOCPROC
               valueFrom:
                 configMapKeyRef:
-                  name: comms-listener
+                  name: environment-config
                   key: S3_BUCKET_DOCPROC
                   optional: false
       imagePullSecrets:
