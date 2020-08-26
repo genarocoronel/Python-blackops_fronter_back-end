@@ -84,7 +84,7 @@ def save_new_client(data, client_type=ClientType.lead):
     svc = LeadDistroSvc()
     user = svc.assign_lead(new_client)
     if user:
-        new_client.msg = 'New Lead assigned, Please follow up.'
+        new_client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
         notification.ClientNoticeChannel.send(user.id,
                                               new_client)
 
@@ -163,7 +163,7 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
     svc = LeadDistroSvc()
     user = svc.assign_lead(new_client)
     if user:
-        new_client.msg = 'New Lead assigned, Please follow up.'
+        new_client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
         notification.ClientNoticeChannel.send(user.id,
                                               new_client)
 
@@ -421,7 +421,7 @@ def assign_salesrep(client, user_public_id):
     db.session.add(assignment)
     save_changes()
     
-    client.msg = 'New lead assigned, please follow up.'
+    client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
     notification.ClientNoticeChannel.send(user.id,
                                           client)
     return True
