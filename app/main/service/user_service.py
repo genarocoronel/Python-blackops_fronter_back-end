@@ -27,7 +27,6 @@ def get_request_user():
     return user
 
 
-
 def save_new_user(data, desired_role: RACRoles = None):
     """ Saves a new User
 
@@ -39,14 +38,18 @@ def save_new_user(data, desired_role: RACRoles = None):
             Optional role to assign during creation of new user
     """
     # HTTP request
-    desired_role = RACMgr.get_role_record_by_pubid(data.get('rac_role_id'))
-    if not desired_role:
+    if desired_role:
+        rac_role = RACMgr.get_role_by_name(desired_role.value)
+    else:
+        rac_role = RACMgr.get_role_record_by_pubid(data.get('rac_role_id'))
+
+    if not rac_role:
         raise Exception('Could not find that role by its ID {}'.format(data.get('rac_role_id')))
 
     user = User.query.filter_by(email=data['email']).first()
     if not user:
         # department
-        dept = Department.from_role(desired_role.name)
+        dept = Department.from_role(rac_role.name)
         
         new_user = User(
             public_id=str(uuid.uuid4()),
@@ -64,7 +67,7 @@ def save_new_user(data, desired_role: RACRoles = None):
         )
 
         # assign role to user  
-        new_user = RACMgr.assign_role_to_user(desired_role, new_user)
+        new_user = RACMgr.assign_role_to_user(rac_role, new_user)
         save_changes(new_user)
 
         if dept == Department.SALES.name:
