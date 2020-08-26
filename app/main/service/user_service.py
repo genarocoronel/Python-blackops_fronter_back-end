@@ -39,7 +39,7 @@ def save_new_user(data, desired_role: RACRoles = None):
     """
     # HTTP request
     if desired_role:
-        rac_role = RACMgr.get_role_by_name(desired_role.value)
+        rac_role = RACMgr.get_role_record_by_name(desired_role.value)
     else:
         rac_role = RACMgr.get_role_record_by_pubid(data.get('rac_role_id'))
 
