@@ -717,6 +717,8 @@ class LeadDto:
         'estimated_debt': fields.Integer(description='client estimated_debt'),
         'ssn': fields.String(description='lead ssn'),
         'dob': DateFormatField(),
+        'best_time': fields.String(required=False, example='13:30'),
+        'loc_time_zone': fields.String(required=False, example='PST'),
         # inserted_on is kept only for backward compatability
         'inserted_on': fields.DateTime(),
         'created_date': DateTimeFormatField(attribute='inserted_on'),
@@ -755,7 +757,9 @@ class LeadDto:
         'dob': DateFormatField(),
         'language': fields.String(enum=Language._member_names_),
         'phone': fields.String(description='lead phone number'),
-        'type': ClientTypeField(description='client type')
+        'type': ClientTypeField(description='client type'),
+        'best_time': fields.String(required=False, example='13:30'),
+        'loc_time_zone': fields.String(required=False, example='PST')
     })
     lead_address = api.model('lead_address', {
         'address1': fields.String(required=True),
@@ -784,6 +788,8 @@ class LeadDto:
         'middle_initial': fields.String(),
         'email': fields.String(description='lead email address'),
         'dob': DateFormatField(),
+        'best_time': fields.String(required=False, example='13:30'),
+        'loc_time_zone': fields.String(required=False, example='PST'),
         'ssn': fields.String(),
         'estimated_debt': fields.Integer(description='client estimated_debt'),
         'language': fields.String(required=True, enum=Language._member_names_),
