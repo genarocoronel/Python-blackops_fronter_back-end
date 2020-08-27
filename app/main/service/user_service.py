@@ -197,6 +197,11 @@ def get_candidate_assignments(current_user):
     return [assignment.candidate for assignment in candidate_assignments]
 
 
+def get_assignment_for_candidate(candidate):
+    candidate_assignment = UserCandidateAssignment.query.join(User).filter(Candidate.id == candidate.id).first()
+    return candidate_assignment
+
+
 def get_user_numbers(user):
     user_pbx_numbers = UserPBXNumber.query.join(User).filter(User.id == user.id).all()
     return [number.pbx_number for number in user_pbx_numbers]
