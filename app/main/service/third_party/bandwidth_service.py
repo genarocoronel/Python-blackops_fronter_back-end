@@ -76,12 +76,12 @@ def download_mms_media(media_uri):
     rheaders = _create_headers()
 
     try:
-        r = requests.get(url = media_api_endpoint, headers=rheaders)
+        r = requests.get(url = media_api_endpoint, headers=rheaders, stream=True)
 
     except Exception as e:
         app.logger.error(f'Error fetching {media_uri} MMS media from Bandwidth, {str(e)}')
 
-    return r.content,  media_file_name
+    return r.content,  mms_file_name
 
 
 def _create_headers():

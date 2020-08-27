@@ -10,7 +10,14 @@ def save_file(file, file_name, path):
 
     filename = generate_secure_filename(file_name)
     filepath = os.path.join(path, filename)
-    file.save(filepath)
+    if isinstance(file, bytes):
+        f = open(filepath, 'wb')
+        f.write(file)
+        f.close
+
+    else:
+        file.save(filepath)
+
     return filename, filepath
 
 
