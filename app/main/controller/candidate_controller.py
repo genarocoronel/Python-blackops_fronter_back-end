@@ -445,6 +445,7 @@ def _handle_get_candidate(candidate_public_id):
         }
         return None, response_object
 
+    candidate.opener_rep = None
     user_assignment = get_assignment_for_candidate(candidate)
     if user_assignment:
         candidate.opener_rep = "{} {}".format(user_assignment.user.first_name, user_assignment.user.last_name)
