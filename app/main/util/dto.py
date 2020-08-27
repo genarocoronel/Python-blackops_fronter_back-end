@@ -951,6 +951,7 @@ class CandidateDto:
         'best_time': fields.String(required=False, example='13:30'),
         'loc_time_zone': fields.String(required=False, attribute="loc_time_zone",example='PST'),
         'ssn4': fields.String(required=False, attribute="ssn4"),
+        'opener_rep': fields.String(),
     })
     candidate_dispositions = api.model('candidate_disposition', {
         'select_type': CandidateDispositionTypeField(),
