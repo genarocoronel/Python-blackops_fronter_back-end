@@ -31,7 +31,7 @@ from app.main.service.credit_report_account_service import (creport_account_sign
                                                             get_account_credentials)
 from app.main.service.docproc_service import (create_doc_candidate, get_all_docs_candidate, get_doc_candidate_by_pubid,
                                               allowed_doc_file_kinds, attach_file_to_doc_candidate, stream_doc_file, copy_docs_from_candidate)
-from app.main.service.user_service import get_a_user
+from app.main.service.user_service import get_a_user, get_assignment_for_candidate
 from app.main.util.dto import CandidateDto
 from app.main.util.parsers import filter_request_parse
 
@@ -137,7 +137,6 @@ class UpdateCandidate(Resource):
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
         candidate, error_response = _handle_get_candidate(candidate_id)
-
         if not candidate:
             api.abort(404, **error_response)
         return candidate, 200
@@ -445,6 +444,10 @@ def _handle_get_candidate(candidate_public_id):
             'message': 'Candidate does not exist'
         }
         return None, response_object
+
+    user_assignment = get_assignment_for_candidate(candidate)
+    if user_assignment:
+        candidate.opener_rep = "{} {}".format(user_assignment.user.first_name, user_assignment.user.last_name)
 
     return candidate, None
 
