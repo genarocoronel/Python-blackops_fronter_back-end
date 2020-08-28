@@ -444,8 +444,8 @@ def synth_doc(doc):
         client_record = get_client_by_id(doc.client_id)
         doc_synth['client'] = {
             'public_id': client_record.public_id,
-            'first_name': client_record.first_name,
-            'last_name': client_record.last_name,
+            'full_name': client_record.full_name,
+            'friendly_id': client_record.friendly_id,
             'status': 'Active'
         }
 

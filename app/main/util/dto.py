@@ -1213,8 +1213,8 @@ class DocprocDto:
     })
     doc_client = api.model('doc_client', {
         'public_id': fields.String(required=False),
-        'first_name': fields.String(required=False),
-        'last_name': fields.String(required=False),
+        'full_name': fields.String(required=False),
+        'friendly_id': fields.String(required=False),
         'status': fields.String(required=False),
     })
     doc_note = api.model('doc_note', {
