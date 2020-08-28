@@ -224,7 +224,7 @@ def stream_doc_file(doc, send_as_attachment=False):
     return stream_file(upload_location, doc.file_name, as_attachment=send_as_attachment, mimetype=mime)
 
 
-def create_doc_manual(data, client = None):
+def create_doc_manual(data, client = None, return_model = False):
     """ Creates a new Doc manually """
     is_published = False
     curr_user = None
@@ -234,7 +234,10 @@ def create_doc_manual(data, client = None):
         curr_username = 'system'
     else:
         curr_user = get_request_user()
-        curr_username = curr_user.username
+        if curr_user:
+            curr_username = curr_user.username
+        else:
+            curr_username = 'system'
 
     doc = Docproc(
         public_id = str(uuid.uuid4()),
@@ -257,10 +260,16 @@ def create_doc_manual(data, client = None):
             if attr == 'doc_name':
                 pass    
             elif attr == 'type':
-                requested_type = get_doctype_by_pubid(data.get(attr)['public_id'])
-                if not requested_type:
-                    raise NotFoundError(f"The requested type with ID {attr['public_id']} could not be found.")
-                doc.type = requested_type
+                if 'public_id' in data:
+                    requested_type = get_doctype_by_pubid(data.get(attr)['public_id'])
+                    if not requested_type:
+                        raise NotFoundError(f"The requested type with ID {attr['public_id']} could not be found.")
+                    doc.type = requested_type
+                else:
+                    requested_type = get_doctype_by_name('Other')
+                    if not requested_type:
+                        raise NotFoundError(f"The default requested type 'Other' could not be found.")
+                    doc.type = requested_type
             
             else:
                 setattr(doc, attr, data.get(attr))
@@ -270,8 +279,11 @@ def create_doc_manual(data, client = None):
     else:
         db.session.add(doc)
         _save_changes()
-
-    return synth_doc(doc)
+    
+    if return_model:
+        return doc
+    else:
+        return synth_doc(doc)
 
 
 def create_doc_from_fax(src_file_name):

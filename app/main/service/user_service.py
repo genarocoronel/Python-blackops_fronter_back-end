@@ -22,8 +22,12 @@ class Struct:
 
 def get_request_user():
     # TODO: should modify flask context to set the 'current_user' to a User model instance
-    req_user = g.current_user
-    user = User.query.filter_by(id=req_user['user_id']).first()
+    user = None
+    
+    if 'current_user' in g:
+        req_user = g.current_user if g.current_user else None
+        user = User.query.filter_by(id=req_user['user_id']).first()
+
     return user
 
 

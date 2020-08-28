@@ -508,7 +508,7 @@ def _handle_new_sms_message(message_data, conversation):
     db.session.add(new_message)
     save_changes()
 
-    if new_message and message_data['message_media'] and message_data['message_media'] != None:
+    if new_message and message_data['message_media']:
         media_records = _handle_new_media(message_data['message_media'], new_message)
 
     return new_message
@@ -516,28 +516,53 @@ def _handle_new_sms_message(message_data, conversation):
 
 def _handle_new_media(media_data, message):
     """ Saves Media (MMS) for given SMS Message """
-    media_records = []    
+    media_records = []  
     if message and media_data and isinstance(media_data, list):
         for media_item in media_data:
             tmp_media_item = SMSMediaFile(
                 public_id = str(uuid.uuid4()),
                 inserted_on = datetime.datetime.utcnow(),
-                sms_message_id = message.id
+                sms_message_id = message.id,
+                file_uri = media_item
             )
 
+            
+            file_content = None
+            media_filename = None
             try:
                 file_content, media_filename = download_mms_media(tmp_media_item.file_uri)
+                orig_filename = generate_secure_filename(media_filename)
+                fileext_part = get_extension_for_filename(orig_filename)
+                ms = time.time()
+                
+                
                 app.logger.info(f'Successfully retrieved MMS media from Bandwidth {tmp_media_item.file_uri}')
 
             except Exception as e:
                 app.logger.error(f'Error retrieving MMS media from Bandwidth, {str(e)}')
 
-            orig_filename = generate_secure_filename(media_filename)
-            fileext_part = get_extension_for_filename(orig_filename)
-            ms = time.time()
-            unique_filename = 'docproc_mms_{}_{}{}'.format(doc.public_id, ms, fileext_part)
+           
+            
+            try:
+                doc_type = get_doctype_by_name('Other')
+                doc_data = {
+                    'doc_name': 'Doc via SMS From {}'.format(message.from_phone),
+                    'source_channel': DocprocChannel.SMS.value,
+                    'type': {'public_id': doc_type.public_id},
+                    'orig_file_name': orig_filename
+                }
+                doc = create_doc_manual(doc_data, None, True)
+                unique_filename = 'docproc_mms_{}_{}{}'.format(doc.public_id, ms, fileext_part)
+
+                app.logger.info(f'Successfully created Doc for MMS media. Doc pubID {doc.public_id}')
+
+            except Exception as e:
+                app.logger.error(f'Error creating a Doc from MMS, {str(e)}')
+            
             try:
                 secure_filename, secure_file_path = save_file(file_content, unique_filename, upload_location)
+                doc.file_name = secure_filename
+                save_changes(doc)
 
             except Exception as e:
                 app.logger.error(f'Error saving MMS media locally, {str(e)}')
@@ -548,22 +573,6 @@ def _handle_new_media(media_data, message):
 
             except Exception as e:
                 app.logger.error(f'Error saving MMS media to S3, {str(e)}')
-
-            try:
-                doc_type = get_doctype_by_name('Other')
-                doc_data = {
-                    'doc_name': 'Doc via SMS From {}'.format(message.from_phone),
-                    'source_channel': DocprocChannel.SMS.value,
-                    'type': {'public_id': doc_type.public_id},
-                    'file_name': secure_filename,
-                    'orig_file_name': orig_filename
-                }
-                doc = create_doc_manual(doc_data, None)
-
-                app.logger.info(f'Successfully created Doc for MMS media. Doc pubID {doc.public_id}')
-
-            except Exception as e:
-                app.logger.error(f'Error creating a Doc from MMS, {str(e)}')
 
             # This is the AWS S3 file URI (not Bandwidth)
             tmp_media_item.file_uri = secure_filename
@@ -627,7 +636,7 @@ def _save_bandwidth_sms_message(messg_data):
         )
 
         db.session.add(bw_mssg)
-        save_changes()
+        db.session.commit()
 
     crm_mssg_data = {
         'from_phone':bw_mssg.message_from,
