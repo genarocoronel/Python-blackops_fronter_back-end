@@ -1,10 +1,11 @@
 from sqlalchemy import asc
 from app.main.model.user import User
-from app.main.model.sales_board import SalesBoard, SalesFlow, LeadDistributionProfile, DistributionHuntType
+from app.main.model.sales_board import SalesBoard, SalesFlow, SalesStatus, LeadDistributionProfile, DistributionHuntType
 from app.main.model import Language
 from app.main import db
 from flask import current_app as app
 from datetime import datetime
+from sqlalchemy import desc
 
 
 class LeadDistroSvc(object):
@@ -15,11 +16,12 @@ class LeadDistroSvc(object):
     
     # fetch users by priority
     def get(self):
-        users = User.query.outerjoin(SalesBoard)\
-                          .filter(User.id==SalesBoard.agent_id)\
-                          .order_by(asc(SalesBoard.priority)).all()
+        sales_boards = SalesBoard.query.order_by(asc(SalesBoard.priority)).all()
+        # Fetch the assignment history
+        assigned_records = SalesFlow.query.order_by(desc(SalesFlow.assigned_on)).limit(10).all() 
         result = {
-            'agents': users,
+            'sales_boards': sales_boards,
+            'assigned_history': assigned_records,  
             'hunt_type': self._profile.hunt_type,
             'flow_interval': self._profile.flow_interval,
         }
@@ -167,4 +169,26 @@ class LeadDistroSvc(object):
         except Exception as err:
             app.logger.warning("Failed to assign lead {}".format(str(err)))
             return None
+
+    def on_manual_assign(self, lead, user):
+        try:
+            old_sf = SalesFlow.query.filter_by(lead_id=lead.id,
+                                               status=SalesStatus.ASSIGNED.name).first()
+            if old_sf:
+                old_sf.status = SalesStatus.REASSIGNED.name 
+
+            new_sf = SalesFlow(lead_id=lead.id,
+                               agent_id=user.id,
+                               assigned_on=datetime.utcnow())
+            db.session.add(new_sf)
+
+            sales_board = SalesBoard.query.filter_by(agent_id=user.id).first()
+            if sales_board:
+                sales_board.tot_leads = sales_board.tot_leads + 1
+                sales_board.last_assigned_date = datetime.utcnow()
+            db.session.commit()
+
+        except Exception as err:
+             app.logger.warning("Failed in manual assign lead {}".format(str(err)))
+             return None
             

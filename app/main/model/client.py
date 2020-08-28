@@ -1,6 +1,7 @@
 import enum
 from sqlalchemy.orm import backref
 from app.main.model.user import User
+from sqlalchemy import and_
 
 from .. import db
 
@@ -136,8 +137,9 @@ class Client(db.Model):
         keys = [self.id,] 
         if self.co_client:
             keys.append(self.co_client.id)
-
-        debts = CreditReportData.query.outerjoin(CreditReportAccount).filter(CreditReportAccount.client_id.in_(keys)).all()
+        
+        debts = CreditReportData.query.outerjoin(CreditReportAccount)\
+                                      .filter(and_(CreditReportAccount.client_id.in_(keys), CreditReportData.push==True)).all()
         for debt in debts:
             result = result + float(debt.balance_original)
         return result

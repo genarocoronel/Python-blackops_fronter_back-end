@@ -60,6 +60,12 @@ class DateTimeFormatField(fields.String):
 
         return value.strftime("%m-%d-%Y %H:%M")
 
+class DateTime12hFormatField(fields.String):
+    def format(self, value):
+        if not value:
+            return ''
+        return value.strftime("%m/%d/%Y %I:%M %p")
+
 
 class DateFormatField(fields.String):
     def format(self, value):
@@ -1510,17 +1516,27 @@ class WebhookDto:
 class LeadDistroDto:
     api = Namespace('lead-distro', description='Lead Distribution related end points')
 
-    agent = api.model('agent', {
-        'id': fields.String(attribute='public_id'),
-        'full_name': fields.String(attribute='full_name'),
-        'priority': fields.Integer(attribute='sales_board.priority'),
-        'is_active': fields.Boolean(attribute='sales_board.is_active'),
+    sales_board = api.model('sales_board', {
+        'id': fields.String(attribute='agent.public_id'),
+        'full_name': fields.String(attribute='agent.full_name'),
+        'tot_leads': fields.Integer(),
+        'time_per_lead': fields.Float(),
+        'priority': fields.Integer(),
+        'is_active': fields.Boolean(),
+    });
+
+    sales_flow = api.model('sales_flow', {
+        'lead_id': fields.String(attribute='lead.friendly_id'),
+        'lead': fields.String(attribute='lead.full_name'),
+        'agent': fields.String(attribute='agent.full_name'),
+        'assigned_on': DateTime12hFormatField(), 
     });
 
     profile = api.model('lead_distro_profile', {
         'hunt_type': fields.String(),
         'flow_interval': fields.String(),
-        'agents': fields.List(fields.Nested(agent)),
+        'sales_boards': fields.List(fields.Nested(sales_board)),
+        'assigned_history': fields.List(fields.Nested(sales_flow)),
     });
 
 

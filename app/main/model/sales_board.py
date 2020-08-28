@@ -9,6 +9,7 @@ class SalesStatus(enum.Enum):
     CONVERTED = 'converted' # converted to deal
     DEAD = 'dead' # inactive
     CLOSED = 'closed' # no futher action by agent
+    REASSIGNED = 'reassigned' 
 
 class DistributionHuntType(enum.Enum):
     PRIORITY = 'priority'  # configured priority
