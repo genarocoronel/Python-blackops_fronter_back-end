@@ -173,6 +173,8 @@ class CandidateImport(db.Model):
         rq_job = current_app.queue.enqueue('app.main.tasks.' + name, self.id, *args, **kwargs)
         task = ImportTask(id=rq_job.get_id(), name=name, description=description, candidate_import=self)
         db.session.add(task)
+        db.session.commit()
+
         return task
 
     def get_tasks_in_progress(self):

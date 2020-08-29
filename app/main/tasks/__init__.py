@@ -1,4 +1,5 @@
 import csv
+import os
 
 from rq import get_current_job
 import inflect
@@ -7,15 +8,26 @@ from app.main import db
 from app.main.model.candidate import CandidateImport, CandidateImportStatus
 from app.main.model.task import ImportTask
 from app.main.service.candidate_service import save_new_candidate
+from app.main.service.third_party.aws_service import download_from_imports
+from app.main.config import upload_location
 from flask import current_app as app
 
 
 def _set_task_progress(import_request, progress, success=True, message=''):
+    if not import_request:
+        raise Exception('Cannot set task progress without an ImportRequest object!')
+
     job = get_current_job()
     if job:
+        app.logger.info(f'Processing Job with ID: {job.get_id()}')
         job.meta['progress'] = progress
+    else:
+        app.logger.info('Could not fetcha current Job!')
     job.save_meta()
+
     task = ImportTask.query.get(job.get_id())
+    if not task:
+        raise Exception(f'Could not find a task with ID matching the Job ID {job.get_id()}')
 
     if progress >= 100:
         task.complete = True
@@ -33,12 +45,19 @@ def _set_task_progress(import_request, progress, success=True, message=''):
 
 
 def parse_candidate_file(import_id):
+    """ Task that parses a Candidate import data file and saves to Candidates """
     app.logger.debug('Executing parse_candidate_file...')
     import_request = CandidateImport.query.get(import_id)  # type: CandidateImport
     _set_task_progress(import_request, 0)
 
     app.logger.info(f'Importing {import_request.file}...')
-    with open(import_request.file, 'r') as csvfile:
+    filepath = os.path.join(upload_location, import_request.file)
+    if download_from_imports(import_request.file, filepath):
+        _parse_candidate_data(filepath, import_request)
+
+
+def _parse_candidate_data(file_path, import_request):
+    with open(file_path, 'r') as csvfile:
         p = inflect.engine()
         csvreader = csv.reader(csvfile, delimiter=',')
         row_count = sum(1 for line in csvfile) - 1

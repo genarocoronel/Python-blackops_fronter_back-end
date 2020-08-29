@@ -21,7 +21,8 @@ from app.main.service.candidate_service import (save_new_candidate_import, save_
                                                 update_candidate_income_sources, get_candidate_monthly_expenses,
                                                 update_candidate_monthly_expenses,
                                                 get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead,
-                                                delete_candidates, candidate_filter, assign_openerrep, verify_assign)
+                                                delete_candidates, candidate_filter, assign_openerrep, verify_assign, 
+                                                allowed_import_file_kinds, import_data_file)
 from app.main.service.communication_service import (parse_communication_types, date_range_filter, 
     get_candidate_voice_communication, create_presigned_url, get_opener_communication_records)
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
@@ -389,25 +390,21 @@ class CandidateUpload(Resource):
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN])
     def post(self):
         """ Creates Candidates from file """
-
         args = _candidate_upload.parse_args()
         file = args['csv_file']
-        if file:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(upload_location, filename)
-            file.save(file_path)
 
-            candidate_import = save_new_candidate_import(dict(file_path=file_path))
-            task = candidate_import.launch_task('parse_candidate_file',
-                                                'Parse uploaded candidate file and load db with entries')
+        if not file:
+            api.abort(400, message='Candidate data file is missing from the request.', success=False)
+        elif file.filename == '':
+            api.abort(400, message='No Candidate data file was selected.', success=False)
 
-            save_changes()
+        if not allowed_import_file_kinds(file.filename):
+            api.abort(400, message='That Candidate data file kind is not allowed. Try PDF, PNG, JPG, JPEG, or GIF.', success=False)
 
-            resp = {'task_id': task.id}
-            return resp, 200
+        import_task = import_data_file(file)
 
-        else:
-            return {'status': 'failed', 'message': 'No file was provided'}, 409
+        response = {'task_id': import_task.id}
+        return response, 200
 
 
 @api.route('/imports')
