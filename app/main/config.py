@@ -34,6 +34,7 @@ class Config:
     S3_BUCKET_FAX = os.environ.get('S3_BUCKET_FAX', 'dev-faxes')
     S3_BUCKET_EMAIL = os.environ.get('S3_BUCKET_EMAIL', 'dev-email')
     S3_BUCKET_DOCPROC = os.environ.get('S3_BUCKET_DOCPROC', 'staging-docproc')
+    S3_BUCKET_IMPORTS = os.environ.get('S3_BUCKET_IMPORTS', 'staging-candidate-imports')
     JIVE_QUEUE_URL = os.environ.get('JIVE_QUEUE_URL', 'https://sqs.us-west-2.amazonaws.com/450101876349/jive')
     S3_SIGNED_URL_TIMEOUT_SEC = os.environ.get('S3_SIGNED_URL_TIMEOUT_SEC', 3600)
     COMMS_HANDLER_MAP = os.environ.get('COMMS_HANDLER_MAP', default_comms_handler_map)

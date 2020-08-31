@@ -69,6 +69,59 @@ def download_from_docproc(src_channel, obj_name, dest_filepath):
     return True
 
 
+def upload_to_imports(src_filepath, desired_obj_name, desired_metadata=None):
+    """ Uploads object to Imports (Candidate Data Files) S3 Bucket 
+    
+    :param src_filepath: the source path of the file
+    :param desired_obj_name: the destination object name. If none given, the src_filename is used.
+    :param desired_metadata: (optional) a dictionary representing metadata.
+    """
+    final_metadata = None
+    if not app.s3_bucket_imports:
+        raise ConfigurationError('The app is missing Imports bucket configuration. Please rectify and try again.')
+    
+    # TODO - (JAJ) Refactor to use a dedicated Imports bucket
+    if not does_bucket_exist(app.s3_bucket_imports):
+        raise ServiceProviderError(f'That bucket {app.s3_bucket_imports} does not exist at Service Provider.')
+
+    if not src_filepath:
+        raise BadRequestError('File path cannot be empty. Please correct this and try again.')
+        
+    if desired_metadata and isinstance(desired_metadata, dict):
+        final_metadata['Metadata'] = desired_metadata
+    
+    s3 = boto3.client('s3')
+    with open_file(src_filepath, 'rb') as data:
+        s3.upload_fileobj(data, app.s3_bucket_imports, desired_obj_name, ExtraArgs=final_metadata)
+
+    return True
+
+
+def download_from_imports(obj_name, dest_filepath):
+    """ Gets the requested Object from Imports (Candidate Data Files) S3 Bucket """
+    # TODO - (JAJ) Refactor to use a dedicated Imports bucket
+    bucket = app.s3_bucket_imports
+
+    if not app.s3_bucket_imports:
+        raise ConfigurationError('The app is missing Imports bucket configuration. Please rectify and try again.')
+    bucket = app.s3_bucket_imports
+
+    if not does_bucket_exist(bucket):
+        raise ServiceProviderError('That bucket {bucket} does not exist at Service Provider.')
+
+    if not obj_name:
+        raise BadRequestError('Object name cannot be empty. Please correct this and try again.')
+
+    if not dest_filepath:
+        raise BadRequestError('Destination file path cannot be empty. Please correct this and try again.')
+    
+    s3 = boto3.client('s3')
+    with open_file(dest_filepath, 'wb') as data:
+        s3.download_fileobj(bucket, obj_name, data)
+
+    return True
+
+
 def copy_object(src_obj_name, src_bucket, dest_obj_name, dest_bucket):
     """ Copies an Object to another Bucket """
     s3 = boto3.resource('s3')

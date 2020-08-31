@@ -1,4 +1,5 @@
 import uuid
+import time
 import datetime
 
 from phonenumbers import PhoneNumber
@@ -6,6 +7,9 @@ from sqlalchemy import desc, asc, or_, and_
 from app.main import db
 from app.main.core.rac import RACRoles
 from app.main.core.errors import BadRequestError, NotFoundError
+from app.main.core.io import (save_file, stream_file, delete_file, generate_secure_filename, 
+    get_extension_for_filename, get_mime_from_extension)
+from app.main.config import upload_location
 from app.main.model.employment import Employment
 from app.main.model import Frequency
 from app.main.model.candidate import CandidateContactNumber, CandidateIncome, CandidateEmployment, \
@@ -20,11 +24,13 @@ from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
 from app.main.service.client_service import create_client_from_candidate
+from app.main.service.third_party.aws_service import upload_to_imports
 
-from flask import current_app as app, g
+from flask import current_app as app, g, after_this_request
 
 from app.main.util.query import build_query_from_dates
 
+ALLOWED_CANDIDATE_FILE_EXTENSIONS = set(['csv', 'dat', 'txt'])
 
 def save_new_candidate(data):
     
@@ -642,9 +648,9 @@ def save_changes(*data):
     db.session.commit()
 
 
-def save_new_candidate_import(data):
+def save_new_candidate_import(file_name):
     new_candidate_import = CandidateImport(
-        file=data['file_path'],
+        file=file_name,
         public_id=str(uuid.uuid4()),
         inserted_on=datetime.datetime.utcnow(),
         updated_on=datetime.datetime.utcnow()
@@ -678,3 +684,32 @@ def get_last_prequal_number():
         last_prequal = last_candidate.prequal_number
     return last_prequal
     
+
+def import_data_file(file):
+    """ Imports a Candidate CSV data file """
+    orig_filename = generate_secure_filename(file.filename)
+    fileext_part = get_extension_for_filename(orig_filename)
+    candidate_import = save_new_candidate_import(orig_filename)
+
+    ms = time.time()
+    unique_filename = 'candidate-import_{}_{}{}'.format(candidate_import.public_id, ms, fileext_part)
+    secure_filename, secure_file_path = save_file(file, unique_filename, upload_location)
+    upload_to_imports(secure_file_path, secure_filename)
+
+    candidate_import.file = secure_filename
+    db.session.add(candidate_import)
+    db.session.commit()
+    task = candidate_import.launch_task('parse_candidate_file',
+                                'Parse uploaded candidate file and load db with entries')
+
+    @after_this_request
+    def cleanup(resp):
+        delete_file(secure_file_path)
+        return resp
+    
+    return task
+
+
+def allowed_import_file_kinds(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_CANDIDATE_FILE_EXTENSIONS
