@@ -12,6 +12,7 @@ from .apiservice import has_permissions
 from app.main.model.client import Client, ClientType
 from app.main.model.user import User
 from app.main.model.rac import RACRole
+from app.main.model.sales_board import SalesBoard
 from app.main.core.rac import RACRoles
 
 from flask import current_app as app
@@ -140,6 +141,7 @@ class ReportService(object):
 
         return ''
 
+from app.main.model.address import AddressType
 class ClientReportSvc(ReportService):
 
     @property
@@ -147,7 +149,7 @@ class ClientReportSvc(ReportService):
         return ['Campaign Name', 'Interest Level', 'First Name', 'Last Name', 'DOB', 
                 'Lead Source', 'Disposition', 'Lead Type', 'Salesman', 
                 'Account Manager', 'Team Manager', 'Attorney', 'Contact #', 
-                'Email', 'State', 'Fico', 'Smart Credit', 'Latest Action', 
+                'Email', 'State', 'City', 'Zip', 'Fico', 'Smart Credit', 'Latest Action', 
                 'Last Appt', 'Client ID', 'Last Call', 'Calls', 'Total Call Duration',
                 'Task', 'BackEnd', 'Term', 'Days Remain', 'Commission Rate(%)',
                 'Total Debt', 
@@ -169,6 +171,12 @@ class ClientReportSvc(ReportService):
 
             clients = query.all()
             for client in clients:
+                # current address
+                current_addr = None
+                for addr in client.addresses:
+                    if addr.type == AddressType.CURRENT:
+                        current_addr = addr
+
                 record = {
                     'campaign_name': '',
                     'interest_level': '',
@@ -184,7 +192,9 @@ class ClientReportSvc(ReportService):
                     'attorney': '', 
                     'contact': '', 
                     'email': client.email, 
-                    'state': '', 
+                    'state': current_addr.state if current_addr else '', 
+                    'city': current_addr.city if current_addr else '', 
+                    'zip': current_addr.zip_code if current_addr else '', 
                     'fico': '', 
                     'smart_credit': '',
                     #'smart_credit_email': '',
@@ -218,7 +228,7 @@ class ClientReportSvc(ReportService):
             app.logger.warning("Client report service {}".format(str(err)))
             return []
         
-
+from app.main.model.sales_board import SalesFlow
 class SalesReportSvc(ReportService):
     _heading = 'Sales Report'
     _report_name = 'sales_report.xlsx'
@@ -238,30 +248,24 @@ class SalesReportSvc(ReportService):
             if self._end:
                 filts.append(func.date(Client.inserted_on)<=self._end)
   
-            for user in User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SALES_REP.value).all():
-                lead_query = user.sales_accounts.filter(Client.type==ClientType.lead)
-                if len(filts) > 0:
-                    lead_query = lead_query.filter(and_(*filts))
-                lead_count = lead_query.count()
-
-                deal_query = user.sales_accounts.filter(Client.type==ClientType.client)
-                if len(filts) > 0:
-                    deal_query = deal_query.filter(and_(*filts))
-                deal_count = deal_query.count()
-               
+           
+            for sb in SalesBoard.query.all():
+                agent = sb.agent
+                # all sales records
                 total_debt = 0
-                for deal in deal_query.all():
-                    total_debt = total_debt + deal.total_debt 
-
+                for sf in SalesFlow.query.filter_by(agent_id=agent.id).all():
+                    total_debt = total_debt + sf.lead.total_debt
+ 
+                closing_percent = round((sb.tot_deals/sb.tot_leads) * 100, 2)
                 record = {
-                    'agent': user.full_name, 
-                    'leads_count': lead_count,
-                    'deals_count': deal_count,
+                    'agent': agent.full_name, 
+                    'leads_count': (sb.tot_leads - sb.tot_deals),
+                    'deals_count': sb.tot_deals,
                     'recycled_leads_count': 0,
                     'recycled_deals_count': 0,
                     'recycled_closing_percent': 0,
-                    'total_leads': 0,
-                    'total_closing_percent': 0,
+                    'total_leads': sb.tot_leads,
+                    'total_closing_percent': closing_percent,
                     'retention': 0,
                     'total_debt': total_debt,
                 }

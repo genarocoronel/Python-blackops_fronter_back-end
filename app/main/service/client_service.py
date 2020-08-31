@@ -420,6 +420,10 @@ def assign_salesrep(client, user_public_id):
 
     db.session.add(assignment)
     save_changes()
+
+    # update the sales metrics
+    distro = LeadDistroSvc()
+    distro.on_manual_assign(client, user)
     
     client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
     notification.ClientNoticeChannel.send(user.id,

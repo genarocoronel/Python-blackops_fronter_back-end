@@ -5,6 +5,7 @@ import datetime
 from app.main import db
 from app.main.core.rac import RACMgr, RACRoles
 from app.main.model.user import User, Department
+from app.main.seed.sales_board import create_sales_boards
 
 role_records = None
 
@@ -394,6 +395,10 @@ def seed_users_with_roles():
     doc_process_rep2.language = 'ENGLISH'
     
     db.session.commit()
+
+    # create sales boards for all sales department users
+    create_sales_boards()
+    
 
 ### resource based permissions
 
