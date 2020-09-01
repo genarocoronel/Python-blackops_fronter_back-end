@@ -3,36 +3,25 @@ import os
 import uuid
 from os import path
 
-from flask import current_app as app
+from flask import current_app as app, after_this_request
 from filelock import FileLock
 
 from app.main import db
-from app.main.config import upload_location, prequal_id_counter_lock_file, prequal_id_counter_file
+from app.main.config import (upload_location, prequal_id_counter_lock_file, prequal_id_counter_file,
+        upload_location)
+from app.main.core.io import delete_file
 from app.main.model.campaign import Campaign
+from app.main.service.third_party.aws_service import upload_to_imports
 from app.main.service.candidate_service import get_last_prequal_number
-
-
-def _set_latest_prequal_id(value):
-    lock = FileLock(prequal_id_counter_lock_file)
-    with lock:
-        open(prequal_id_counter_file, "w").write()
-
-
-def _get_latest_prequal_id():
-    lock = FileLock(prequal_id_counter_lock_file)
-    with lock:
-        if not path.isfile(prequal_id_counter_file):
-            return None
-        else:
-            open(prequal_id_counter_file, "r").read()
 
 
 def generate_mailer_file(campaign_id):
     app.logger.info('Executing generate_mailer_file...')
     campaign = Campaign.query.get(campaign_id)
+    filename = 'campaign-mailer-{}.csv'.format(campaign.public_id)
+    file_path = os.path.join(upload_location, filename)
 
     candidates = campaign.candidates.all()
-
     mapping = {'candidate.first_name': 'first', 'candidate.last_name': 'last', 'address.address1': 'address',
                'address.city': 'city', 'address.state': 'st', 'address.zip_code': 'zip',
                'campaign.phone': 'phone_numb', 'campaign.job_number': 'job_number',
@@ -49,71 +38,65 @@ def generate_mailer_file(campaign_id):
                'sav15': _money, 'sav315': _money}
 
     try:
-        file_path = _get_mailer_file(campaign)
+        latest_prequal_id = get_last_prequal_number()
+        if not latest_prequal_id:
+            latest_prequal_id = 'A10000'
 
-        lock = FileLock(prequal_id_counter_lock_file)
-        with lock:
-            if not path.isfile(prequal_id_counter_file):
-                latest_prequal_id = get_last_prequal_number()
+        gen_prequal_func = _generate_prequal_id(latest_prequal_id)
 
-                # Start at begining of sequence since we do not have a file nor records with prequal nums
-                if not latest_prequal_id:
-                    latest_prequal_id = 'A10000'
+        # Open file and start writing data
+        with open(file_path, 'w') as csvFile:
+            writer = csv.DictWriter(csvFile, fieldnames=mapping.values(), quoting=csv.QUOTE_ALL)
+            writer.writeheader()
 
-            else:
-                latest_prequal_id = open(prequal_id_counter_file, "r").read()
+            for candidate in candidates:
+                record = {}
+                if not candidate.prequal_number:
+                    try:
+                        latest_prequal_id = next(gen_prequal_func)
+                    except StopIteration:
+                        letter, number = latest_prequal_id[:1], latest_prequal_id[1:]
+                        new_prequal_id = f'{chr(ord(letter) + 1)}10000'
+                        gen_prequal_func = _generate_prequal_id(new_prequal_id)
+                        latest_prequal_id = next(gen_prequal_func)
 
-            gen_prequal_func = _generate_prequal_id(latest_prequal_id)
+                    candidate.prequal_number = latest_prequal_id
 
-            with open(file_path, 'w') as csvFile:
-                writer = csv.DictWriter(csvFile, fieldnames=mapping.values(), quoting=csv.QUOTE_ALL)
-                writer.writeheader()
-
-                for candidate in candidates:
-                    record = {}
-                    if not candidate.prequal_number:
-                        try:
-                            latest_prequal_id = next(gen_prequal_func)
-                        except StopIteration:
-                            letter, number = latest_prequal_id[:1], latest_prequal_id[1:]
-                            new_prequal_id = f'{chr(ord(letter) + 1)}10000'
-                            gen_prequal_func = _generate_prequal_id(new_prequal_id)
-                            latest_prequal_id = next(gen_prequal_func)
-
-                        candidate.prequal_number = latest_prequal_id
-
-                    for source, key in mapping.items():
-                        model, attr = source.split('.')
-                        if model == 'candidate':
-                            record[key] = _filter(filters, key, getattr(candidate, attr, 'MISSING_VALUE'))
-                        elif model == 'campaign':
-                            record[key] = _filter(filters, key, getattr(campaign, attr, 'MISSING_VALUE'))
-                        elif model == 'address' and candidate.addresses:
-                            first_address = candidate.addresses[0]
-                            if attr == 'address1' and first_address.address2:
-                                combined_address = '{}, {}'.format(first_address.address1, first_address.address2)
-                                record[key] = combined_address
-                            else:
-                                record[key] = _filter(filters, key, getattr(first_address, attr, 'MISSING_VALUE'))
+                for source, key in mapping.items():
+                    model, attr = source.split('.')
+                    if model == 'candidate':
+                        record[key] = _filter(filters, key, getattr(candidate, attr, 'MISSING_VALUE'))
+                    
+                    elif model == 'campaign':
+                        record[key] = _filter(filters, key, getattr(campaign, attr, 'MISSING_VALUE'))
+                    
+                    elif model == 'address' and candidate.addresses:
+                        first_address = candidate.addresses[0]
+                        
+                        if attr == 'address1' and first_address.address2:
+                            combined_address = '{}, {}'.format(first_address.address1, first_address.address2)
+                            record[key] = combined_address
+                        
                         else:
-                            record[key] = 'UNKNOWN_SOURCE_VALUE'
+                            record[key] = _filter(filters, key, getattr(first_address, attr, 'MISSING_VALUE'))
+                    
+                    else:
+                        record[key] = 'UNKNOWN_SOURCE_VALUE'
 
-                    writer.writerow(record)
+                writer.writerow(record)
 
-            campaign.mailer_file = file_path
-            open(prequal_id_counter_file, 'w').write(latest_prequal_id)
-            db.session.commit()
+        campaign.mailer_file = filename
+        db.session.commit()
+
     finally:
         csvFile.close()
+        upload_to_imports(file_path, filename)
 
 
-def _get_mailer_file(campaign):
-    if campaign.mailer_file and path.isfile(campaign.mailer_file):
-        file_path = campaign.mailer_file
-    else:
-        filename = f'{uuid.uuid4()}.csv'
-        file_path = os.path.join(upload_location, filename)
-    return file_path
+    @after_this_request
+    def cleanup(resp):
+        delete_file(file_path)
+        return resp
 
 
 def _filter(filter_mapping, key, value):
@@ -129,6 +112,5 @@ def _money(value):
 
 def _generate_prequal_id(latest_prequal_id, max_int=100000):
     letter, number = latest_prequal_id[:1], latest_prequal_id[1:]
-
     for i in range(int(number) + 1, max_int):
         yield f'{letter}{i}'

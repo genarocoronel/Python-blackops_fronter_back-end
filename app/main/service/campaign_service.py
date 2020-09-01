@@ -1,11 +1,18 @@
 from datetime import datetime
 import uuid
+import os
 
+from flask import after_this_request
+
+from app.main.core.rac import RACRoles
+from app.main.core.io import (delete_file, stream_file, get_mime_from_extension, get_extension_for_filename)
 from app.main.model.campaign import Campaign, MarketingModel, MailType, PinnaclePhoneNumber
 from app.main.model.client import Client, ClientType, ClientCampaign
 from sqlalchemy import and_
 from .apiservice import ApiService
-from app.main.core.rac import RACRoles
+from app.main.service.third_party.aws_service import download_from_imports
+from app.main.config import upload_location
+
 
 class CampaignService(ApiService):
     _model = Campaign
@@ -160,4 +167,25 @@ class CampaignReportService(ApiService):
         return stream_file(report_file_path, self._report_name, as_attachment=False)
 
         
+def generate_campaign_file(campaign):
+    """ Generates a Campaign export File """
+    job_id = campaign.launch_task('generate_mailer_file')
+    return job_id
 
+
+def stream_campaign_file(campaign):
+    """ Fetches the Campaign file """
+    filepath = os.path.join(upload_location, campaign.mailer_file)
+
+    @after_this_request
+    def cleanup(resp):
+        # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
+        delete_file(filepath)
+        return resp
+
+    download_from_imports(campaign.mailer_file, filepath)
+
+    file_ext = get_extension_for_filename(campaign.mailer_file)
+    mime = get_mime_from_extension(file_ext)
+
+    return stream_file(upload_location, campaign.mailer_file, as_attachment=False, mimetype=mime)

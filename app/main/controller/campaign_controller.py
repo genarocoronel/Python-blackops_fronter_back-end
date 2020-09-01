@@ -9,7 +9,8 @@ from app.main import db
 from app.main.model.campaign import Campaign
 from app.main.model.candidate import CandidateImport, Candidate
 from app.main.util.dto import CampaignDto
-from app.main.service.campaign_service import CampaignService, PinnaclePhoneNumService, CampaignReportService
+from app.main.service.campaign_service import (CampaignService, PinnaclePhoneNumService, CampaignReportService,
+        generate_campaign_file, stream_campaign_file)
 
 api = CampaignDto.api
 _campaign = CampaignDto.campaign
@@ -95,21 +96,34 @@ class GenerateCampaignMailingFile(Resource):
     def put(self, campaign_id):
         """ Generate Campaign Mailer File """
         campaign = Campaign.query.filter_by(public_id=campaign_id).first()
-        if campaign.candidates.count() > 0:
-            campaign.launch_task('generate_mailer_file')
-            return {'success': True, 'message': 'Initiated generate mailer file'}, 200
-        else:
+        if not campaign:
             api.abort(404, message='Campaign does not exist', success=False)
+        
+        if campaign.candidates.count() < 1:
+            api.abort(400, message='Cannot generate Campaign mailer file without associated Candidate data', success=False)
+            
+        job_id = generate_campaign_file(campaign)
+        response = {
+            'success': True, 
+            'message':  'Initiated generate mailer file',
+            'job_id': job_id
+            }
+            
+        return response, 200
+            
 
     @token_required
     @user_has_permission('campaigns.view')
     def get(self, campaign_id):
         """ Download Generated Campaign Mailer File """
         campaign = Campaign.query.filter_by(public_id=campaign_id).first()
-        if campaign:
-            return send_file(campaign.mailer_file)
-        else:
+        if not campaign:
             api.abort(404, message='Campaign does not exist', success=False)
+
+        if not campaign.mailer_file:
+            api.abort(404, message='Campaign does not yet have a Mailer file. Generate it first.', success=False)
+            
+        return stream_campaign_file(campaign)
 
 
 @api.route('/<campaign_id>/import/<import_id>')
