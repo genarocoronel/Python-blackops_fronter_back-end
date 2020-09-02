@@ -79,7 +79,7 @@ class UserList(Resource):
 @api.param('role_pub_id', 'RAC Role public ID')
 class UsersRoleMembers(Resource):
     @api.doc('Get users that are members of a RAC Role')
-    @api.marshal_with(_user_supressed, envelope='data')
+    @api.marshal_list_with(_user_supressed, envelope='data')
     @token_required
     def get(self, role_pub_id):
         """ Get all users (supressed) by RAC role membership """
@@ -89,16 +89,16 @@ class UsersRoleMembers(Resource):
             user_records = get_all_users_by_role_pubid(role_pub_id)
             for user_record_item in user_records:
                 tmp_user = {
-                'public_id': user_record_item.public_id,
-                'username': user_record_item.username,
-                'first_name': user_record_item.first_name,
-                'last_name': user_record_item.last_name,
-                'language': user_record_item.language,
-                'voip_route_number': user_record_item.voip_route_number,
-                'pbx_mailbox_id': user_record_item.pbx_mailbox_id,
-                'rac_role': user_record_item.role.name
-            }
-            users.append(tmp_user)
+                    'public_id': user_record_item.public_id,
+                    'username': user_record_item.username,
+                    'first_name': user_record_item.first_name,
+                    'last_name': user_record_item.last_name,
+                    'language': user_record_item.language,
+                    'voip_route_number': user_record_item.voip_route_number,
+                    'pbx_mailbox_id': user_record_item.pbx_mailbox_id,
+                    'rac_role': user_record_item.role.name
+                }
+                users.append(tmp_user)
 
         except BadRequestError as e:
             api.abort(400, message='Error fetching Users in RAC Role group, {}'.format(str(e)), success=False)
