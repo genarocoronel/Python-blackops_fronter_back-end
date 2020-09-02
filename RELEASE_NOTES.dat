@@ -1,0 +1,16 @@
+CRM BACKEND Version 0.71 - RELEASE NOTES
+
+WHATS NEW:
+* Update assign notify msg to provide better user experience
+* Enhanced (GET)/candidates API to expose Opener assignment
+* Changed Docproc subsys to expose friendly ID for associated client
+* Changed architecture to leverage s3 with Candidate import + parsing files
+* Changed architecture to leverage s3 for Redstone mailer files
+
+
+BUG FIXES:
+* Fixed MMS media corruption issue when retrieving from Bandwidth
+* Fixed issues in Sales Flows
+* RAC fixes to (GET)/user/members API
+* Resolved bug with creating Docproc from MMS
+* Fixed issue with Doc files not getting uploaded to S3
