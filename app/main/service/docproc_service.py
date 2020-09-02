@@ -173,11 +173,11 @@ def attach_file_to_doc_candidate(doc, file):
     @after_this_request
     def cleanup(resp):
         # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
-        #delete_file(secure_file_path)
+        delete_file(secure_file_path)
         return resp
 
     # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
-    #upload_to_docproc(secure_file_path, secure_filename)
+    upload_to_docproc(secure_file_path, secure_filename)
     doc.file_name = secure_filename
     doc.orig_file_name = orig_filename
     db.session.add(doc)

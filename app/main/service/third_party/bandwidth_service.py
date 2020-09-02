@@ -1,7 +1,9 @@
 import base64
 import requests
 import json
+import os
 
+from app.main.config import upload_location
 from app.main.core.errors import ConfigurationError, ServiceProviderError
 from flask import current_app
 
@@ -72,16 +74,22 @@ def download_mms_media(media_uri):
         raise ConfigurationError("Bandwidth app ID not configured")
 
     bw_user_id = current_app.bandwidth_user_id
-    media_api_endpoint = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/{mms_resource_name}'
+    media_api_endpoint = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/media/{mms_resource_name}'
     rheaders = _create_headers()
 
-    try:
-        r = requests.get(url = media_api_endpoint, headers=rheaders, stream=True)
+    mms_file_path = os.path.join(upload_location, mms_file_name)
+    current_app.logger.info(f'JAJ Path is: {mms_file_path}')
+    r = requests.get(url = media_api_endpoint, headers=rheaders, stream=True)
+    if r.status_code == 200:
+        with open(mms_file_path, 'wb') as f:
+            for chunk in r.iter_content(1024):
+                f.write(chunk)
 
-    except Exception as e:
-        app.logger.error(f'Error fetching {media_uri} MMS media from Bandwidth, {str(e)}')
+    else: 
+        current_app.logger.error(f'JAJ Got bandwidth code: {r.status_code}')
+        current_app.logger.error(f'JAJ URL was: {media_api_endpoint}')
 
-    return r.content,  mms_file_name
+    return mms_file_path,  mms_file_name
 
 
 def _create_headers():

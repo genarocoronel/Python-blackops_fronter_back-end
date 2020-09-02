@@ -529,20 +529,12 @@ def _handle_new_media(media_data, message):
             
             file_content = None
             media_filename = None
-            try:
-                file_content, media_filename = download_mms_media(tmp_media_item.file_uri)
-                orig_filename = generate_secure_filename(media_filename)
-                fileext_part = get_extension_for_filename(orig_filename)
-                ms = time.time()
-                
-                
-                app.logger.info(f'Successfully retrieved MMS media from Bandwidth {tmp_media_item.file_uri}')
+            media_filepath, media_filename = download_mms_media(tmp_media_item.file_uri)
+            orig_filename = generate_secure_filename(media_filename)
+            fileext_part = get_extension_for_filename(orig_filename)
+            ms = time.time()
+            app.logger.info(f'Successfully retrieved MMS media from Bandwidth {tmp_media_item.file_uri}')
 
-            except Exception as e:
-                app.logger.error(f'Error retrieving MMS media from Bandwidth, {str(e)}')
-
-           
-            
             try:
                 doc_type = get_doctype_by_name('Other')
                 doc_data = {
@@ -560,22 +552,21 @@ def _handle_new_media(media_data, message):
                 app.logger.error(f'Error creating a Doc from MMS, {str(e)}')
             
             try:
-                secure_filename, secure_file_path = save_file(file_content, unique_filename, upload_location)
-                doc.file_name = secure_filename
+                doc.file_name = unique_filename
                 save_changes(doc)
 
             except Exception as e:
                 app.logger.error(f'Error saving MMS media locally, {str(e)}')
 
             try:
-                upload_to_docproc(secure_file_path, secure_filename)
-                app.logger.info(f'Successfully saved MMS media to S3 {secure_filename}')
+                upload_to_docproc(media_filepath, unique_filename)
+                app.logger.info(f'Successfully saved MMS media to S3 {unique_filename}')
 
             except Exception as e:
                 app.logger.error(f'Error saving MMS media to S3, {str(e)}')
 
             # This is the AWS S3 file URI (not Bandwidth)
-            tmp_media_item.file_uri = secure_filename
+            tmp_media_item.file_uri = unique_filename
             db.session.add(tmp_media_item)
             save_changes()
 
