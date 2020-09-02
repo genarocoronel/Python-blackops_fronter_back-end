@@ -80,7 +80,6 @@ def upload_to_imports(src_filepath, desired_obj_name, desired_metadata=None):
     if not app.s3_bucket_imports:
         raise ConfigurationError('The app is missing Imports bucket configuration. Please rectify and try again.')
     
-    # TODO - (JAJ) Refactor to use a dedicated Imports bucket
     if not does_bucket_exist(app.s3_bucket_imports):
         raise ServiceProviderError(f'That bucket {app.s3_bucket_imports} does not exist at Service Provider.')
 
@@ -99,7 +98,6 @@ def upload_to_imports(src_filepath, desired_obj_name, desired_metadata=None):
 
 def download_from_imports(obj_name, dest_filepath):
     """ Gets the requested Object from Imports (Candidate Data Files) S3 Bucket """
-    # TODO - (JAJ) Refactor to use a dedicated Imports bucket
     bucket = app.s3_bucket_imports
 
     if not app.s3_bucket_imports:

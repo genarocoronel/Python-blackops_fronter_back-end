@@ -58,5 +58,7 @@ def get_mime_from_extension(extension):
         mime = 'image/gif'
     elif extension == '.pdf':
         mime = 'application/pdf'
+    elif extension == '.csv':
+        mime = 'text/csv'
 
     return mime
