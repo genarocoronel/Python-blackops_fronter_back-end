@@ -8,7 +8,6 @@ from app.main.model.debt_payment import DebtPaymentSchedule, DebtEftStatus, Debt
 from app.main.model.user import User
 from app.main.model.rac import RACRole
 from app.main.model.team import TeamRequestType, TeamRequest
-from app.main.util.decorator import enforce_rac_required_roles
 from app.main.core.rac import RACRoles
 from app.main.service.client_service import fetch_client_combined_debts
 from app.main.service.teamrequest_service import create_team_request
@@ -182,7 +181,6 @@ def fetch_active_contract(client):
 """
 Update Payment contract for a given client
 """
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def update_payment_contract(client, data):
 
     combined_debts = fetch_client_combined_debts(client)
@@ -254,13 +252,12 @@ def update_payment_contract(client, data):
     
     # commit the changes
     db.session.commit()
+    client.update()
 
     result['payment_1st_date'] = pymt_start.strftime('%m-%d-%Y')
     result['payment_2nd_date'] = pymt_rec_begin_date.strftime('%m-%d-%Y')
     return result
 
-
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def payment_contract_action(client):
     # fetch the approved contract 
     # if not approve it
@@ -284,8 +281,6 @@ def payment_contract_action(client):
 
     return "Success"
         
-
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def fetch_plan_by_status(client, status):
     # contract
     contract = DebtPaymentContract.query.filter_by(client_id=client.id,
@@ -297,7 +292,6 @@ def fetch_plan_by_status(client, status):
     return result
 
 
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def fetch_amendment_plan(client, plan_id=None):
     cpp = CreditPaymentPlan.query.filter_by(name='Universal').first()
     if cpp is None:
@@ -353,7 +347,6 @@ def fetch_amendment_plan(client, plan_id=None):
 """
 Update debts in contract
 """
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def update_amendment_plan(client, data):
     term = data.get('term')
     action = data.get('action') 
@@ -443,7 +436,6 @@ def update_amendment_plan(client, data):
     return result
 
 
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def payment_contract_req4approve(user, client, data):
     action_title = data.get('action')
     note = data.get('note')
@@ -761,7 +753,6 @@ def update_payment_schedule(client, schedule_id, data):
 
 
 ## payment revision
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def contract_open_revision(user, client, data):
     
     # revision method
@@ -797,7 +788,6 @@ def contract_open_revision(user, client, data):
     }
 
 ## contract re-instate
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def contract_reinstate(user, client, data):
     # fields
     fields  = data.get('fields')

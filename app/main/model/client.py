@@ -156,6 +156,12 @@ class Client(db.Model):
             return self.enrolled_debts + self.co_client.enrolled_debts
         return self.enrolled_debts
 
+    # 'Inserted' to 'New Lead' transition => When any action happens on a file 
+    #  that is in an "Inserted" status
+    def update(self):
+        if self.status == 'Inserted':
+            self.status = 'New Lead'
+        db.session.commit()
 
 
 class ClientIncome(db.Model):
