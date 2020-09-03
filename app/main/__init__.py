@@ -29,9 +29,9 @@ def create_app(config_name):
     # REQUEST LOGS
     # DEBUG LOGGING 
     if app.config['DEBUG'] is True:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
     else:
-        logging.basicConfig(level=logging.WARNING)
+        logging.basicConfig(level=logging.INFO)
         
     if app.config['ENABLE_CORS']:
         app.logger.debug('Enabled CORS support')
