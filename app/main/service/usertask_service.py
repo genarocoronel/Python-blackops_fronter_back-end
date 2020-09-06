@@ -33,7 +33,7 @@ class UserTaskService(object):
         for team in user.managed_teams:
             agents = agents + team.agents 
         userids = [user.id for user in agents]
-        obj._qs = UserTask.query.filter(UserTask.owner_id.in_(userids)).all()
+        obj._qs = UserTask.query.filter(UserTask.owner_id.in_(userids))
 
         return obj
 

@@ -9,7 +9,6 @@ from app.main.core.rac import RACRoles
 from flask import g
 
 
-@enforce_rac_required_roles([RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
 def create_bank_account(client, data):
     req_user = g.current_user 
     # user id
@@ -20,6 +19,7 @@ def create_bank_account(client, data):
     # override is allowed only for service managers
     if override and (user_role != RACRoles.SUPER_ADMIN.value and 
                      user_role != RACRoles.ADMIN.value and
+                     user_role != RACRoles.SALES_MGR.value and
                      user_role != RACRoles.SERVICE_MGR.value):
         override = False
     
@@ -57,6 +57,7 @@ def create_bank_account(client, data):
             bav_history.bav_status_id = bav_status.id
         save_changes(bav_history) 
 
+        client.update()
         if result.get('valid') or override:
             acct_owner = data.get('owner_name')
             acct_address = data.get('address')

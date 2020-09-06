@@ -9,13 +9,8 @@ class TaskPriority(enum.Enum):
     CRITICAL = 'Critical'
 
 class TaskStatus(enum.Enum):
-    NOTSTARTED = 'not started'
-    INPROGRESS = 'in progress'
-    ONHOLD = 'on hold' 
+    PENDING = 'pending'
     COMPLETED = 'completed'
-    MISSED = 'missed'
-    CANCELED = 'canceled'
-    DECLINED = 'declined'
 
 class TaskAssignType(enum.Enum):
     AUTO = 'Automatic'
@@ -43,7 +38,7 @@ class UserTask(db.Model):
    
     # priority, status 
     priority = db.Column(db.String(40), default=TaskPriority.MEDIUM.name)
-    status = db.Column(db.String(40), default=TaskStatus.NOTSTARTED.name)
+    status = db.Column(db.String(40), default=TaskStatus.PENDING.name)
 
     title = db.Column(db.String(120), nullable=False)
     description = db.Column(db.String(200), nullable=True)

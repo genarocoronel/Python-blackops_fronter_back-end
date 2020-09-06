@@ -390,6 +390,7 @@ def update_client(client, data, client_type=ClientType.client):
                     setattr(client, attr, data.get(attr))
 
         save_changes(client)
+        client.update()
 
         return client
     else:
@@ -540,6 +541,8 @@ def update_client_employments(client, employments):
             empl.other_income = data.get('other_income')
             empl.other_income_frequency = data.get('other_income_frequency')
             save_changes()
+    # update status 
+    client.update()
 
     return {'message': 'Successfully updated employments'}, None
 
@@ -582,6 +585,8 @@ def update_client_addresses(client, addresses):
             client_address.from_date = from_date
             client_address.to_date = to_date
             save_changes()
+
+    client.update()
 
     return {'message': 'Successfully updated client addresses'}, None
 
@@ -631,6 +636,8 @@ def update_client_income_sources(client, income_sources):
             client_income.income_source.frequency = Frequency[data.get('frequency')]
             db.session.commit()
 
+    client.update()
+
     return {'message': 'Successfully updated income sources'}, None
 
 
@@ -671,6 +678,8 @@ def update_client_monthly_expenses(client, expenses):
         else:
             cme.monthly_expense.value = expense_val
             db.session.commit()
+    # update status
+    client.update()
 
     return {'message': 'Successfully updated monthly expenses'}, None
 
@@ -721,6 +730,8 @@ def update_client_contact_numbers(client, contact_numbers):
             cn.phone_number = phone_number
             cn.preferred = preferred
             db.session.commit()
+
+    client.update()
 
     return {'message': 'Successfully updated contact numbers'}, None
 
@@ -773,6 +784,8 @@ def update_co_client(client, data):
 
         db.session.commit()
 
+    client.update()
+
     return co_client
 
 
@@ -814,6 +827,8 @@ def update_client_checklist(client, data):
         except Exception:
             raise ValueError("Not a valid checklist item for the client")
 
+    client.update()
+
 
 def update_notification_pref(client, data):
     try:
@@ -827,6 +842,8 @@ def update_notification_pref(client, data):
         pref.doc_notification = data.get('doc_notification')
         pref.payment_reminder = data.get('payment_reminder')
         db.session.commit()
+
+        client.update()
     except Exception as err:
         raise ValueError("Update preferences error: Invalid parameter")
                                    
