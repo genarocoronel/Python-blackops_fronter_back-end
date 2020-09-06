@@ -43,6 +43,9 @@ def update_svc_schedule(client, schedule_data):
             raise BadRequestError("'public_id' for a service schedule item is missing. Please correct this and try again")
 
         sched_item_record = ServiceSchedule.query.filter_by(public_id=sched_data_item['public_id']).first()
+        if not sched_item_record:
+            raise BadRequestError(f"Scheduled item not found for ID {sched_data_item['public_id']}")
+
         if client.id is not sched_item_record.client_id:
             raise BadRequestError(f"Cannot update this schedule item with public ID {sched_item_record.public_id} as it doesn't belong to this Client")
         
@@ -66,6 +69,12 @@ def update_svc_schedule(client, schedule_data):
             sched_item_record.updated_by_username = g.current_user['username']
             save_changes(sched_item_record)
             updated_items.append(sched_item_record)
+
+            # introduction call
+            if 'Introduction Call' in sched_item_record.type and ServiceScheduleStatus.COMPLETE.value in sched_data_item['status']:
+                client.status = 'Acct Manager Intro Complete'
+                save_changes()
+
 
     return _synth_schedule(updated_items)
         
