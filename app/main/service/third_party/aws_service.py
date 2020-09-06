@@ -140,15 +140,16 @@ def copy_object(src_obj_name, src_bucket, dest_obj_name, dest_bucket):
 
 def does_bucket_exist(bucket):
     """ Checks whether a given bucket does in fact exist """
+    does_exist = True
     s3 = boto3.client('s3')
 
     try:
-        res = s3.list_buckets()
-        avail_buckets = dict((i['Name'], i['CreationDate']) for i in res['Buckets'])
+        s3.head_bucket(Bucket=bucket)
+        does_exist = True
 
     except ClientError as e:
         raise ServiceProviderError('Could not list buckets, {}'.format(str(e)))
 
-    return bucket in avail_buckets
+    return does_exist
   
 
