@@ -61,5 +61,5 @@ class Campaign(db.Model):
 
 
     def launch_task(self, name, *args, **kwargs):
-        rq_job = current_app.queue.enqueue('app.main.tasks.campaign.' + name, self.id, failure_ttl=300, *args, **kwargs)
+        rq_job = current_app.queue.enqueue('app.main.tasks.campaign.' + name, self.id, *args, **kwargs)
         return rq_job.get_id()
