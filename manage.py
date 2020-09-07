@@ -56,7 +56,7 @@ def worker(queue):
 
 
 @manager.command
-def worker_empty(queue):
+def worker_flush(queue):
     """ Empties the worker queue of ALL jobs """
     print(f'Total queued jobs: {current_app.queue.count}')
     current_app.queue.empty()
@@ -64,14 +64,15 @@ def worker_empty(queue):
 
 
 @manager.command
-def worker_empty_failed(queue):
+def worker_flush_failed(queue):
     """ Empties the worker queue of ALL failed jobs """
     failed_registry = current_app.queue.failed_job_registry
     print(f'Total failed jobs: {failed_registry.count}')
     for failed_job_id in failed_registry.get_job_ids():
         failed_job = current_app.queue.fetch_job(failed_job_id)
-        print(failed_job_id, failed_job.exc_info)
-        failed_job.delete()
+        if failed_job:
+            print(failed_job_id, failed_job.exc_info)
+            failed_job.delete()
     print(f'Total failed jobs remaining: {failed_registry.count}')
 
 
@@ -82,7 +83,8 @@ def worker_squak_failed(queue):
     print(f'Total failed jobs: {failed_registry.count}')
     for failed_job_id in failed_registry.get_job_ids():
         failed_job = current_app.queue.fetch_job(failed_job_id)
-        print(failed_job_id, failed_job.exc_info)
+        if failed_job:
+            print(failed_job_id, failed_job.exc_info)
 
 
 @manager.command
