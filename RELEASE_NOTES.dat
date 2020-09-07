@@ -1,3 +1,18 @@
+CRM BACKEND Version 0.72 - RELEASE NOTES
+
+WHATS NEW:
+* Docproc Rep/Mgr can move Docs to a Client dossier in Doc Warehouse
+* Changed (GET)/clients to use RAC Roles and allow Docproc Rep/Mgr to access
+* Added commands for managing RQ jobs, including failed jobs
+* Now jobs are set with failed TTL of 5 mins instead of 1 year
+* AM Intro complete auto transition once Introduction call is completed
+* Now system can transition from INSERTED to NEW LEAD disposition
+
+BUG FIXES:
+* Fixed s3 service error in trying to list buckets
+* Adjusted logging levels
+
+////////////////////////////////////////
 CRM BACKEND Version 0.71 - RELEASE NOTES
 
 WHATS NEW:
