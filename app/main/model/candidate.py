@@ -170,7 +170,7 @@ class CandidateImport(db.Model):
     status = db.Column(db.Enum(CandidateImportStatus), nullable=False, default=CandidateImportStatus.CREATED)
 
     def launch_task(self, name, description, *args, **kwargs):
-        rq_job = current_app.queue.enqueue('app.main.tasks.' + name, self.id, *args, **kwargs)
+        rq_job = current_app.queue.enqueue('app.main.tasks.' + name, self.id, failure_ttl=300, *args, **kwargs)
         task = ImportTask(id=rq_job.get_id(), name=name, description=description, candidate_import=self)
         db.session.add(task)
         db.session.commit()

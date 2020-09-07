@@ -63,6 +63,7 @@ class CreditReportAccount(db.Model):
         rq_job = current_app.queue.enqueue(
             'app.main.tasks.credit_report.' + name,
             self.id,
+            failure_ttl=300,
             *args,
             **kwargs
         )

@@ -57,10 +57,12 @@ class AppointmentWorkflow(Workflow):
             client = appt.client
             if client.language == Language.SPANISH.name:
                 app.queue.enqueue('app.main.tasks.mailer.send_spanish_general_call',  # task routine
-                                  client.id) # client id
+                                  client.id, # client id
+                                  failure_ttl=300)
             else:
                 app.queue.enqueue('app.main.tasks.mailer.send_general_call_edms',  # task routine
-                                  client.id) # client id 
+                                  client.id, # client id
+                                  failure_ttl=300)
 
 class AppointmentService(object):
     allowed_roles = [RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP]
