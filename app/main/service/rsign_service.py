@@ -49,7 +49,7 @@ def create_session(data):
                               cosign_required=co_sign)
     db.session.add(session)
     db.session.commit()
-    app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), session.id)
+    app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), session.id, failure_ttl=300)
 
     return session.id
 

@@ -42,7 +42,8 @@ class DebtDisputeService(object):
             # send P1 
             app.queue.enqueue('app.main.tasks.mailer.{}'.format(task_func), 
                               client.id, 
-                              debt.id)
+                              debt.id,
+                              failure_ttl=300)
 
             debt_dispute = DebtDispute(client_id=client.id,
                                        debt_id=debt.id,
@@ -64,7 +65,8 @@ class DebtDisputeService(object):
                 status = DebtDisputeStatus.SOLD_PACKAGE_SEND.name
                 app.queue.enqueue('app.main.tasks.mailer.{}'.format(task_func),
                                   client.id,
-                                  debt.id) 
+                                  debt.id,
+                                  failure_ttl=300) 
 
                 # create new dispute
                 new_dispute = DebtDispute(client_id=client.id,

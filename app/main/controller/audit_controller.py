@@ -32,7 +32,8 @@ class Audit(Resource):
                 action=request_data['action'],
                 requestor_username=curr_user['username'],
                 message=request_data['message'],
-                is_internal=False
+                is_internal=False,
+                failure_ttl=300
                 )
 
         except Exception as e:

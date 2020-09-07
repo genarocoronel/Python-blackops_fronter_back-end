@@ -36,6 +36,7 @@ from app.main.seed.organization import seed_organizations
 from app.main.seed.template import seed_templates
 from app.main.seed.campaign import seed_pinnacle_phone_numbers
 from app.main.seed.sales_board import seed_lead_distro_profile
+from rq import job
 
 environment = os.getenv('BOILERPLATE_ENV') or 'dev'
 app = create_app(environment)
@@ -52,6 +53,36 @@ manager.add_command('db', MigrateCommand)
 def worker(queue):
     # default worker queue is `default`
     run_worker(queue)
+
+
+@manager.command
+def worker_empty(queue):
+    """ Empties the worker queue of ALL jobs """
+    print(f'Total queued jobs: {current_app.queue.count}')
+    current_app.queue.empty()
+    print(f'Total queued jobs remaining: {current_app.queue.count}')
+
+
+@manager.command
+def worker_empty_failed(queue):
+    """ Empties the worker queue of ALL failed jobs """
+    failed_registry = current_app.queue.failed_job_registry
+    print(f'Total failed jobs: {failed_registry.count}')
+    for failed_job_id in failed_registry.get_job_ids():
+        failed_job = current_app.queue.fetch_job(failed_job_id)
+        print(failed_job_id, failed_job.exc_info)
+        failed_job.delete()
+    print(f'Total failed jobs remaining: {failed_registry.count}')
+
+
+@manager.command
+def worker_squak_failed(queue):
+    """ Outputs ALL failed jobs """
+    failed_registry = current_app.queue.failed_job_registry
+    print(f'Total failed jobs: {failed_registry.count}')
+    for failed_job_id in failed_registry.get_job_ids():
+        failed_job = current_app.queue.fetch_job(failed_job_id)
+        print(failed_job_id, failed_job.exc_info)
 
 
 @manager.command

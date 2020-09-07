@@ -162,7 +162,7 @@ class ContractWorkflow(Workflow):
             # send to worker queue for remote signature (docusign)
             if self._rsign_worker_func:
                 app.queue.enqueue('app.main.tasks.docusign.{}'.format(self._rsign_worker_func), 
-                                  self._client_id)
+                                  self._client_id, failure_ttl=300)
 
     ## TEAM REQUEST DECLINED 
     def on_tr_declined(self, teamrequest):
@@ -284,10 +284,10 @@ def open_contract_flow(code, contract, revision=None):
                 ## send email  
                 ## welcome letter
                 app.queue.enqueue('app.main.tasks.mailer.send_welcome_letter',
-                                  self._client_id)
+                                  self._client_id, failure_ttl=300)
                 ## privacy policy
                 app.queue.enqueue('app.main.tasks.mailer.send_privacy_policy',
-                                  self._client_id)
+                                  self._client_id, failure_ttl=300)
                 # download the signed document
                 docusign.download_documents(self._object) 
 

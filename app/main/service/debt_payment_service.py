@@ -277,7 +277,7 @@ def payment_contract_action(client):
     func = ''
     if action == ContractAction.NEW_CONTRACT:
         func = 'send_contract_for_signature'
-        app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), client.id)
+        app.queue.enqueue('app.main.tasks.docusign.{}'.format(func), client.id, failure_ttl=300)
 
     return "Success"
         

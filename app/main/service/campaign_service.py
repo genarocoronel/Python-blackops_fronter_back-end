@@ -169,7 +169,7 @@ class CampaignReportService(ApiService):
         
 def generate_campaign_file(campaign):
     """ Generates a Campaign export File """
-    job_id = campaign.launch_task('generate_mailer_file')
+    job_id = campaign.launch_task('generate_mailer_file', failure_ttl=300)
     return job_id
 
 

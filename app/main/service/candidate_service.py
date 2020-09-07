@@ -700,7 +700,7 @@ def import_data_file(file):
     db.session.add(candidate_import)
     db.session.commit()
     task = candidate_import.launch_task('parse_candidate_file',
-                                'Parse uploaded candidate file and load db with entries')
+                                'Parse uploaded candidate file and load db with entries', failure_ttl=300)
 
     @after_this_request
     def cleanup(resp):
