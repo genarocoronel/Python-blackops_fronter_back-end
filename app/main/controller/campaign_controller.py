@@ -114,6 +114,7 @@ class GenerateCampaignMailingFile(Resource):
         return response, 200
             
 
+    @cross_origin()
     @token_required
     @user_has_permission('campaigns.view')
     def get(self, campaign_id):
