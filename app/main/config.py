@@ -67,7 +67,7 @@ class Config:
     REQUIRE_SMS_WEBHOOK_IDS = _convert_bool(os.environ.get('REQUIRE_SMS_WEBHOOK_IDS', True))
     SMS_WEBHOOK_IDENTITIES = os.environ.get('SMS_WEBHOOK_IDENTITIES', None)
 
-    ENABLE_CORS = False
+    ENABLE_CORS = True
     DEBUG = False
     SMART_CREDIT_HTTP_USER = os.environ.get('SMART_CREDIT_HTTP_USER') or 'documentservicesolutions'
     SMART_CREDIT_HTTP_PASS = os.environ.get('SMART_CREDIT_HTTP_PASS') or 'grapackerown'
