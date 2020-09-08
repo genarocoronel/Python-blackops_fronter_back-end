@@ -3,6 +3,7 @@ import uuid
 
 from flask import request, send_file
 from flask_restplus import Resource
+from flask_cors import cross_origin
 
 from app.main.util.decorator import token_required, user_has_permission
 from app.main import db
@@ -91,6 +92,7 @@ class GenerateReport(Resource):
 @api.route('/<campaign_id>/mailer-file')
 @api.param('campaign_id', 'Campaign public id')
 class GenerateCampaignMailingFile(Resource):
+    @cross_origin()
     @token_required
     @user_has_permission('campaigns.update')
     def put(self, campaign_id):
@@ -112,6 +114,7 @@ class GenerateCampaignMailingFile(Resource):
         return response, 200
             
 
+    @cross_origin()
     @token_required
     @user_has_permission('campaigns.view')
     def get(self, campaign_id):
