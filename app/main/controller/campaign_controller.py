@@ -1,7 +1,7 @@
 import datetime
 import uuid
 
-from flask import request, send_file
+from flask import request, send_file, stream_with_context
 from flask_restplus import Resource
 from flask_cors import cross_origin
 
@@ -126,7 +126,7 @@ class GenerateCampaignMailingFile(Resource):
         if not campaign.mailer_file:
             api.abort(404, message='Campaign does not yet have a Mailer file. Generate it first.', success=False)
             
-        return stream_campaign_file(campaign)
+        return stream_with_context(stream_campaign_file(campaign))
 
 
 @api.route('/<campaign_id>/import/<import_id>')
