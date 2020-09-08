@@ -92,7 +92,7 @@ class GenerateReport(Resource):
 @api.route('/<campaign_id>/mailer-file')
 @api.param('campaign_id', 'Campaign public id')
 class GenerateCampaignMailingFile(Resource):
-    @cross_origin()
+    @cross_origin(origin='*', allow_headers=['Content-Type', 'Authorization', 'Content-Disposition'])
     @token_required
     @user_has_permission('campaigns.update')
     def put(self, campaign_id):
@@ -114,7 +114,7 @@ class GenerateCampaignMailingFile(Resource):
         return response, 200
             
 
-    @cross_origin()
+    @cross_origin(origin='*', allow_headers=['Content-Type', 'Authorization', 'Content-Disposition'])
     @token_required
     @user_has_permission('campaigns.view')
     def get(self, campaign_id):
