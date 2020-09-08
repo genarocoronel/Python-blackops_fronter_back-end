@@ -188,4 +188,4 @@ def stream_campaign_file(campaign):
     file_ext = get_extension_for_filename(campaign.mailer_file)
     mime = get_mime_from_extension(file_ext)
 
-    return stream_file(upload_location, campaign.mailer_file, as_attachment=False, mimetype=mime)
+    return stream_file(upload_location, campaign.mailer_file, as_attachment=True, mimetype=mime)
