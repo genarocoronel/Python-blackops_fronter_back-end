@@ -682,6 +682,7 @@ class ClientDto:
 
 class LeadDto:
     api = Namespace('leads', description='lead related operations')
+
     credit_report_account = api.model('credit_report_account', {
         'public_id': fields.String(),
         'fico': fields.Integer(),
@@ -699,6 +700,8 @@ class LeadDto:
         'account_number': fields.String(),
         'routing_number': fields.String(),
         'owner_name': fields.String(),
+        'type': fields.String(attribute='type.value'),
+        'owner_type': fields.String(),
         'address': fields.String(),
         'city': fields.String(),
         'state': fields.String(),

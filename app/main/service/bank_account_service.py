@@ -66,6 +66,10 @@ def create_bank_account(client, data):
             acct_zip = data.get('zip')
             acct_ssn = data.get('ssn')
             acct_email = data.get('email')
+            # account type & owner type
+            # currently the defaults are used, so the field is not used for insertion
+            acct_type = data.get('type')  
+            acct_owner_type = data.get('owner_type')
 
             bank_name = result.get('bank_name')
             if bank_name is None:

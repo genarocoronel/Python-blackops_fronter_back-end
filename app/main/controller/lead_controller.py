@@ -874,7 +874,6 @@ class LeadCreditReportUpdateDebt(Resource):
 
 @api.route('/<lead_id>/payment/bank_account')
 @api.param('lead_id', 'Lead public identifier')
-#@api.param('override', 'Override use of invalid/failing bank information')
 @api.response(404, 'Client not found')
 class LeadBankAccount(Resource):
     @api.doc('create payment information')
