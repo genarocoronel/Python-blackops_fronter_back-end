@@ -221,7 +221,7 @@ def stream_doc_file(doc, send_as_attachment=False):
     # JAJ Note: Comment line below to disconnect AWS S3 feature for local-only testing
     download_from_docproc(doc.source_channel, doc.file_name, filepath)
 
-    return stream_file(upload_location, doc.file_name, as_attachment=send_as_attachment, mimetype=mime)
+    return stream_file(upload_location, doc.file_name, as_attachment=True, mimetype=mime)
 
 
 def create_doc_manual(data, client = None, return_model = False):
