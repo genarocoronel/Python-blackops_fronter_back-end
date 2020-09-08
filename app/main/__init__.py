@@ -35,7 +35,7 @@ def create_app(config_name):
         
     if app.config['ENABLE_CORS']:
         app.logger.debug('Enabled CORS support')
-        CORS(app, resources={r"/*": {"origins": "*"}})
+        CORS(app, expose_headers=["Content-Disposition"], resources={r"/*": {"origins": "*"}})
 
     app.config['ERROR_404_HELP'] = False
 
