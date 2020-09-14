@@ -66,7 +66,14 @@ def create_bank_account(client, data):
             acct_zip = data.get('zip')
             acct_ssn = data.get('ssn')
             acct_email = data.get('email')
-
+            # account type & owner type
+            # currently the defaults are used, so the field is not used for insertion
+            acct_type = data.get('type')  
+            if acct_type is None or acct_type not in BankAccountType.__members__:
+                acct_type = BankAccountType.checking
+            acct_owner_type = data.get('owner_type')
+            if acct_owner_type is None or acct_owner_type not in AccountOwnerType.__members__:
+                acct_owner_type = AccountOwnerType.CLIENT.value
             bank_name = result.get('bank_name')
             if bank_name is None:
                 bank_name = data.get('bank_name')
@@ -78,6 +85,8 @@ def create_bank_account(client, data):
                     account_number=result.get('account_number'),
                     routing_number=result.get('aba_number'),  # TODO: find out when/if I use 'NewRoutingNumber' or 'BankABA'
                     valid=result.get('valid'),
+                    type=acct_type,
+                    owner_type=acct_owner_type,
                     inserted_on=datetime.datetime.utcnow(),
                     client_id=client.id,
                     owner_name = acct_owner,

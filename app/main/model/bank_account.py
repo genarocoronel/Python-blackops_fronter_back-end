@@ -6,6 +6,9 @@ class BankAccountType(enum.Enum):
     checking = "checking"
     savings = "savings"
 
+class AccountOwnerType(enum.Enum):
+    CLIENT = 'client'
+
 class StatusCategory(enum.Enum):
     passed = "passed"
     failed = "failed"
@@ -29,6 +32,7 @@ class BankAccount(db.Model):
     routing_number = db.Column(db.String(9), nullable=False)
     valid = db.Column(db.Boolean, nullable=False)
     type = db.Column(db.Enum(BankAccountType), nullable=True, default=BankAccountType.checking)
+    owner_type = db.Column(db.String(24), nullable=True, default=AccountOwnerType.CLIENT.value)
     # bank details, optional 
     # if account owner details are differant than the lead details
     owner_name = db.Column(db.String(100), nullable=True)
