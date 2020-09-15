@@ -538,10 +538,12 @@ class UpdateCreditReportAccount(Resource):
         relevant_data = None
 
         if 'security_question_id' in request_data:
+            ssn4 = str(request_data['ssn'])[-4:]
             relevant_data = {
                 'security_question_id': request_data['security_question_id'],
                 'security_question_answer': request_data['security_question_answer'],
-                'ssn': request_data['ssn']
+                'ssn': request_data['ssn'],
+                'ssn4': int(ssn4)
             }
         else:
             relevant_data = request_data
