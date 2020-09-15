@@ -22,6 +22,7 @@ from app.main.model.notification import NotificationPreference
 from app.main.model.user import User
 from app.main.channels import notification
 from app.main.service.lead_distro import LeadDistroSvc
+from app.main.service import client as svc
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
@@ -371,6 +372,8 @@ def update_client(client, data, client_type=ClientType.client):
                     disposition = ClientDisposition.query.filter_by(value=data.get(attr)).first()
                     if disposition:
                         if disposition.select_type == ClientDispositionType.MANUAL:
+                            cs = svc.ClientService(client)
+                            cs.on_disposition_change(disposition)
                             setattr(client, 'disposition_id', disposition.id)
                     else:
                         response_object = {

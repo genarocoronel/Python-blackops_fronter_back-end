@@ -8,7 +8,7 @@ from sqlalchemy import func
 from flask import g
 from datetime import datetime
 from app.main.service.user_service import get_request_user
-from app.main.service.workflow import open_contract_flow
+from app.main.service.workflow import create_workflow
 from app.main.channels.notification import TeamRequestChannel
 
 # fetch team requests for a team
@@ -22,20 +22,20 @@ def filter_team_requests(user):
     team_requests = TeamRequest.query.filter_by(team_manager_id=user.id).all()
     return team_requests
 
-def create_team_request(requestor, team_manager, note, contract, revision=None):
+def create_team_request(requestor, team_manager, note, contract, revision=None, req_code=None):
     rev_id = None   
-    if revision:
-        rev_id = revision.id
-        req_code = revision.method.name
-    else:
-        req_code = contract.current_action.name
+    if req_code is None:
+        if revision:
+            rev_id = revision.id
+            req_code = revision.method.name
+        else:
+            req_code = contract.current_action.name
  
     req_type = TeamRequestType.query.filter_by(code=req_code).first()
     if req_type is None:
         raise ValueError("Team Request Type not found")
 
     ## create a description
-
     team_request = TeamRequest(public_id=str(uuid.uuid4()),
                                requester_id=requestor.id,
                                team_manager_id=team_manager.id, 
@@ -94,9 +94,9 @@ def change_team_request_status(team_request, status):
     if not request_type:
         raise ValueError('Team Request code not found')
     request_code = request_type.code
-    wf = open_contract_flow(request_code, 
-                            team_request.contract,
-                            team_request.revision)
+    wf = create_workflow(request_code, 
+                         team_request.contract,
+                         team_request.revision)
     if wf:
         try:
             func = getattr(wf, state_handler)

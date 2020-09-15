@@ -1,7 +1,8 @@
 from app.main.model.team import Team
-from .apiservice import ApiService, has_permissions
+from .apiservice import ApiService
 from sqlalchemy import func
 from datetime import datetime
+
 
 class TeamService(ApiService):
     _model = Team
@@ -9,8 +10,8 @@ class TeamService(ApiService):
 
     def __init__(self, name=None):
         self._name = name  
+        super().__init__()
 
-    @has_permissions
     def members(self):
         team = Team.query.filter(func.lower(Team.name)==func.lower(self._name)).first()
         if team:

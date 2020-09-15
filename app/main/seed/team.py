@@ -55,6 +55,7 @@ def seed_team_request_types():
         {'code': 'CHANGE_RECUR_DAY', 'title': 'Change Draft Day', 'doc_sign': False,'description': 'Change recurring payment day of the month'},
         {'code': 'RE_INSTATE', 'title': 'Reinstate', 'doc_sign': False, 'description': 'Reinstate an old client'},
         {'code': 'REFUND', 'title': 'Refund', 'doc_sign': False, 'description': 'Process Refund'},
+        {'code': 'REQUEST_CANCELLATION', 'title': 'Request Cancellation', 'doc_sign': False, 'description': 'Request Cancellation'},
     ]
 
     for record in records:
