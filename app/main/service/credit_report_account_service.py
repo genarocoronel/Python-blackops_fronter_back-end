@@ -54,7 +54,8 @@ def creport_account_signup(request_data: dict, internal_customer, customer_type:
     creport_acc.financial_obligation_met = external_customer_info.get('is_financial_obligation_met')
     creport_acc.plan_type = external_customer_info.get('plan_type')
     creport_acc.status = CreditReportSignupStatus.ACCOUNT_CREATED
-    update_credit_report_account(creport_acc, None)
+    # Need SSN and SSN4
+    update_credit_report_account(creport_acc, request_data)
 
     return creport_acc
 

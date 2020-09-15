@@ -1083,7 +1083,9 @@ class CandidateDto:
         'first_name': fields.String(required=True, example='Charlie'),
         'last_name': fields.String(required=True, example='Test-PJNDL'),
         'zip': fields.String(required=True, example='01001'),
-        'phone': fields.String(required=True, example='555-555-5555')
+        'phone': fields.String(required=True, example='555-555-5555'),
+        'ssn': fields.String(required=True),
+        'ssn4': fields.String(required=True)
     })
     update_credit_report_account = api.model('candidate_update_request', {
         'first_name': fields.String(required=True, example='Charlie'),
