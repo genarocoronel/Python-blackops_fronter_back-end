@@ -1,7 +1,7 @@
 import datetime
 
 from app.main import db
-from app.main.model.bank_account import BankAccount
+from app.main.model.bank_account import BankAccount, BankAccountType, AccountOwnerType
 from app.main.service.third_party.datax_service import validate_bank_account
 from app.main.model.bank_account import BankAccountValidationStatus, BankAccountValidationHistory
 from app.main.util.decorator import enforce_rac_required_roles
