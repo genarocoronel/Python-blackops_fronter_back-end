@@ -476,6 +476,8 @@ class CreateCreditReportAccount(Resource):
         if not candidate:
             api.abort(404, **error_response)
 
+        request_data['ip_address'] = request.remote_addr
+        
         try:
             app.logger.info('Received request to signup Candidate for a Credit Report Account.')
             creport_acc = creport_account_signup(request_data, candidate, CustomerType.CANDIDATE)
