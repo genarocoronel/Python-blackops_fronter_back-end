@@ -183,14 +183,18 @@ def get_account_credentials(internal_customer):
 
 def _generate_account_username(internal_customer):
     """ Generates a standardized SCredit acc username """
-    domain = '@lendingserve.com'
-    username = f'{internal_customer.first_name}{internal_customer.last_name}10{internal_customer.id}{domain}'
-    return username
+    count = CreditReportAccount.query.count()
+    domain = app.smart_credit_email_domain
+    name = internal_customer.first_name.lower() + str(count + 100000)
+    return f'{name}@{domain}'
 
 
 def get_account_password(creport_account):
     """ Gets the password for a Customer's Credit Account """
-    return app.cipher.decrypt(creport_account.password.encode()).decode()
+    if creport_account.password:
+        return app.cipher.decrypt(creport_account.password.encode()).decode()
+    else:
+        return None
 
 
 def update_credit_report_account(creport_account: CreditReportAccount, external_customer_data: None):
