@@ -54,8 +54,8 @@ def creport_account_signup(request_data: dict, internal_customer, customer_type:
     creport_acc.financial_obligation_met = external_customer_info.get('is_financial_obligation_met')
     creport_acc.plan_type = external_customer_info.get('plan_type')
     creport_acc.status = CreditReportSignupStatus.ACCOUNT_CREATED
-    # Need SSN and SSN4
-    update_credit_report_account(creport_acc, request_data)
+    # TODO (JAJ) Need to NOT call update here in this first step but instead in update_credit_report_account()
+    update_credit_report_account(creport_acc, None)
 
     return creport_acc
 
@@ -204,6 +204,7 @@ def update_credit_report_account(creport_account: CreditReportAccount, external_
         if not external_customer_data['ip_address']:
             raise Exception('Cannot update customer with remote service without specifying IP')
         
+        # TODO - (JAJ) Need to pass in the SSN, phone, ip address, here instead in step #1 creport_account_signup()
         update_customer(creport_account.customer_token, external_customer_data, creport_account.tracking_token)
         creport_account.status = CreditReportSignupStatus.ACCOUNT_VALIDATING
 
