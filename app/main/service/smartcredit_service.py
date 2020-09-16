@@ -142,6 +142,8 @@ def update_customer(customer_token, data, tracking_token):
         'trackingToken': tracking_token
     }
     optionally_add_to_payload(optional_fields, payload=payload, data=data)
+    app.logger.info("Updating the remote SC customer identity. Payload is:")
+    print(payload)
     response = requests.post(f'{app.smart_credit_url}/api/signup/customer/update/identity',
                              headers=headers.update({'Content-Type': 'application/x-www-form-urlencoded'}),
                              data=payload)
