@@ -34,6 +34,15 @@ class ClientDispositionType(enum.Enum):
     MANUAL = 'manual'
     AUTO = 'auto'
 
+class ProgramStatus(enum.Enum):
+    READY =  'ready' # before contract is signed
+    SIGNED = 'signed' # Signed and first payment pending
+    DROPPED = 'dropped' # cancelled before 1st payment
+    ACTIVE = 'active' # after first payment
+    COMPLETED = 'completed' # completed all payments 
+    HOLD = 'hold' # payment failed , program on hold
+    CANCELLED = 'cancelled' # cancelled after 1st payment
+
 
 class ClientDisposition(db.Model):
     __tablename__ = "client_dispositions"
@@ -112,7 +121,9 @@ class Client(db.Model):
     application_date = db.Column(db.DateTime, nullable=True)   
     # EPPS Account Id
     epps_account_id  = db.Column(db.String(100), nullable=True)
-
+    # program status
+    program_status = db.Column(db.String(24), default=ProgramStatus.READY.name) 
+    
     @property
     def full_name(self):
         return "{} {}".format(self.first_name, self.last_name)
@@ -127,6 +138,19 @@ class Client(db.Model):
     @status.setter
     def status(self, value):
         cd = ClientDisposition.query.filter_by(value=value).first()
+        if cd:
+            self.disposition_id = cd.id
+ 
+    @property
+    def status_name(self):
+        result = ''
+        if self.disposition:
+            result = self.disposition.name
+        return result
+
+    @status_name.setter
+    def status_name(self, name):
+        cd = ClientDisposition.query.filter_by(name=name).first()
         if cd:
             self.disposition_id = cd.id
 

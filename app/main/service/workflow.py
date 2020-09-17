@@ -4,7 +4,7 @@ from app.main.model.debt_payment import DebtPaymentSchedule, DebtPaymentContract
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from app.main.model.docproc import DocprocStatus
-from app.main.model.client import ClientType
+from app.main.model.client import ClientType, ProgramStatus
 from app.main.model.sales_board import SalesFlow
 from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
@@ -15,6 +15,7 @@ from app.main.tasks import debt_payment as pymt_tasks
 from app.main.tasks.mailer import send_welcome_letter, send_spanish_welcome_letter, send_privacy_policy
 from app.main.tasks import docusign
 from app.main.service.svc_schedule_service import create_svc_schedule
+from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleStatus
 
 """
 Base Workflow class
@@ -261,7 +262,7 @@ class RevisionWorkflow(Workflow):
 """
 factory method that returns the appropriate contract workflow
 """
-def open_contract_flow(code, contract, revision=None):
+def create_workflow(code, contract, revision=None):
 
     class NewContract(ContractWorkflow):
         def on_tr_approved(self, teamrequest):
@@ -295,6 +296,7 @@ def open_contract_flow(code, contract, revision=None):
                 # Create initial service schedule for the client
                 create_svc_schedule(client)
                 client.status = 'Assign to Acct Manager'
+                client.program_status = ProgramStatus.SIGNED.name
 
                 # update the sales board and sales flow
                 if client.sales_rep:
@@ -490,6 +492,35 @@ def open_contract_flow(code, contract, revision=None):
 
             except Exception as err:
                 raise ValueError("SkipPayment ON TR APPROVED {}".format(str(err)))
+    
+    class RequestCancellation():
+
+        def __init__(self, contract):
+            self._contract = contract
+
+        def on_tr_approved(self, teamrequest):
+            client = self._contract.client
+            program_status = client.program_status
+            # before 1st Payment
+            if program_status == ProgramStatus.SIGNED.name:
+                client.status_name = 'Service_ActiveStatus_Cancelled_Before' 
+                client.program_status = ProgramStatus.DROPPED.name
+            # After 1st Payment
+            elif program_status == ProgramStatus.ACTIVE.name:
+                client.status_name = 'Service_ActiveStatus_Cancelled_After'
+                client.program_status = ProgramStatus.CANCELLED.name
+
+            # update the service schedule
+            schedule = ServiceSchedule.query.filter_by(status=ServiceScheduleStatus.PENDING.value, 
+                                                       client_id=client.id).all()
+            for item in schedule:
+                item.status = ServiceScheduleStatus.INCOMPLETE.value
+            db.session.commit()
+
+        # TBD
+        def on_tr_declined(self, teamrequest):
+            pass
+
 
     if 'NEW_CONTRACT' in code:
         return NewContract(contract)        
@@ -517,6 +548,8 @@ def open_contract_flow(code, contract, revision=None):
         return SkipPayment(revision)
     elif 'REFUND' in code:
         return Refund(revision)
+    elif 'REQUEST_CANCELLATION' in code:
+        return RequestCancellation(contract)
             
     # not supported action 
     return None 

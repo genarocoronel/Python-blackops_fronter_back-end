@@ -30,10 +30,15 @@ class ApiService(object):
     _key_field = 'id'
     _req_user  = None # set during permission check
 
-    @has_permissions
+    def __init__(self):
+        curr_user = g.current_user
+        if curr_user and 'user_obj' in curr_user:
+            self._req_user = curr_user['user_obj']
+
     def create(self, data):
         if not self._model:
             raise ValueError("Not a valid service")    
+        
         # extract attributes
         attrs = self._parse(data)
         # validate
@@ -48,12 +53,10 @@ class ApiService(object):
         db.session.commit()
         return obj 
 
-    @has_permissions
     def get(self):
         records = self._queryset()
         return records
 
-    @has_permissions
     def update(self, key, data):
         if not self._model:
             raise ValueError("Not a valid service")

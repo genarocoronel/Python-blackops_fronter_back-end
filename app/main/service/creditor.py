@@ -1,4 +1,4 @@
-from .apiservice import ApiService, has_permissions
+from .apiservice import ApiService
 from app.main.model.creditor import Creditor
 from datetime import datetime
 

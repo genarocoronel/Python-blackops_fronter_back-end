@@ -15,7 +15,7 @@ from app.main.service.client_service import (get_all_clients, save_new_client, g
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
                                              update_client_contact_numbers, assign_servicerep)
-from app.main.service.client import ClientTaskService, ClientTrService
+from app.main.service.client import ClientService, ClientTaskService, ClientTrService
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_voice_communication, \
     create_presigned_url, get_sales_and_service_communication_records
 from app.main.service.credit_report_account_service import (creport_account_signup, update_credit_report_account,
@@ -960,8 +960,7 @@ class ClientDocs(Resource):
     @api.doc('Get Client documents')
     @api.marshal_list_with(_doc)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR,
-            RACRoles.SALES_REP, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    @user_has_permission('clients.docs.view') 
     def get(self, client_id):
         """ Get Client documents """
         client, error_response = _handle_get_client(client_id)
@@ -975,8 +974,7 @@ class ClientDocs(Resource):
     @api.doc('Creates a Doc')
     @api.expect(_doc_create, validate=True)
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR,
-            RACRoles.SALES_REP, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP]) 
+    @user_has_permission('clients.docs.create') 
     def post(self, client_id):
         """ Creates a Doc manually """
         client, error_response = _handle_get_client(client_id)
@@ -1004,8 +1002,7 @@ class ClientDocs(Resource):
 class ClientDocFile(Resource):
     @api.doc('Get a Doc file for a given Client')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.SALES_ADMIN, RACRoles.SALES_MGR,
-            RACRoles.SALES_REP, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    @user_has_permission('clients.docs.view') 
     def get(self, client_id, public_id):
         """ Get a Doc file for a given Client """
         client, error_response = _handle_get_client(client_id)
@@ -1178,7 +1175,6 @@ class ClientTeamRequests(Resource):
 @api.param('client_id', 'Client public identifier')
 @api.response(404, 'Client not found')
 class ClientActiveContract(Resource):
-    @token_required
     @api.doc('fetch payment contract')
     @token_required
     @user_has_permission('clients.view') 
@@ -1193,4 +1189,26 @@ class ClientActiveContract(Resource):
                 return contract
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
+
+@api.route('/<client_id>/add-to-retention')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientAddToRetention(Resource):
+    @api.doc('add a client to retention')
+    @token_required
+    @user_has_permission('clients.update')
+    def post(self, client_id):
+        """ Add a client to retention"""
+        try:
+            svc = ClientService(public_id=client_id)
+            svc.on_add2retention() 
+
+            response_object = {
+                'success': True,
+                'message': f'Successfully added Client to retention'
+            }
+            return response_object, 201
+
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))
 

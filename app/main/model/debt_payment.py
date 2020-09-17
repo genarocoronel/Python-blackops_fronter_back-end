@@ -20,6 +20,7 @@ class DebtEftStatus(enum.Enum):
     CLEARED   = 'Cleared'    # EFT Transfer completed
     NSF    = 'NSF'     # EFT Payment failed
     SKIPPED = 'Skipped' # payment skipped
+    PAUSED = 'Paused' # payment paused (not to draft)
 
 class ContractStatus(enum.Enum):
     PLANNED = 'planned'

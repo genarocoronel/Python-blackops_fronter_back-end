@@ -1,5 +1,5 @@
 from app.main.model.debt_payment import EftReturnFee
-from .apiservice import ApiService, has_permissions
+from .apiservice import ApiService
 from datetime import datetime
 
 class EftFeeService(ApiService):

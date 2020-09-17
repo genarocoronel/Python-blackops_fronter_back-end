@@ -45,6 +45,7 @@ client_dispositions = [
     {"value": 'Assign to Acct Manager',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_AssignAcctManager' },
     {"value": 'Sales:  Acct Manager Intro Incomplete',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_AcctManagerIntroIncomplete' },
     {"value": 'Sales: Deal Rejected',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealRejected' },
+    {"value": 'Sales: Request Cancellation Initiated',"select_type": 'AUTO', "name":'Sales_ActiveStatus_RequestCancellationInitiated' },
     {"value": 'Sales: Request Cancellation',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_RequestCancellation' },
     {"value": 'Sales: Deal Complete',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealComplete' },
     {"value": 'Service Issue:NSF',"select_type": 'AUTO', "name":'Service_ActiveStatus_NSF'},

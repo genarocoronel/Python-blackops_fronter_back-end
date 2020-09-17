@@ -81,9 +81,9 @@ def check_sessions():
                     contract.status = ContractStatus.VOID
                 elif new_status == DocusignSessionStatus.COMPLETED:
                     code = contract.current_action.name
-                    wf = workflow.open_contract_flow(code,  
-                                                     contract,
-                                                     None)
+                    wf = workflow.create_workflow(code,  
+                                                  contract,
+                                                  None)
                     wf.on_signed()
 
                 session.status = new_status

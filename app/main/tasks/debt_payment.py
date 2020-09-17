@@ -6,7 +6,7 @@ from app.main.model.contact_number import ContactNumberType
 from app.main.model.address import Address, AddressType
 from datetime import datetime, date, timedelta
 from app.main.tasks.mailer import send_payment_reminder, send_nsf_draft_issue
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 from app.main.service import workflow
 
 import logging
@@ -83,7 +83,8 @@ def process_debt_payments():
 
         # fetch all today's payments 
         due = date.today() + timedelta(days=3)
-        payments = DebtPaymentSchedule.query.filter(func.date(DebtPaymentSchedule.due_date)==due).all()
+        payments = DebtPaymentSchedule.query\
+                                      .filter(and_(func.date(DebtPaymentSchedule.due_date)==due, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name)).all()
         for payment in payments:
             print(payment.id)
             contract = payment.contract
