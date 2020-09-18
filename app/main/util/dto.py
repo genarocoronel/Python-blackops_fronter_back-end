@@ -587,12 +587,13 @@ class ClientDto:
         'city': fields.String(required=False, example='Boston'),
         'state': fields.String(required=False, example='MA'),
         'zip': fields.String(required=True, example='01001'),
-        'phone': fields.String(required=True, example='555-555-5555'),
+        'phone': fields.String(required=False, example='555-555-5555'),
         'dob': fields.String(required=True, example='01/01/1990'),
         'ssn': fields.String(required=False),
         'ssn4': fields.String(required=False),
         'security_question_id': fields.String(required=False),
         'security_question_answer': fields.String(required=False),
+        'full_ssn_required': fields.Boolean(required=False, default=False)
     })
     account_verification_answers = api.model('verification_question_answers', {
         'reference_number': fields.String(required=True),
@@ -814,7 +815,7 @@ class LeadDto:
         'first_name': fields.String(required=True, example='Charlie'),
         'last_name': fields.String(required=True, example='Test-PJNDL'),
         'zip': fields.String(required=True, example='01001'),
-        'phone': fields.String(required=True, example='555-555-5555')
+        'phone': fields.String(required=False, example='555-555-5555')
     })
     update_credit_report_account = api.model('lead_update_request', {
         'first_name': fields.String(required=True, example='Charlie'),
@@ -824,12 +825,13 @@ class LeadDto:
         'city': fields.String(required=False, example='Boston'),
         'state': fields.String(required=False, example='MA'),
         'zip': fields.String(required=True, example='01001'),
-        'phone': fields.String(required=True, example='555-555-5555'),
+        'phone': fields.String(required=False, example='555-555-5555'),
         'dob': fields.String(required=True, example='01/01/1990'),
         'ssn': fields.String(required=False),
         'ssn4': fields.String(required=False),
         'security_question_id': fields.String(required=False),
         'security_question_answer': fields.String(required=False),
+        'full_ssn_required': fields.Boolean(required=False, default=False)
     })
     account_verification_answers = api.model('verification_question_answers', {
         'reference_number': fields.String(required=True),
@@ -1083,7 +1085,7 @@ class CandidateDto:
         'first_name': fields.String(required=True, example='Charlie'),
         'last_name': fields.String(required=True, example='Test-PJNDL'),
         'zip': fields.String(required=True, example='01001'),
-        'phone': fields.String(required=True, example='555-555-5555')
+        'phone': fields.String(required=False, example='555-555-5555')
     })
     update_credit_report_account = api.model('candidate_update_request', {
         'first_name': fields.String(required=True, example='Charlie'),
@@ -1093,12 +1095,13 @@ class CandidateDto:
         'city': fields.String(required=False, example='Boston'),
         'state': fields.String(required=False, example='MA'),
         'zip': fields.String(required=True, example='01001'),
-        'phone': fields.String(required=True, example='555-555-5555'),
+        'phone': fields.String(required=False, example='555-555-5555'),
         'dob': fields.String(required=True, example='01/01/1990'),
         'ssn': fields.String(required=False),
         'ssn4': fields.String(required=False),
         'security_question_id': fields.String(required=False),
         'security_question_answer': fields.String(required=False),
+        'full_ssn_required': fields.Boolean(required=False, default=False)
     })
     account_verification_answers = api.model('verification_question_answers', {
         'reference_number': fields.String(required=True),

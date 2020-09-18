@@ -549,7 +549,7 @@ class UpdateCreditReportAccount(Resource):
         
         request_data = request.json        
         relevant_data = None
-        
+
         if 'security_question_id' in request_data:
             relevant_data = {
                 'security_question_id': request_data['security_question_id'],
@@ -581,11 +581,20 @@ class UpdateCreditReportAccount(Resource):
             return response_object, 409
 
         except ServiceProviderError as e:
-            response_object = {
-                'success': False,
-                'message': f'Cannot update Lead Credit Report Account due to a service provider issue, {str(e)}'
-            }
-            return response_object, 502
+            if 'Full SSN required' in str(e):
+                response_object = {
+                    'success': False,
+                    'message': f'Cannot update Credit Account due to Full SSN required.',
+                    'full_ssn_required': True
+                }
+                return response_object, 502
+                
+            else:
+                response_object = {
+                    'success': False,
+                    'message': f'Cannot update Credit Account due to a service provider issue, {str(e)}'
+                }
+                return response_object, 502
 
         except Exception as e:
             response_object = {
