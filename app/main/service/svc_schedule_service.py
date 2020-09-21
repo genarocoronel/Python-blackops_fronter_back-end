@@ -3,7 +3,8 @@ import datetime
 
 from app.main.core.errors import NotFoundError, NoDuplicateAllowed, BadRequestError
 from app.main import db
-from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleStatus
+from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleStatus, ServiceScheduleType
+from app.main.model.appointment import Appointment, AppointmentType
 from app.main.service.client_service import get_client_by_public_id
 from flask import current_app as app
 from flask import g
@@ -38,7 +39,6 @@ def update_svc_schedule(client, schedule_data):
     updated_items = []
     for sched_data_item in schedule_data:
         is_updated = False
-
         if 'public_id' not in sched_data_item:
             raise BadRequestError("'public_id' for a service schedule item is missing. Please correct this and try again")
 
@@ -49,12 +49,35 @@ def update_svc_schedule(client, schedule_data):
         if client.id is not sched_item_record.client_id:
             raise BadRequestError(f"Cannot update this schedule item with public ID {sched_item_record.public_id} as it doesn't belong to this Client")
         
+        # re-schedule not allowed for AUTO TXT 
+        if ServiceScheduleType.TEXT.value in sched_item_record.type: 
+            raise BadRequestError(f"Re-Schedule not allowed for AUTO Service TXT {sched_data_item['public_id']}") 
+
         if 'scheduled_for' in sched_data_item and sched_data_item['scheduled_for']:
             if sched_item_record.scheduled_for:
                 sched_item_record.tot_reschedule = sched_item_record.tot_reschedule + 1
             
             tmp_datetime = datetime.datetime.strptime(sched_data_item['scheduled_for'], '%Y-%m-%dT%H:%M:%S.%fZ')
             sched_item_record.scheduled_for = tmp_datetime
+
+            # service calls should be appointments
+            if ServiceScheduleType.CALL.value in sched_item_record.type:
+                # check the related appointment
+                appointment = sched_item_record.appointment
+                if appointment:
+                    # modified the appointment time
+                    appointment.scheduled_at = tmp_datetime
+                else:
+                    # create an appointment
+                    appointment =  Appointment(public_id=str(uuid.uuid4()),
+                                               client_id=client.id,
+                                               agent_id=client.account_manager_id,
+                                               scheduled_at=tmp_datetime,
+                                               summary=sched_item_record.type,
+                                               type=AppointmentType.SERVICE_CALL.name)  
+                    save_changes(appointment)
+                    sched_item_record.appointment_id = appointment.id
+            # updated
             is_updated = True
         
         if 'status' in sched_data_item and sched_data_item['status']:
@@ -64,16 +87,33 @@ def update_svc_schedule(client, schedule_data):
             sched_item_record.status = sched_data_item['status']
             is_updated = True
 
+            # TODO trigger apointment SM
+            if ServiceScheduleType.CALL.value in sched_item_record.type:
+                appointment = sched_item_record.appointment
+                if appointment:
+                    handler = "on_ss_{}".format(sched_data_item['status'])
+                    func = getattr(appointment, handler, None)
+                    if func:
+                        func()
+
+            # service call complete
+            if ServiceScheduleType.CALL.value in sched_item_record.type and ServiceScheduleStatus.COMPLETE.value in sched_data_item['status']:
+                # introduction call
+                if ServiceScheduleType.INTRO_CALL.value in sched_item_record.type:
+                    client.status = 'Acct Manager Intro Complete'
+                    # send mail
+                    app.queue.enqueue('app.main.tasks.mailer.send_intro_call',
+                                      client.id)
+                else:
+                    app.queue.enqueue('app.main.tasks.mailer.send_general_call_edms',
+                                      client.id) 
+                
+
         if is_updated:
             sched_item_record.updated_on = datetime.datetime.utcnow()
             sched_item_record.updated_by_username = g.current_user['username']
             save_changes(sched_item_record)
             updated_items.append(sched_item_record)
-
-            # introduction call
-            if 'Introduction Call' in sched_item_record.type and ServiceScheduleStatus.COMPLETE.value in sched_data_item['status']:
-                client.status = 'Acct Manager Intro Complete'
-                save_changes()
 
 
     return _synth_schedule(updated_items)
@@ -145,11 +185,16 @@ def _generate_boilerplate_svc_schedule(client):
     db.session.add(svc_sched1001)
     boilerplate_sched.append(svc_sched1001)
 
+    # 3 DAY Text - Auto
+    dt3 = datetime.datetime.utcnow() + datetime.timedelta(days=3)
+    # 12 Noon
+    dt3 = dt3.replace(hour=12, minute=0, second=0, microsecond=0)
     svc_sched1002  = ServiceSchedule(
         public_id = str(uuid.uuid4()),
         schedule_item = 1002,
         type = '3 Day Text',
         status = ServiceScheduleStatus.PENDING.value,
+        scheduled_for=dt3,
         client_id = client.id,
         inserted_on = datetime.datetime.utcnow(),
         updated_on = datetime.datetime.utcnow(),

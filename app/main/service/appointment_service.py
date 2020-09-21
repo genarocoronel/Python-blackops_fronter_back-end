@@ -25,16 +25,29 @@ class AppointmentWorkflow(Workflow):
         client_id = appt.client_id
         super().__init__(appt, agent_id, client_id) 
 
+    def _update_service_schedule(self, status):
+        appt = self._object
+        if appt.service_schedule:
+            svc_schedule = appt.service_schedule
+            svc_schedule.status = status
+            svc_schedule.updated_on = datetime.utcnow()
+            svc_schedule.updated_by_username = 'system'
+            db.session.commit()
+
     def on_missed(self):
         self._task_title = 'Missed Appointment'
         self._task_desc = 'Missed Appointment - Action Required'
 
         if self.status == AppointmentStatus.SCHEDULED.name:
             self.status = AppointmentStatus.MISSED.name
+            self._update_service_schedule(ServiceScheduleStatus.INCOMPLETE.value)
             appt = self._object
-            self.owner = appt.team_manager_id
+                
+            # TODO find the manager
             self._create_task()
             self.save()
+
+             
 
     def on_incomplete(self):
         self._task_title = 'Incomplete Appointment'
@@ -42,6 +55,7 @@ class AppointmentWorkflow(Workflow):
 
         if self.status == AppointmentStatus.SCHEDULED.name:
             self.status = AppointmentStatus.INCOMPLETE.name
+            self._update_service_schedule(ServiceScheduleStatus.INCOMPLETE.value)
             appt = self._object
             self.owner = appt.agent_id 
             self._create_task()
@@ -50,9 +64,9 @@ class AppointmentWorkflow(Workflow):
     def on_completed(self):
         if self.status == AppointmentStatus.SCHEDULED.name:
             self.status = AppointmentStatus.COMPLETED.name 
+            self._update_service_schedule(ServiceScheduleStatus.COMPLETE.value)
             self.save()
 
-            # send 
             appt = self._object
             client = appt.client
             if client.language == Language.SPANISH.name:
@@ -65,8 +79,6 @@ class AppointmentWorkflow(Workflow):
                                   failure_ttl=300)
 
 class AppointmentService(object):
-    allowed_roles = [RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP]
-    #serializer_class = TeamDto.team_request
     
     @classmethod
     def get(cls, appt_id):
@@ -75,7 +87,12 @@ class AppointmentService(object):
 
     @classmethod
     def list(cls):
-        appts = Appointment.query.all()        
+        user = get_request_user()
+        agents = [ user ]
+        # TODO Manager view
+        userids = [user.id for user in agents]
+        appts = Appointment.query.filter(Appointment.agent_id.in_(userids)).all()        
+        print(appts)
         return appts
 
     @classmethod
@@ -93,13 +110,13 @@ class AppointmentService(object):
             agent_id = client.account_manager_id
 
             appt = Appointment(public_id=str(uuid.uuid4()),
-                            client_id=client.id,
-                            agent_id=agent_id,
-                            scheduled_at=data.get('scheduled_at'),
-                            summary=data.get('summary'),
-                            loc_time_zone=data.get('loc_time_zone'),
-                            status=status.name,
-                            reminder_types=data.get('reminder_types'),)
+                               client_id=client.id,
+                               agent_id=agent_id,
+                               scheduled_at=data.get('scheduled_at'),
+                               summary=data.get('summary'),
+                               loc_time_zone=data.get('loc_time_zone'),
+                               status=status.name,
+                               reminder_types=data.get('reminder_types'),)
             db.session.add(appt)
             db.session.commit()
 

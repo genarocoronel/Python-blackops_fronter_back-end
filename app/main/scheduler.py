@@ -34,8 +34,8 @@ def register_jobs(scheduler):
                        description='kron: check_eft_status',
                        repeat=None)
 
-        # every day 12 PM, send payment reminders
-        scheduler.cron('0 12 * * *',
+        # every day 10 AM, send payment reminders
+        scheduler.cron('0 10 * * *',
                        func='app.main.tasks.debt_payment.process_upcoming_payments',
                        args=[],
                        description='kron: process_upcoming_payments',
@@ -46,6 +46,20 @@ def register_jobs(scheduler):
                        func='app.main.tasks.debt_dispute.on_timer_expiry',
                        args=[],
                        description='kron: debt dispute daily stus',
+                       repeat=None)
+
+        # schedule every minute
+        scheduler.cron('* * * * *',
+                        func='app.main.tasks.appointment.process_scheduled_appointments',
+                        args=[],
+                        description='kron: process scheduled appointments',
+                        repeat=None)
+
+        # every day 12 Noon
+        scheduler.cron('0 12 * * *',
+                       func='app.main.tasks.service_schedule.process_service_schedules',
+                       args=[],
+                       description='kron: proces service schedule',
                        repeat=None)
 
     except Exception as err:
