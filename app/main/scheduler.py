@@ -34,8 +34,8 @@ def register_jobs(scheduler):
                        description='kron: check_eft_status',
                        repeat=None)
 
-        # every day 10 AM, send payment reminders
-        scheduler.cron('0 10 * * *',
+        # every day 8 AM, send payment reminders
+        scheduler.cron('0 8 * * *',
                        func='app.main.tasks.debt_payment.process_upcoming_payments',
                        args=[],
                        description='kron: process_upcoming_payments',
@@ -55,8 +55,8 @@ def register_jobs(scheduler):
                         description='kron: process scheduled appointments',
                         repeat=None)
 
-        # every day 12 Noon
-        scheduler.cron('0 12 * * *',
+        # every day 10 AM
+        scheduler.cron('0 10 * * *',
                        func='app.main.tasks.service_schedule.process_service_schedules',
                        args=[],
                        description='kron: proces service schedule',

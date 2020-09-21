@@ -24,12 +24,12 @@ def process_service_schedules():
 
     ## CREDIT PULL
     # create a task 5 days before the service call  
-    dt_start = datetime.utcnow() + timedelta(days=5)
+    dt_start = datetime.utcnow() 
     schedules = ServiceSchedule.query.filter(and_(ServiceSchedule.status==ServiceScheduleStatus.PENDING.value,
                                                   ServiceSchedule.type.contains(ServiceScheduleType.CREDIT_PULL.value),
                                                   func.date(ServiceSchedule.scheduled_for) == dt_start.date())).all()
 
-    task_due = datetime.utcnow() + timedelta(days=4)
+    task_due = datetime.utcnow() + timedelta(hours=6)
     for schedule in schedules:
         client = schedule.client
         # account manager is not assigned
