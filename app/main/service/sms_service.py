@@ -359,10 +359,10 @@ def send_message_to_client(client_public_id, from_phone, message_body, to_phone 
     try:
         crm_mssg_data = sms_send(from_phone, destination_phone, message_body)
     except ConfigurationError as e:
-        current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
+        app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
         raise
     except ServiceProviderError as e:
-        current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
+        app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
         raise
 
     if crm_mssg_data:
@@ -417,10 +417,10 @@ def send_message_to_candidate(candidate_public_id, from_phone, message_body, to_
     try:
         crm_mssg_data = sms_send(from_phone, destination_phone, message_body)
     except ConfigurationError as e:
-        current_app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
+        app.logger.error('Bandwidth configuration Error: {}'.format(str(e)))
         raise
     except ServiceProviderError as e:
-        current_app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
+        app.logger.error('Bandwidth remote service Error: {}'.format(str(e)))
         raise
 
     if crm_mssg_data:
