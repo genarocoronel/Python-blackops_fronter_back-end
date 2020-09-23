@@ -47,7 +47,6 @@ client_dispositions = [
     {"value": 'Sales: Deal Rejected',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealRejected' },
     {"value": 'Sales: Request Cancellation Initiated',"select_type": 'AUTO', "name":'Sales_ActiveStatus_RequestCancellationInitiated' },
     {"value": 'Sales: Request Cancellation',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_RequestCancellation' },
-    {"value": 'Sales: Deal Complete',"select_type": 'MANUAL', "name":'Sales_ActiveStatus_DealComplete' },
     {"value": 'Service Issue:NSF',"select_type": 'AUTO', "name":'Service_ActiveStatus_NSF'},
     {"value": 'Service Issue:Draft/Banking Change',"select_type": 'MANUAL', "name":'Service_ActiveStatus_DraftBankingChange' },
     {"value": 'Service Issue:Program Change Request',"select_type": 'MANUAL', "name":'Service_ActiveStatus_ProgramChangeRequest' },

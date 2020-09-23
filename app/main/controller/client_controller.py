@@ -1221,3 +1221,24 @@ class ClientAddToRetention(Resource):
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
 
+@api.route('/<client_id>/action')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientExecuteAction(Resource):
+    @api.doc('execute client action')
+    @token_required
+    @user_has_permission('clients.update')
+    def post(self, client_id):
+        """ client action event """
+        try:
+            data = request.json
+            svc = ClientService(public_id=client_id)
+            svc.on_execute_action(data)
+            response_object = {
+                'success': True,
+                'message': f'Successfully executed client action'
+            }
+            return response_object, 200
+
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))

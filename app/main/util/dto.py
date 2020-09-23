@@ -665,15 +665,6 @@ class ClientDto:
     })
     last_action = api.model('last_action', {
         'id': fields.String(attribute='public_id'),
-        'auditable': fields.String(attribute='full_name', example='client'),
-        'auditable_subject_id': fields.String(attribute='auditable_subject_id', example='xzy123'),
-        'action': fields.Integer(attribute='', example='pulled credit report'),
-        'requestor_username': fields.Boolean(attribute='foo'),
-        'message': fields.String(attribute='Failed to get credit report'),
-        'created_on': fields.DateTime(required=False)
-    });
-    last_action = api.model('last_action', {
-        'id': fields.String(attribute='public_id'),
         'auditable': fields.String(required=True, description='The top-level Auditable type.'),
         'auditable_subject_pubid': fields.String(required=True, description='The top-level subject public ID.'),
         'action': fields.String(required=True, description='The action recorded', example='client.call.outbound'),

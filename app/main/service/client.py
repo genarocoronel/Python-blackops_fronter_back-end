@@ -4,6 +4,7 @@ from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from app.main.model.client import Client, ProgramStatus
 from app.main.model.user import User
 from app.main.model.rac import RACRole
+from app.main.model.audit import Audit, Auditable
 from app.main.core.rac import RACRoles
 from .apiservice import ApiService
 from app.main.channels.notification import TaskChannel, TeamRequestChannel
@@ -11,10 +12,14 @@ from flask import current_app as app
 from datetime import datetime, timedelta
 from sqlalchemy import and_
 from app.main import db
+import enum
 import uuid
 
 ## this file contains Class based services
 ## function based services -- client_service.py
+class ClientAction(enum.Enum):
+    DEAL_COMPLETE = 'Deal Complete'
+    DEAL_REJECT   = 'Deal Reject'
 
 class ClientService(ApiService):
     _model = Client
@@ -135,7 +140,49 @@ class ClientService(ApiService):
             db.session.commit()
             TeamRequestChannel.send(team_manager.id,
                                     tr)
-            
+    def _audit_action(self, action):
+        requestor = self._req_user
+        # create audit record
+        audit = Audit(public_id=str(uuid.uuid4()),
+                      inserted_on=datetime.utcnow(),
+                      auditable=Auditable.CLIENT.value,
+                      auditable_subject_pubid=self._client.public_id,
+                      action=action,
+                      requestor_id=requestor.id,
+                      message=action)
+
+        db.session.add(audit)
+        db.session.commit()
+
+
+    def _on_deal_complete(self, params=None):
+        client = self._client
+        if 'Service_ActiveStatus_AcctManagerIntroComplete' in client.status_name:
+            client.status_name = 'Sales_ActiveStatus_PendingFirstPayment'
+            self._audit_action(ClientAction.DEAL_COMPLETE.value)
+            db.session.commit()
+
+    def _on_deal_reject(self, params=None):
+        if 'Service_ActiveStatus_AcctManagerIntroComplete' in client.status_name:
+            client.status_name = 'Sales_ActiveStatus_DealRejected'
+            self._audit_action(ClientAction.DEAL_REJECT.value)
+            db.session.commit()
+
+    def on_execute_action(self, data):
+        action = data.get('action')
+        params = data.get('params')
+
+        if not action:
+            raise ValueError("Action not found")
+
+        if action not in ClientAction.__members__:
+            raise ValueError("Client action not supported")
+        
+        action_handler = "_on_{}".format(action.lower())
+        func = getattr(self, action_handler, None) 
+        if func:
+            func(params)
+
 
 # Client Tasks
 class ClientTaskService(ClientService):
