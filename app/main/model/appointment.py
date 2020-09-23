@@ -9,6 +9,11 @@ class AppointmentStatus(enum.Enum):
     INCOMPLETE = 'incomplete'
     COMPLETED = 'completed'
 
+class AppointmentType(enum.Enum):
+    SERVICE_CALL = 'service call'  # Auto service schedule 
+    MANUAL = 'manual assigned'  # manual assigned
+    SELF = 'self' # self created
+
 class Appointment(db.Model):
     """ Appointment Model for storing appointment details"""
     __tablename__ = 'appointments'
@@ -24,24 +29,36 @@ class Appointment(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='appointments_client_id_fkey'))
     # service/sales agent
     agent_id = db.Column(db.Integer, db.ForeignKey('users.id', name='appointments_agent_id_fkey'))
-    team_manager_id = db.Column(db.Integer, db.ForeignKey('users.id', name='appointments_team_manager_id_fkey'))
+
     # relationship
     client = db.relationship('Client', backref='appointments')
     agent = db.relationship('User', backref='appointments', foreign_keys=[agent_id])
-    team_manager = db.relationship('User', backref='team_appointments', foreign_keys=[team_manager_id])
     
     scheduled_at = db.Column(db.DateTime, nullable=False)
-    loc_time_zone = db.Column(db.String(50), nullable=False)
+    loc_time_zone = db.Column(db.String(50), nullable=True)
     # summary/title 
     summary = db.Column(db.String(255), nullable=False)
 
+    # appointment type
+    type = db.Column(db.String(24), nullable=True, default=AppointmentType.MANUAL.name)
+
     # status (appointmentstatus)
-    status = db.Column(db.String(64), nullable=False)
+    status = db.Column(db.String(64), nullable=False, default=AppointmentStatus.SCHEDULED.name)
     # reminder options
     # TODO change to relational object
     reminder_types = db.Column(db.String(64), nullable=True)
-    # revision fields
-    reminder_status = db.Column(db.JSON, default={'h1': False, 'd1': False})
+
+    # ON Service Schedule Complete
+    def on_ss_complete(self):
+        if self.status == AppointmentStatus.SCHEDULED.name:
+            self.status = AppointmentStatus.COMPLETED.name
+            db.session.commit() 
+
+    # ON Service Schedule InComplete
+    def on_ss_incomplete(self):
+        if self.status == AppointmentStatus.SCHEDULED.name:
+            self.status = AppointmentStatus.INCOMPLETE.name
+            db.session.commit() 
 
 class AppointmentNote(db.Model):
     """ db model for storing appointment notes"""

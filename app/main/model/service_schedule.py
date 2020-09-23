@@ -14,6 +14,11 @@ class ServiceScheduleStatus(enum.Enum):
         statuses = set(item.value for item in cls)
         return status in statuses
 
+class ServiceScheduleType(enum.Enum):
+    INTRO_CALL = 'Introduction Call'
+    CALL = 'Call' 
+    TEXT = 'Text'
+    CREDIT_PULL = 'Credit Pull'
 
 class ServiceSchedule(db.Model):
     """ Represents a Service Schedule """
@@ -33,3 +38,6 @@ class ServiceSchedule(db.Model):
 
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_svc_schedule_client_id'), nullable=True)
     client = db.relationship('Client', backref=backref('service_schedule', cascade="all, delete-orphan"))
+
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id', name='fk_svc_schedule_appointment_id'), nullable=True)
+    appointment = db.relationship('Appointment', backref='service_schedule', uselist=False)
