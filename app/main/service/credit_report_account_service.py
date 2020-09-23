@@ -45,7 +45,7 @@ def creport_account_signup(request_data: dict, internal_customer, customer_type:
     app.logger.info("Attempting to create customer with external Provider")
     password = Auth.generate_password(8)
     request_data.update({'password': password})
-    request_data['email'] = _generate_account_username(internal_customer)
+    request_data['email'] = creport_acc.email
     external_customer_info = create_customer(request_data, creport_acc.tracking_token,
                                         sponsor_code=app.smart_credit_sponsor_code)
 
