@@ -23,3 +23,6 @@ class Audit(db.Model):
     requestor_username = db.Column(db.String(20))
     message = db.Column(db.String(140))
     is_internal = db.Column(db.Boolean, default=False)
+
+    requestor_id = db.Column(db.Integer, db.ForeignKey('users.id', name='audit_requestor_id_fkey'))
+    requestor = db.relationship('User', backref='audited_items')
