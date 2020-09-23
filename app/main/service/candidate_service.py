@@ -121,7 +121,12 @@ def update_candidate(public_id, data):
                     # Do not udpate candidates.email with empty string, since it violates unique constraint
                     if data.get(attr) and data.get(attr) != '':
                         setattr(candidate, attr, data.get(attr))
-                    
+                elif attr == 'ssn4':
+                    if data.get(attr) and len(data.get(attr)) == 4:
+                        if candidate._ssn:
+                            setattr(candidate, "_ssn", candidate._ssn[:-4]+data.get(attr))
+                        else:
+                            setattr(candidate, "_ssn", data.get(attr))
                 else:
                     setattr(candidate, attr, data.get(attr))
 
