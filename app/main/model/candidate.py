@@ -84,6 +84,7 @@ class Candidate(db.Model):
     employment_status = db.Column(db.Enum(EmploymentStatus), nullable=True)
     dob = db.Column(db.DateTime, nullable=True)
     best_time = db.Column(db.String(5), nullable=True) # Best time to call
+    best_time_pos = db.Column(db.String(6), nullable=True) # Before/After/At
     estimated_debt = db.Column(db.Integer, nullable=False)
     loc_time_zone = db.Column(db.String(3), nullable=True) # PST/EST/etc.
     _ssn = db.Column('ssn', db.String(10), nullable=True)
@@ -106,7 +107,7 @@ class Candidate(db.Model):
     @property
     def ssn4(self):
         if self._ssn:
-            if len(self._ssn) > 5:
+            if len(self._ssn) > 3:
                 return self._ssn[-4:]            
         return ''
 

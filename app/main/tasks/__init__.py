@@ -7,6 +7,7 @@ import inflect
 from app.main import db
 from app.main.model.candidate import CandidateImport, CandidateImportStatus
 from app.main.model.task import ImportTask
+from app.main.model import Language
 from app.main.service.candidate_service import save_new_candidate
 from app.main.service.third_party.aws_service import download_from_imports
 from app.main.config import upload_location
@@ -99,7 +100,7 @@ def _parse_candidate_data(file_path, import_request):
                     'last_name': row[keys.index('LNAME')],
                     'middle_initial': row[keys.index('MI')],
                     'email': None,
-                    'language': 'unknown',
+                    'language': Language.ENGLISH.name,
                     'address': row[keys.index('ADDRESS')],
                     'city': row[keys.index('CITY')],
                     'state': row[keys.index('STATE')],
