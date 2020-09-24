@@ -2,6 +2,7 @@ import abc
 import datetime
 import email
 import json
+import logging
 import tempfile
 import uuid
 from dataclasses import dataclass
@@ -34,6 +35,8 @@ from app.main.service.communication_service import get_missed_call_event
 from app.main.service.customer_service import identify_customer_by_phone
 from app.main.service.user_service import get_user_by_mailbox_id
 from app.main.service.docproc_service import create_doc_from_fax
+
+comms_logger = logging.getLogger('comms_listener')
 
 TEMP_EMAIL_FILE = '/tmp/email.txt'
 PDF_FILE_TYPE = 'pdf'
@@ -94,7 +97,7 @@ class Handler(abc.ABC):
         return CommunicationData(employee, source_number, customer, destination_number)
 
     def _create_comm_records(self, communication_data: CommunicationData, communication_type: CommunicationType):
-        current_app.logger.info('Saving voice communication records')
+        comms_logger.info('Saving voice communication records')
 
         assert communication_data is not None
 
@@ -116,6 +119,7 @@ class Handler(abc.ABC):
         employee = next((entity for entity in (source, destination) if isinstance(entity, EMPLOYEE_TYPES)), None)
         employee_number = next((number for number in (source_number, destination_number) if number and number.national_number == pbx_number), None)
 
+        comms_logger.info(f'Communication record is being associated to PBX System {self.pbx_system_name}')
         pbx_system = PBXSystem.query.filter_by(name=self.pbx_system_name).one_or_none()
 
         if communication_type in [VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL]:
@@ -124,15 +128,15 @@ class Handler(abc.ABC):
 
             if VoiceCommunicationType.RECORDING == communication_type and missed_call_event:
                 # Not saving the recording since this was a missed call. Voicemail will be captured and saved
-                current_app.logger.warn(f"Recording is being discarded since a matching missed all event was found.")
+                comms_logger.warning(f"Recording is being discarded since a matching missed all event was found.")
                 return
 
             if VoiceCommunicationType.VOICEMAIL == communication_type and missed_call_event:
-                current_app.logger.info(f"Found missed call event with public_id '{missed_call_event.public_id}' for {communication_type.value}.")
+                comms_logger.info(f"Found missed call event with public_id '{missed_call_event.public_id}' for {communication_type.value}.")
                 missed_call_event.status = CallEventType.MISSED_VOICEMAIL
                 db.session.add(missed_call_event)
             else:
-                current_app.logger.warn(
+                comms_logger.warn(
                     f'Unable to find corresponding missed call event for {communication_type.value} received. {communication_type.value.capitalize}:\n{communication_data}')
 
             new_voice_comm = VoiceCommunication(
@@ -170,7 +174,7 @@ class Handler(abc.ABC):
                     new_candidate_communication = CandidateVoiceCommunication(candidate=customer, voice_communication=new_voice_comm)
                     db.session.add(new_candidate_communication)
                 else:
-                    current_app.logger.warning(f'Unsupported customer type of ${type(customer)} found!')
+                    comms_logger.warning(f'Unsupported customer type of ${type(customer)} found!')
 
             if employee:
                 new_employee_communication = UserVoiceCommunication(user=employee, voice_communication=new_voice_comm)
@@ -209,7 +213,7 @@ class Handler(abc.ABC):
                     new_candidate_communication = CandidateFaxCommunication(candidate=customer, fax_communication=new_fax_comm)
                     db.session.add(new_candidate_communication)
                 else:
-                    current_app.logger.warning(f'Unsupported customer type of ${type(customer)} found!')
+                    comms_logger.warning(f'Unsupported customer type of ${type(customer)} found!')
 
             if employee:
                 new_employee_communication = UserFaxCommunication(user=employee, fax_communication=new_fax_comm)
@@ -219,7 +223,7 @@ class Handler(abc.ABC):
             db.session.commit()
         except Exception as e:
             db.session.rollback()
-            current_app.logger.error(f'Failed to save voice recording: Error: {e}')
+            comms_logger.error(f'Failed to save voice recording: Error: {e}')
             raise Exception('Failed to save voice recording!')
 
 
@@ -261,9 +265,9 @@ class JiveFaxHandler(Handler):
         fax_object_key = f'{received_date.strftime("%Y-%m-%dT%H%M%S")}~fax~{uuid.uuid4()}.{fax_filename.split(".")[-1]}'
 
         with open(f'/tmp/{fax_filename}', 'rb') as data:
-            current_app.logger.debug(f'Uploading file to bucket \'{bucket_name}\'')
+            comms_logger.debug(f'Uploading file to bucket \'{bucket_name}\'')
             s3.upload_fileobj(data, bucket_name, fax_object_key)
-            current_app.logger.debug(f'Fax file {fax_filename} uploaded to S3 bucket {bucket_name} with key {fax_object_key}')
+            comms_logger.debug(f'Fax file {fax_filename} uploaded to S3 bucket {bucket_name} with key {fax_object_key}')
 
         communication_data = self._build_communication_data(source_number, destination_number)
         communication_data.receive_date = received_date.astimezone(pytz.UTC)
@@ -272,7 +276,7 @@ class JiveFaxHandler(Handler):
         communication_data.s3_object_key = fax_object_key
 
         self._create_comm_records(communication_data, TextCommunicationType.FAX)
-        current_app.logger.info('Fax capture completed!')
+        comms_logger.info('Fax capture completed!')
 
         create_doc_from_fax(communication_data.s3_object_key)
 
@@ -286,10 +290,10 @@ class JiveVoicemailHandler(Handler):
     HANDLER_NAME = 'jive-voicemail-handler'
 
     def handle(self, message):
-        current_app.logger.info('Handling PBX voicemail recording...')
+        comms_logger.info('Handling PBX voicemail recording...')
 
         if not isinstance(message, email.message.Message):
-            current_app.logger.error(f'Unexpected message of type \'{type(message)}\' was received')
+            comms_logger.error(f'Unexpected message of type \'{type(message)}\' was received')
             raise Exception('Expected to process email.message.Message object')
 
         part = find_part_by_content_type(message, "text/html")
@@ -322,9 +326,9 @@ class JiveVoicemailHandler(Handler):
         voicemail_object_key = f'{received_date.strftime("%Y-%m-%dT%H%M%S")}~voicemail~{uuid.uuid4()}.{audio_filename.split(".")[-1]}'
 
         with open(f'/tmp/{audio_filename}', 'rb') as data:
-            current_app.logger.debug(f'Uploading voicemail file {audio_filename} to S3 bucket {bucket_name} with key {voicemail_object_key}')
+            comms_logger.debug(f'Uploading voicemail file {audio_filename} to S3 bucket {bucket_name} with key {voicemail_object_key}')
             s3.upload_fileobj(data, bucket_name, voicemail_object_key)
-            current_app.logger.debug(f'Voicemail file successfully uploaded')
+            comms_logger.debug(f'Voicemail file successfully uploaded')
 
         communication_data = self._build_communication_data(source_number, None, employee_mailbox_id=dest_mailbox)
         communication_data.receive_date = received_date.astimezone(pytz.UTC)
@@ -334,15 +338,15 @@ class JiveVoicemailHandler(Handler):
         communication_data.s3_object_key = voicemail_object_key
 
         self._create_comm_records(communication_data, VoiceCommunicationType.VOICEMAIL)
-        current_app.logger.info('Voicemail capture completed!')
+        comms_logger.info('Voicemail capture completed!')
 
 
 class JiveEmailHandler(Handler):
     HANDLER_NAME = 'jive-email-handler'
 
     def handle(self, message):
-        current_app.logger.info('Handling PBX email...')
-        current_app.logger.debug(f'Received message:\n{message}')
+        comms_logger.info('Handling PBX email...')
+        comms_logger.debug(f'Received message:\n{message}')
 
         # TODO: Only allow whitelisted source emails to continue for processing
 
@@ -380,8 +384,8 @@ class JiveRecordingHandler(Handler):
     HANDLER_NAME = 'jive-recording-handler'
 
     def handle(self, message):
-        current_app.logger.info('Handling PBX voice recording...')
-        current_app.logger.debug(f'Received message:\n{message}')
+        comms_logger.info('Handling PBX voice recording...')
+        comms_logger.debug(f'Received message:\n{message}')
 
         queue_message = json.loads(message.get('Message'))
         records = queue_message['Records']
@@ -389,7 +393,7 @@ class JiveRecordingHandler(Handler):
             bucket_name = record['s3']['bucket']['name']
             object_key = unquote(record['s3']['object']['key'])
             file_size_bytes = record['s3']['object']['size']
-            current_app.logger.info(f'Processing object in S3 bucket \'{bucket_name}\' and object key \'{object_key}\'...')
+            comms_logger.info(f'Processing object in S3 bucket \'{bucket_name}\' and object key \'{object_key}\'...')
 
             s3 = boto3.client('s3')
             response = s3.head_object(Bucket=bucket_name, Key=object_key)
@@ -421,7 +425,7 @@ class JiveRecordingHandler(Handler):
             communication_data.s3_object_key = object_key
             self._create_comm_records(communication_data, VoiceCommunicationType.RECORDING)
 
-        current_app.logger.info('Voice recordings capture completed!')
+        comms_logger.info('Voice recordings capture completed!')
 
 
 class UnprocessableMessageException(Exception):
@@ -434,7 +438,7 @@ class JiveListener(SqsListener):
         handler_info = current_app.comms_topic_to_handler_map.get(topic_source, None)
 
         if handler_info is None:
-            current_app.logger.error(f'Received unknown message: Message:\n{message}')
+            comms_logger.error(f'Received unknown message: Message:\n{message}')
             raise Exception('Unknown message encountered. Unable to process.')
 
         handlers = (cls for cls in Handler.__subclasses__())
@@ -442,7 +446,7 @@ class JiveListener(SqsListener):
             if handler_info['handler_name'] == handler.HANDLER_NAME:
                 return handler(handler_info['pbx_system_name'])
 
-        current_app.logger.warn(f'Missing handler with name: {handler_info["handler_name"]}')
+        comms_logger.warning(f'Missing handler with name: {handler_info["handler_name"]}')
         raise Exception(f'Missing Handler: {handler_info["handler_name"]}')
 
     def handle_message(self, body, attributes, messages_attributes):
@@ -450,23 +454,23 @@ class JiveListener(SqsListener):
             handler = self._identify_handler(body)
             handler.handle(body)
         except UnprocessableMessageException:
-            current_app.logger.error('Unprocessable message received')
+            comms_logger.error('Unprocessable message received')
             return
 
 
 def _verify_configuration():
     if current_app.comms_topic_to_handler_map is None:
-        current_app.logger.error('Missing configuration from environment: COMMS_HANDLER_MAP')
+        comms_logger.error('Missing configuration from environment: COMMS_HANDLER_MAP')
         raise Exception('Missing required Config: COMMS_HANDLER_MAP')
     else:
-        current_app.logger.info(f'ENV[COMMS_HANDLER_MAP] = {current_app.comms_topic_to_handler_map}')
+        comms_logger.info(f'ENV[COMMS_HANDLER_MAP] = {current_app.comms_topic_to_handler_map}')
 
 
 def run():
     _verify_configuration()
-    current_app.logger.info("Initializing listener")
+    comms_logger.info("Initializing listener")
     listener = JiveListener('jive-listener', region_name='us-west-2', interval=10, queue_url=current_app.jive_queue_url)
-    current_app.logger.info(f'Listening to {current_app.jive_queue_url}')
+    comms_logger.info(f'Listening to {current_app.jive_queue_url}')
     listener.listen()
 
 
