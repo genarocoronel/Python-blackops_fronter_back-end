@@ -367,12 +367,12 @@ class JiveEmailHandler(Handler):
                 content_type = part.get_content_maintype()
                 sub_content_type = part.get_content_subtype()
                 if content_type == AUDIO_FILE_TYPE:
-                    voicemail_handler = JiveVoicemailHandler()
+                    voicemail_handler = JiveVoicemailHandler(self.pbx_system_name)
                     voicemail_handler.handle(email_message)
                     break
 
                 if sub_content_type == PDF_FILE_TYPE:
-                    fax_handler = JiveFaxHandler()
+                    fax_handler = JiveFaxHandler(self.pbx_system_name)
                     fax_handler.handle(email_message)
                     break
 
