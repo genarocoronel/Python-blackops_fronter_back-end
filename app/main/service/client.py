@@ -163,6 +163,7 @@ class ClientService(ApiService):
             db.session.commit()
 
     def _on_deal_reject(self, params=None):
+        client = self._client
         if 'Service_ActiveStatus_AcctManagerIntroComplete' in client.status_name:
             client.status_name = 'Sales_ActiveStatus_DealRejected'
             self._audit_action(ClientAction.DEAL_REJECT.value)
