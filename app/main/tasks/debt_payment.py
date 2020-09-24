@@ -27,6 +27,9 @@ def register_customer(client_id):
         client_address = Address.query.filter_by(client_id=client.id, type=AddressType.CURRENT).first()
         if client_address is None:
             raise ValueError("Client Address is not found")
+        if client.dob is None:
+            raise ValueError("Client DOB is required for EPPS registration")
+
         # fetch the phone numbers
         phone_numbers = {}
         client_contact_numbers = client.contact_numbers
@@ -45,7 +48,7 @@ def register_customer(client_id):
         card.first_name = client.first_name
         card.last_name = client.last_name
         card.dob = client.dob
-        card.ssn = client.ssn
+        card.ssn = client.ssn if client.ssn else ''
         card.street = client_address.address1
         card.city = client_address.city
         card.state = client_address.state
