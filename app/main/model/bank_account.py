@@ -8,6 +8,8 @@ class BankAccountType(enum.Enum):
 
 class AccountOwnerType(enum.Enum):
     CLIENT = 'client'
+    CO_CLIENT = 'co-client'
+    THIRD_PARTY = 'third party'
 
 class StatusCategory(enum.Enum):
     passed = "passed"
