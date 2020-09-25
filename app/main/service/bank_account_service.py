@@ -72,7 +72,7 @@ def create_bank_account(client, data):
             if acct_type is None or acct_type not in BankAccountType.__members__:
                 acct_type = BankAccountType.checking
             acct_owner_type = data.get('owner_type')
-            if acct_owner_type is None or acct_owner_type not in AccountOwnerType.__members__:
+            if acct_owner_type not in [aot.value for aot in AccountOwnerType.__members__.values()]:
                 acct_owner_type = AccountOwnerType.CLIENT.value
             bank_name = result.get('bank_name')
             if bank_name is None:
