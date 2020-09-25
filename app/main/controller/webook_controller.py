@@ -29,6 +29,16 @@ class WebhookResource(Resource):
     PBX_ID	ID of the PBX receiving the call (in POST Body = Y)
     """
 
+    def _get_call_id(self, request):
+        request_data = request.form
+        pbx_call_id = request_data.get('call_id', None) or request_data.get('CALL_ID', None)
+
+        assert pbx_call_id is not None
+
+        app.logger.info(f"Initiated Call event notification received for PBX Call ID '{pbx_call_id}'")
+        app.logger.debug(f"Notification Message: \n{request_data}")
+        return pbx_call_id
+
     def _get_call_numbers(self, request):
         args = request.args
         form = request.form
@@ -80,12 +90,7 @@ class CallInitiatedWebhookResource(WebhookResource):
     @api.expect(_call_initiated_notification, validate=True)
     def post(self):
         """ Webhook for notifying a Call has been initiated from the PBX provider """
-        request_data = request.form
-        pbx_call_id = request_data.get('call_id', None) or request_data.get('CALL_ID', None)
-        assert pbx_call_id is not None
-        app.logger.info(f"Initiated Call event notification received for PBX Call ID '{pbx_call_id}'")
-        app.logger.debug(f"Notification Message: \n{request_data}")
-
+        pbx_call_id = self._get_call_id(request)
         self._create_or_update_call_event(pbx_call_id, request, CallEventType.INITIATED)
 
         # return '', 204
@@ -102,10 +107,8 @@ class CallMissedWebhookResource(WebhookResource):
     @api.expect(_call_missed_notification, validate=True)
     def post(self):
         """ Webhook for notifying a Call has been missed from the PBX provider """
-        request_data = request.json
-        pbx_call_id = request_data.get('call_id')
-        app.logger.info(f"Missed Call event notification received for PBX Call ID '{pbx_call_id}'")
-        app.logger.debug(f"Notification Message: \n{request_data}")
+        pbx_call_id = self._get_call_id(request)
+        self._create_or_update_call_event(pbx_call_id, request, CallEventType.INITIATED)
 
         self._create_or_update_call_event(pbx_call_id, request, CallEventType.GOING_TO_VOICEMAIL)
 
