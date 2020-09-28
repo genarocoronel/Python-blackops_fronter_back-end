@@ -358,6 +358,7 @@ _communication = {
     'outside_number': fields.Integer(required=False),
     'receive_date': fields.DateTime(required=True),
     'body_text': fields.String(required=False),
+    'message_media_public_id': fields.String(required=False),
     'duration_seconds': fields.Integer(required=False),
     'file_size_bytes': fields.Integer(required=False),
     'file_bucket_name': fields.String(required=False),
