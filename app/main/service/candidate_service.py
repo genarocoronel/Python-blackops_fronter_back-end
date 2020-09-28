@@ -107,7 +107,7 @@ def update_candidate(public_id, data):
                     # Do not update if disposition is unchanged, especially for internally managed dipositions
                     if desired_disposition.id != candidate.disposition_id:
                         user_role = g.current_user['rac_role']
-                        if user_role == RACRoles.ADMIN.value or user_role == RACRoles.SUPER_ADMIN.value or desired_disposition.select_type == CandidateDispositionType.MANUAL:
+                        if user_role == RACRoles.ADMIN.value or user_role == RACRoles.SUPER_ADMIN.value or desired_disposition.select_type == CandidateDispositionType.MANUAL or desired_disposition.name == 'Opener_ActiveWorkingLead':
                             setattr(candidate, 'disposition_id', desired_disposition.id)
 
                         else:
