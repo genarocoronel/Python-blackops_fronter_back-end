@@ -32,6 +32,7 @@ class TextMessage:
     destination_number: int
     outside_number: int
     body_text: str
+    message_media_public_id: str
     receive_date: datetime.datetime
     inserted_on: datetime.datetime
     is_viewed: bool
@@ -62,6 +63,10 @@ def _normalize_sms_comms(sms_comms: List[SMSMessage]):
             dest_number = sms.from_phone
             outside_number = sms.from_phone
 
+        sms_media_public_id = None
+        if sms.sms_media_files:
+            sms_media_public_id = sms.sms_media_files[0].public_id
+
         comms.append(TextMessage(**{
             'public_id': sms.public_id,
             'type': TextCommunicationType.SMS,
@@ -69,6 +74,7 @@ def _normalize_sms_comms(sms_comms: List[SMSMessage]):
             'destination_number': dest_number,
             'outside_number': outside_number,
             'body_text': sms.body_text,
+            'message_media_public_id': sms_media_public_id,
             'receive_date': sms.inserted_on,
             'inserted_on': sms.inserted_on,
             'is_viewed': sms.is_viewed
