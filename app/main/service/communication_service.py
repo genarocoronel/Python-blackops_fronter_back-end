@@ -227,7 +227,14 @@ def get_communication_records(request_filter: Mapping[str, Any],
     result.extend(get_opener_communication_records(request_filter, comm_types_set, candidates, date_filter_fields))
     result.extend(get_sales_and_service_communication_records(request_filter, comm_types_set, clients, date_filter_fields))
 
-    return result
+    seen_results = set()
+    unique_results = []
+    for result_item in result:
+        if result_item.public_id not in seen_results:
+            unique_results.append(result_item)
+            seen_results.add(result_item.public_id)
+
+    return unique_results
 
 
 def get_opener_communication_records(request_filter: Mapping[str, Any],
