@@ -8,12 +8,13 @@ from app.main.model.audit import Audit, Auditable
 from app.main.core.rac import RACRoles
 from .apiservice import ApiService
 from app.main.channels.notification import TaskChannel, TeamRequestChannel
-from flask import current_app as app
 from datetime import datetime, timedelta
 from sqlalchemy import and_
 from app.main import db
+import app.main.service.workflow as workflow
 import enum
 import uuid
+from flask import current_app as app
 
 ## this file contains Class based services
 ## function based services -- client_service.py
@@ -56,20 +57,9 @@ class ClientService(ApiService):
                                    client.id, failure_ttl=300)
 
                 # create a task to call client
-                due = datetime.utcnow() + timedelta(hours=24)
-                task = UserTask(assign_type=TaskAssignType.AUTO,
-                                owner_id=user.id, 
-                                priority=TaskPriority.MEDIUM.name,
-                                title='Call Client',
-                                description='Call Client: Confirm Request Cancellation',
-                                due_date=due,
-                                client_id=self._client.id,
-                                object_type='Client',
-                                object_id=self._client.id)
-                db.session.add(task)
-                # notify the task
-                TaskChannel.send(user.id,
-                                 task) 
+                wflow = workflow.GenericWorkflow(client, 'Client', client)
+                wflow.create_task('Call Client', 'Call Client: Confirm Request Cancellation')
+
                 # check if payment is already processed
                 dps = DebtPaymentSchedule.query.outerjoin(DebtPaymentContract)\
                                                .filter(and_(DebtPaymentContract.client_id==client.id, DebtPaymentSchedule.status==DebtEftStatus.SEND_TO_EFT.name)).first()                

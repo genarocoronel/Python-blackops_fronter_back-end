@@ -7,76 +7,12 @@ from app.main.model.appointment import Appointment, AppointmentStatus, Appointme
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from dateutil.parser import parse as dt_parse
 from app.main.channels.notification import TaskChannel
-from app.main.service.workflow import Workflow
+import app.main.service.workflow as workflow
 from app.main.model.client import Client
 from app.main.service.user_service import get_request_user
 from app.main.model import Language
 from flask import current_app as app
 
-
-class AppointmentWorkflow(Workflow):
-    _task_assign_type = TaskAssignType.AUTO
-    _task_due = 24 ## task expiry in hours
-    _task_priority = TaskPriority.MEDIUM
-    _task_ref_type = 'Appointment'
-
-    def __init__(self, appt):
-        agent_id = appt.agent_id 
-        client_id = appt.client_id
-        super().__init__(appt, agent_id, client_id) 
-
-    def _update_service_schedule(self, status):
-        appt = self._object
-        if appt.service_schedule:
-            svc_schedule = appt.service_schedule
-            svc_schedule.status = status
-            svc_schedule.updated_on = datetime.utcnow()
-            svc_schedule.updated_by_username = 'system'
-            db.session.commit()
-
-    def on_missed(self):
-        self._task_title = 'Missed Appointment'
-        self._task_desc = 'Missed Appointment - Action Required'
-
-        if self.status == AppointmentStatus.SCHEDULED.name:
-            self.status = AppointmentStatus.MISSED.name
-            self._update_service_schedule(ServiceScheduleStatus.INCOMPLETE.value)
-            appt = self._object
-                
-            # TODO find the manager
-            self._create_task()
-            self.save()
-
-             
-
-    def on_incomplete(self):
-        self._task_title = 'Incomplete Appointment'
-        self._task_desc = 'Appointment marked Incomplete - Action Required'
-
-        if self.status == AppointmentStatus.SCHEDULED.name:
-            self.status = AppointmentStatus.INCOMPLETE.name
-            self._update_service_schedule(ServiceScheduleStatus.INCOMPLETE.value)
-            appt = self._object
-            self.owner = appt.agent_id 
-            self._create_task()
-            self.save()
-
-    def on_completed(self):
-        if self.status == AppointmentStatus.SCHEDULED.name:
-            self.status = AppointmentStatus.COMPLETED.name 
-            self._update_service_schedule(ServiceScheduleStatus.COMPLETE.value)
-            self.save()
-
-            appt = self._object
-            client = appt.client
-            if client.language == Language.SPANISH.name:
-                app.queue.enqueue('app.main.tasks.mailer.send_spanish_general_call',  # task routine
-                                  client.id, # client id
-                                  failure_ttl=300)
-            else:
-                app.queue.enqueue('app.main.tasks.mailer.send_general_call_edms',  # task routine
-                                  client.id, # client id
-                                  failure_ttl=300)
 
 class AppointmentService(object):
     
@@ -155,7 +91,7 @@ class AppointmentService(object):
             # change the status  
             if status and status in AppointmentStatus.__members__:
                 handler = "on_{}".format(status.lower())
-                wf = AppointmentWorkflow(appt)
+                wf = workflow.AppointmentWorkflow(appt)
                 func = getattr(wf, handler, None)
                 if func: 
                     func()     

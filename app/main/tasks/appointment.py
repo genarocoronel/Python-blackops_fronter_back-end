@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from app.main.tasks.mailer import send_hour1_appointment_reminder, send_day1_appointment_reminder, send_day3_reminder 
 from sqlalchemy import and_
 from app.main import db
+import app.main.service.workflow as workflow
 
 
 """
@@ -37,7 +38,6 @@ def process_scheduled_appointments():
         send_day1_appointment_reminder(client.id,
                                        appointment.id)
 
-
     ## MISSED APPTS
     # if appointment status is not updated after 60 mins
     # change status to missed 
@@ -47,7 +47,5 @@ def process_scheduled_appointments():
                               .filter(and_(Appointment.status==AppointmentStatus.SCHEDULED.name, 
                                            Appointment.scheduled_at < dt_offset)).all()
     for appt in appointments:
-        appt.status = AppointmentStatus.MISSED.name
-        # TO: add task to the manager 
-    db.session.commit()
-        
+        wflow = workflow.AppointmentWorkflow(appt)
+        wflow.on_missed() 

@@ -9,9 +9,9 @@ from app.main.model.debt_payment import DebtPaymentSchedule
 from app.main.model.address import Address, AddressType
 from app.main import db
 from datetime import datetime
-from app.main.service.email_service import send_mail
-from app.main.service.fax_service import send_fax
-from app.main.service.sms_service import send_message_to_client
+from app.main.service import email_service
+from app.main.service import fax_service
+from app.main.service import sms_service 
 from headless_pdfkit import generate_pdf
 from app.main.service.third_party.aws_service import upload_to_docproc
 from app.main.model.docproc import DocprocChannel, Docproc
@@ -167,9 +167,9 @@ class TemplateMailManager(object):
                 attachments = [pdfdoc, ]
                 # to address
                 to_addr = self.debt.debt_collector.fax
-                send_fax(self.debt.debt_collector.fax,
-                         self._tmpl.subject,
-                         attachments)             
+                fax_service.send_fax(self.debt.debt_collector.fax,
+                                     self._tmpl.subject,
+                                     attachments)             
 
             # upload files to S3
             upload_to_docproc(pdfdoc, doc_name) 
@@ -219,11 +219,11 @@ class TemplateMailManager(object):
             params = self._to_dict()
             html = render_template(template_file_path, **params)        
         
-            send_mail(app.config['TMPL_DEFAULT_FROM_EMAIL'], 
-                      [dest,] , 
-                      self._tmpl.subject, 
-                      html=html, 
-                      attachments=attachments)
+            email_service.send_mail(app.config['TMPL_DEFAULT_FROM_EMAIL'], 
+                                    [dest,] , 
+                                    self._tmpl.subject, 
+                                    html=html, 
+                                    attachments=attachments)
 
             doc_name = "{}_{}_{}.pdf".format(self._tmpl.action.lower(), # action
                                              self.client.id, # client id
@@ -285,10 +285,10 @@ class TemplateMailManager(object):
             params = self._to_dict()
             msg_body = render_template(template_file_path, **params)
             # send SMS 
-            send_message_to_client(client_public_id=self.client.public_id,
-                                   from_phone=app.config['TMPL_DEFAULT_FROM_SMS'], # from,
-                                   message_body=msg_body,
-                                   to_phone=None) 
+            sms_service.send_message_to_client(client_public_id=self.client.public_id,
+                                               from_phone=app.config['TMPL_DEFAULT_FROM_SMS'], # from,
+                                               message_body=msg_body,
+                                               to_phone=None) 
             
             # upload to AWS and add to document store
             doc_name = "{}_{}_{}.txt".format(self._tmpl.action.lower(), # action

@@ -30,6 +30,7 @@ class WorkerChannel(object):
         if sockio is None:
             # error
             app.logger.warning("Worker channel is not initialized")
+            return
 
         # fetch room-id for userid
         u_key = "channels:user:{}".format(user_id)

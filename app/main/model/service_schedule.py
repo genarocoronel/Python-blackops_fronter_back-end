@@ -40,4 +40,3 @@ class ServiceSchedule(db.Model):
     client = db.relationship('Client', backref=backref('service_schedule', cascade="all, delete-orphan"))
 
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id', name='fk_svc_schedule_appointment_id'), nullable=True)
-    appointment = db.relationship('Appointment', backref='service_schedule', uselist=False)
