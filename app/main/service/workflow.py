@@ -1,4 +1,3 @@
-from flask import current_app as app
 from app.main import db
 from app.main.model.debt_payment import DebtPaymentSchedule, DebtPaymentContractCreditData, DebtEftStatus, ContractStatus, RevisionStatus 
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
@@ -6,16 +5,20 @@ from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from app.main.model.docproc import DocprocStatus
 from app.main.model.client import ClientType, ProgramStatus
 from app.main.model.sales_board import SalesFlow
+from app.main.model.appointment import AppointmentStatus
+from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleStatus, ServiceScheduleType
+from app.main.model.user import User
+from app.main.model.rac import RACRole
+from app.main.core.rac import RACRoles
 from dateutil.relativedelta import relativedelta
 from app.main.channels.notification import TaskChannel
 from app.main.tasks import channel as wkchannel
 from sqlalchemy import desc, asc, and_
 from datetime import datetime, timedelta
-from app.main.tasks import debt_payment as pymt_tasks
-from app.main.tasks.mailer import send_welcome_letter, send_spanish_welcome_letter, send_privacy_policy
-from app.main.tasks import docusign
-from app.main.service.svc_schedule_service import create_svc_schedule
-from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleStatus
+import app.main.tasks.docusign as docusign
+import app.main.service.svc_schedule_service as svc_schedule_service
+
+from flask import current_app as app
 
 """
 Base Workflow class
@@ -89,8 +92,89 @@ class GenericWorkflow(Workflow):
         self._task_desc = desc
         self._create_task()
     
+class AppointmentWorkflow(Workflow):
+    _task_assign_type = TaskAssignType.AUTO
+    _task_due = 24 ## task expiry in hours
+    _task_priority = TaskPriority.MEDIUM
+    _task_ref_type = 'Appointment'
 
-## Doc processing workflow
+    def __init__(self, appt):
+        agent_id = appt.agent_id
+        client_id = appt.client_id
+        super().__init__(appt, agent_id, client_id)
+
+    def _update_service_schedule(self, status):
+        appt = self._object
+        if appt.service_schedule:
+            svc_schedule = appt.service_schedule
+            svc_schedule.status = status
+            svc_schedule.updated_on = datetime.utcnow()
+            svc_schedule.updated_by_username = 'system'
+            db.session.commit()
+
+    def on_missed(self):
+        self._task_title = 'Missed Appointment'
+        self._task_desc = 'Missed Appointment - Action Required'
+
+        if self.status == AppointmentStatus.SCHEDULED.name:
+            self.status = AppointmentStatus.MISSED.name
+            self._update_service_schedule(ServiceScheduleStatus.INCOMPLETE.value)
+            appt = self._object
+
+            svc_mgr = User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()
+            if svc_mgr:
+                self.owner = svc_mgr.id
+                # TODO find the manager
+                self._create_task()
+                self.save()
+
+    def on_incomplete(self, is_ss_triggered=False):
+        self._task_title = 'Incomplete Appointment'
+        self._task_desc = 'Appointment marked Incomplete - Action Required'
+
+        if self.status == AppointmentStatus.SCHEDULED.name:
+            self.status = AppointmentStatus.INCOMPLETE.name
+            if is_ss_triggered is False:
+                self._update_service_schedule(ServiceScheduleStatus.INCOMPLETE.value)
+            appt = self._object
+            self.owner = appt.agent_id
+            self._create_task()
+            self.save()
+
+    def on_completed(self, is_ss_triggered=False):
+        if self.status == AppointmentStatus.SCHEDULED.name:
+            self.status = AppointmentStatus.COMPLETED.name
+            if is_ss_triggered is False:
+                self._update_service_schedule(ServiceScheduleStatus.COMPLETE.value)
+            self.save()
+
+            appt = self._object
+            client = appt.client
+            if appt.service_schedule:
+                if ServiceScheduleType.INTRO_CALL.value in appt.service_schedule.type:
+                    client.status = 'Acct Manager Intro Complete'
+                    db.session.commit()
+                    app.queue.enqueue('app.main.tasks.mailer.send_intro_call',
+                                      client.id, failure_ttl=300)
+                    return
+
+            if client.language == Language.SPANISH.name:
+                app.queue.enqueue('app.main.tasks.mailer.send_spanish_general_call',  # task routine
+                                  client.id, # client id
+                                  failure_ttl=300)
+            else:
+                app.queue.enqueue('app.main.tasks.mailer.send_general_call_edms',  # task routine
+                                  client.id, # client id
+                                  failure_ttl=300)
+    
+    def on_ss_complete(self):
+        self.on_completed(is_ss_triggered=True)
+
+    def on_ss_incomplete(self):
+        self.on_incomplete(is_ss_triggered=True)
+
+
+# processing workflow
 class DocprocWorkflow(Workflow):
     _task_due = 24 ## task expiry in hours
     _task_assign_type = TaskAssignType.AUTO
@@ -281,7 +365,8 @@ def create_workflow(code, contract, revision=None):
                 self.save()
                 # add epps customer
                 # register client with EPPS provider
-                pymt_tasks.register_customer(self._client_id)
+                app.queue.enqueue('app.main.tasks.debt_payment.register_customer',
+                                  self._client_id, failure_ttl=300)
                 ## send email  
                 ## welcome letter
                 app.queue.enqueue('app.main.tasks.mailer.send_welcome_letter',
@@ -294,7 +379,7 @@ def create_workflow(code, contract, revision=None):
 
                 
                 # Create initial service schedule for the client
-                create_svc_schedule(client)
+                svc_schedule_service.create_svc_schedule(client)
                 client.status = 'Assign to Acct Manager'
                 client.program_status = ProgramStatus.SIGNED.name
 
@@ -516,6 +601,10 @@ def create_workflow(code, contract, revision=None):
             for item in schedule:
                 item.status = ServiceScheduleStatus.INCOMPLETE.value
             db.session.commit()
+
+            # create task
+            wflow = GenericWorkflow(client, 'Client', client)
+            wflow.create_task('Verify Smart Credit is Cancelled', 'Client cancelled from the program. Verify Smart Credit is cancelled.')
 
         # TBD
         def on_tr_declined(self, teamrequest):

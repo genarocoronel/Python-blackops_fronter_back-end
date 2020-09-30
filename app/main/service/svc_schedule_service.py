@@ -5,7 +5,7 @@ from app.main.core.errors import NotFoundError, NoDuplicateAllowed, BadRequestEr
 from app.main import db
 from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleStatus, ServiceScheduleType
 from app.main.model.appointment import Appointment, AppointmentType
-from app.main.service.client_service import get_client_by_public_id
+import app.main.service.workflow as workflow
 from flask import current_app as app
 from flask import g
 
@@ -91,23 +91,11 @@ def update_svc_schedule(client, schedule_data):
             if ServiceScheduleType.CALL.value in sched_item_record.type:
                 appointment = sched_item_record.appointment
                 if appointment:
+                    wflow = workflow.AppointmentWorkflow(appointment) 
                     handler = "on_ss_{}".format(sched_data_item['status'])
-                    func = getattr(appointment, handler, None)
+                    func = getattr(wflow, handler, None)
                     if func:
                         func()
-
-            # service call complete
-            if ServiceScheduleType.CALL.value in sched_item_record.type and ServiceScheduleStatus.COMPLETE.value in sched_data_item['status']:
-                # introduction call
-                if ServiceScheduleType.INTRO_CALL.value in sched_item_record.type:
-                    client.status = 'Acct Manager Intro Complete'
-                    # send mail
-                    app.queue.enqueue('app.main.tasks.mailer.send_intro_call',
-                                      client.id)
-                else:
-                    app.queue.enqueue('app.main.tasks.mailer.send_general_call_edms',
-                                      client.id) 
-                
 
         if is_updated:
             sched_item_record.updated_on = datetime.datetime.utcnow()

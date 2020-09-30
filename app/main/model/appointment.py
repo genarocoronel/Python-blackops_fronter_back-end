@@ -48,17 +48,9 @@ class Appointment(db.Model):
     # TODO change to relational object
     reminder_types = db.Column(db.String(64), nullable=True)
 
-    # ON Service Schedule Complete
-    def on_ss_complete(self):
-        if self.status == AppointmentStatus.SCHEDULED.name:
-            self.status = AppointmentStatus.COMPLETED.name
-            db.session.commit() 
+    # relationship
+    service_schedule = db.relationship('ServiceSchedule', backref='appointment', uselist=False)
 
-    # ON Service Schedule InComplete
-    def on_ss_incomplete(self):
-        if self.status == AppointmentStatus.SCHEDULED.name:
-            self.status = AppointmentStatus.INCOMPLETE.name
-            db.session.commit() 
 
 class AppointmentNote(db.Model):
     """ db model for storing appointment notes"""

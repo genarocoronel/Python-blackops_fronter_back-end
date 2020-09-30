@@ -421,7 +421,7 @@ def assign_salesrep(client, user_public_id):
         )
     # set in client 
     client.sales_rep_id = user.id
-
+    client.status_name = 'Sales_ActiveStatus_AcctManagerIntroIncomplete'
     db.session.add(assignment)
     save_changes()
 
@@ -457,7 +457,6 @@ def assign_servicerep(client, user_public_id):
     client.msg = 'New Client assigned, please follow up.'
     notification.ClientNoticeChannel.send(user.id,
                                           client)            
-    
     return True
 
 def get_client_bank_account(client):

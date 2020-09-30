@@ -23,7 +23,7 @@ from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
-from app.main.service.client_service import create_client_from_candidate
+from app.main.service import client_service
 from app.main.service.third_party.aws_service import upload_to_imports
 
 from flask import current_app as app, g, after_this_request
@@ -667,7 +667,7 @@ def save_new_candidate_import(file_name):
 
 def convert_candidate_to_lead(candidate, prequal_number):
     """ Creates a new Lead from Candidate """
-    new_client = create_client_from_candidate(candidate, prequal_number)
+    new_client = client_service.create_client_from_candidate(candidate, prequal_number)
     if not new_client:
         raise Exception(f'Error converting Candidate with ID {candidate.public_id} to a Client')
 

@@ -10,8 +10,7 @@ from app.main.model.address import Address, AddressType
 from app.main.model.contact_number import ContactNumberType
 from app.main.model.debt_payment import DebtPaymentContract, ContractAction, ContractStatus, DebtPaymentContractCreditData, \
                                         DebtPaymentSchedule, DebtEftStatus
-from app.main.service import workflow
-
+import app.main.service.workflow as workflow
 from sqlalchemy import or_, and_, desc, asc
 
 from flask import current_app as app

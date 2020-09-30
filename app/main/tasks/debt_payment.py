@@ -5,9 +5,9 @@ from app.main.model.debt_payment import DebtEftStatus, DebtPaymentSchedule, Debt
 from app.main.model.contact_number import ContactNumberType
 from app.main.model.address import Address, AddressType
 from datetime import datetime, date, timedelta
-from app.main.tasks.mailer import send_payment_reminder, send_nsf_draft_issue
 from sqlalchemy import func, or_, and_
-from app.main.service import workflow
+import app.main.tasks.mailer as mailer
+import app.main.service.workflow as workflow
 
 import logging
 
@@ -189,14 +189,14 @@ def check_eft_status():
                         payment.on_eft_failed()
                         client.status = 'Service Issue:NSF'
                         # send NSF draft issue notice
-                        send_nsf_draft_issue(client.id)
+                        mailer.send_nsf_draft_issue(client.id)
                         wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
                         wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
                     elif eft.status == EftStatus.Returned or eft.status == EftStatus.Voided:
                         payment.on_eft_failed()
                         client.status = 'Service Issue:NSF'
                         # send NSF draft issue notice
-                        send_nsf_draft_issue(client.id)
+                        mailer.send_nsf_draft_issue(client.id)
                         # Create a task 
                         wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
                         wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
@@ -225,8 +225,8 @@ def process_upcoming_payments():
         try:
             contract = payment.contract
             # send 5 day payment reminder notice
-            send_payment_reminder(contract.client_id,
-                                  payment.id)
+            mailer.send_payment_reminder(contract.client_id,
+                                         payment.id)
         except Exception:
             continue 
     
