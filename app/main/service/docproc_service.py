@@ -124,18 +124,23 @@ def multiassign_for_processing(docs_to_assign, docproc_user):
     return docs_to_assign_synth
 
 
+import app.main.service.workflow as workflow
+
 def move_to_client_dossier(doc, client):
     """ Moves a Doc to a Client dossier """
     doc.client_id = client.id
     db.session.add(doc)
     _save_changes()
 
+    ## creating tasks 
+    dwf = workflow.DocprocWorkflow(doc)
+    dwf.on_doc_recv()
+    
     return synth_doc(doc)
 
 
 def update_doc(doc, data):
     """ Updates a Doc """
-    from app.main.service.workflow import DocprocWorkflow
     for attr in data:
         if hasattr(doc, attr):
             if attr == 'type':
@@ -150,7 +155,7 @@ def update_doc(doc, data):
     _save_changes(doc)
 
     ## creating tasks 
-    dwf = DocprocWorkflow(doc)
+    dwf = workflow.DocprocWorkflow(doc)
     dwf.on_doc_update()
 
     return synth_doc(doc)

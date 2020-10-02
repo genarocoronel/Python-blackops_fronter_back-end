@@ -421,7 +421,6 @@ def assign_salesrep(client, user_public_id):
         )
     # set in client 
     client.sales_rep_id = user.id
-    client.status_name = 'Sales_ActiveStatus_AcctManagerIntroIncomplete'
     db.session.add(assignment)
     save_changes()
 
@@ -452,6 +451,7 @@ def assign_servicerep(client, user_public_id):
     db.session.add(assignment)
     # tmp: support for legacy features
     client.account_manager_id = user.id 
+    client.status_name = 'Sales_ActiveStatus_AcctManagerIntroIncomplete'
 
     save_changes()
     client.msg = 'New Client assigned, please follow up.'

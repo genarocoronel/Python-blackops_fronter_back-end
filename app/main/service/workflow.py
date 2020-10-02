@@ -186,26 +186,63 @@ class DocprocWorkflow(Workflow):
         client_id = docproc.client_id
         super().__init__(docproc, assigned_to, client_id)
 
+    def on_doc_recv(self):
+        client = self._object.client
+        if not client:
+            # task can be created only for client docs
+            return
+
+        # already docproc in review
+        if self.status == DocprocStatus.WAIT_AM_REVIEW.value:
+            return
+
+        self.status = DocprocStatus.WAIT_AM_REVIEW.value
+        medium = self._object.source_channel
+        self._task_title = 'New Message'
+        self._task_desc = 'New {} Message from client'.format(medium)
+        if client.account_manager:
+            self.owner = client.account_manager_id
+        else:
+            svc_mgr = User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()
+            self.owner = svc_mgr.id
+
+        self._create_task() 
+        self.save()
+
     def on_doc_update(self):
         self._task_title = 'Document Review'
         self._task_desc = 'Document Review - Action Required'
+        docproc = self._object
+
         if self.status == DocprocStatus.NEW.value:
+            client = docproc.client
+            if not client:
+                # task can be created only for client docs
+                return
+
             self.status = DocprocStatus.WAIT_AM_REVIEW.value
-            client = self._object.client
             # Note that there are cases where Client is not yet set for a Doc
-            if client:
+            if client.account_manager:
                 self.owner = client.account_manager_id
+            # assign to service manager
+            else:
+                svc_mgr = User.query.outerjoin(RACRole).filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()
+                self.owner = svc_mgr.id
+                
             self._create_task() 
             self.save()
+            
 
     def on_task_declined(self):
         if self.status == DocprocStatus.WAIT_AM_REVIEW.value:
             self.status = DocprocStatus.REJECT.value 
             # notify doc processor 
+            self.save()
 
     def on_task_completed(self):
         if self.status == DocprocStatus.WAIT_AM_REVIEW.value:
             self.status = DocprocStatus.APPROVED.value
+            self.save()
    
 
 ## Debt Payment contract work flow   
