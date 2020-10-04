@@ -90,13 +90,13 @@ class CommunicationsRecord(Resource):
         # TODO: limit retrieval of record to the respective user requesting
 
         comm_type = list(comm_types_set)[0]
-        if comm_type in (TextCommunicationType.SMS,):
+        if isinstance(comm_type, TextCommunicationType):
             sms_comm_record = get_sms_communication(communication_id)
             if sms_comm_record is None:
                 api.abort(404, message=f'Communication record does not exist', success=False)
             return sms_comm_record
 
-        if comm_type in (VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL, VoiceCommunicationType.MISSED_CALL):
+        if isinstance(comm_type, VoiceCommunicationType):
             voice_comm_record = get_voice_communication(communication_id)
             if voice_comm_record is None:
                 api.abort(404, message=f'Communication record does not exist', success=False)
@@ -126,13 +126,13 @@ class CommunicationsRecord(Resource):
         update_attrs = {key: data[key] for key in data.keys() & COMMUNICATION_RECORD_UPDATE_KEYS}
 
         comm_type = list(comm_types_set)[0]
-        if comm_type in (TextCommunicationType.SMS,):
+        if isinstance(comm_type, TextCommunicationType):
             sms_comm_record = get_sms_communication(communication_id)
             if sms_comm_record is None:
                 api.abort(404, message=f'Communication record does not exist', success=False)
             return update_sms_communication(update_attrs, sms_communication=sms_comm_record)
 
-        if comm_type in (VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL, VoiceCommunicationType.MISSED_CALL):
+        if isinstance(comm_type, VoiceCommunicationType):
             voice_comm_record = get_voice_communication(communication_id)
             if voice_comm_record is None:
                 api.abort(404, message=f'Communication record does not exist', success=False)
