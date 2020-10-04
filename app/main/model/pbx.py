@@ -158,3 +158,4 @@ class VoiceCallEvent(db.Model):
     caller_number = db.Column(db.BigInteger, unique=False, nullable=False)
     dialed_number = db.Column(db.BigInteger, unique=False, nullable=False)
     status = db.Column(db.Enum(CallEventType), unique=False, nullable=False)
+    is_viewed = db.Column(db.Boolean, nullable=False, default=False)

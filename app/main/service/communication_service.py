@@ -98,16 +98,18 @@ def _normalize_missed_calls(missed_calls: List[VoiceCallEvent]):
             'body_text': None,
             'receive_date': missed_call.inserted_on,
             'inserted_on': missed_call.inserted_on,
-            'is_viewed': False
+            'is_viewed': missed_call.is_viewed
         }))
     return comms
 
 
 class CommTypeMapping(enum.Enum):
     ALL = VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL, VoiceCommunicationType.MISSED_CALL, TextCommunicationType.SMS
+    VOICE = VoiceCommunicationType.RECORDING, VoiceCommunicationType.VOICEMAIL, VoiceCommunicationType.MISSED_CALL
     CALL = VoiceCommunicationType.RECORDING,
     VOICEMAIL = VoiceCommunicationType.VOICEMAIL,
     MISSED_CALL = VoiceCommunicationType.MISSED_CALL,
+    TEXT = TextCommunicationType.SMS,
     SMS = TextCommunicationType.SMS,
 
 
@@ -120,22 +122,27 @@ def parse_communication_types(request):
 def get_client_voice_communications(clients: Union[Client, List[Client]],
                                     comm_types_set: AbstractSet[CommunicationType],
                                     date_filter_fields: List[str],
-                                    request_filter: Mapping[str, Any]):
-    client_comms_filter = ClientVoiceCommunication.query.join(VoiceCommunication)
+                                    request_filter: Mapping[str, Any],
+                                    record_public_id: str = None):
+    client_comms_stmt = ClientVoiceCommunication.query.join(VoiceCommunication)
 
     if clients:
         if isinstance(clients, list):
-            client_comms_filter = client_comms_filter.filter(or_(ClientVoiceCommunication.client_id == client.id for client in clients))
+            client_comms_stmt = client_comms_stmt.filter(or_(ClientVoiceCommunication.client_id == client.id for client in clients))
         else:
-            client_comms_filter = client_comms_filter.filter(ClientVoiceCommunication.client_id == clients.id)
+            client_comms_stmt = client_comms_stmt.filter(ClientVoiceCommunication.client_id == clients.id)
 
-    client_comms_filter = build_query_from_dates(client_comms_filter, request_filter['from_date'], request_filter['to_date'],
-                                                 VoiceCommunication,
-                                                 *date_filter_fields)
-    client_comms_filter = client_comms_filter.filter(or_(
+    client_comms_stmt = build_query_from_dates(client_comms_stmt, request_filter['from_date'], request_filter['to_date'],
+                                               VoiceCommunication,
+                                               *date_filter_fields)
+    client_comms_stmt = client_comms_stmt.filter(or_(
         VoiceCommunication.type == comm_type for comm_type in comm_types_set if isinstance(comm_type, VoiceCommunicationType))
     )
-    client_voice_comms = client_comms_filter.all()
+
+    if record_public_id:
+        client_comms_stmt = client_comms_stmt.filter(VoiceCommunication.public_id == record_public_id)
+
+    client_voice_comms = client_comms_stmt.all()
     return client_voice_comms
 
 
@@ -178,28 +185,30 @@ def get_candidate_sms_communications(candidates: Union[Candidate, List[Candidate
                                                     SMSMessage,
                                                     *date_filter_fields)
 
-    candidate_sms_comms = candidate_comms_filter.all()
-    return candidate_sms_comms
+    return _normalize_sms_comms(candidate_comms_filter.all())
 
 
 def get_client_sms_communications(clients: Union[Client, List[Client]],
                                   date_filter_fields: List[str],
-                                  request_filter: Mapping[str, Any]):
-    client_comms_filter = SMSMessage.query.join(SMSConvo)
+                                  request_filter: Mapping[str, Any],
+                                  record_public_id: str = None):
+    client_comms_stmt = SMSMessage.query.join(SMSConvo)
 
     if clients:
         if isinstance(clients, list):
-            client_comms_filter = client_comms_filter.filter(
+            client_comms_stmt = client_comms_stmt.filter(
                 or_(SMSConvo.client_id == client.id for client in clients))
         else:
-            client_comms_filter = client_comms_filter.filter(SMSConvo.client_id == clients.id)
+            client_comms_stmt = client_comms_stmt.filter(SMSConvo.client_id == clients.id)
 
-    client_comms_filter = build_query_from_dates(client_comms_filter, request_filter['from_date'], request_filter['to_date'],
-                                                 SMSMessage,
-                                                 *date_filter_fields)
+    client_comms_stmt = build_query_from_dates(client_comms_stmt, request_filter['from_date'], request_filter['to_date'],
+                                               SMSMessage,
+                                               *date_filter_fields)
 
-    client_sms_comms = client_comms_filter.all()
-    return client_sms_comms
+    if record_public_id:
+        client_comms_stmt = client_comms_stmt.filter(SMSMessage.public_id == record_public_id)
+
+    return _normalize_sms_comms(client_comms_stmt.all())
 
 
 def date_range_filter(request_filter):
@@ -250,7 +259,7 @@ def get_opener_communication_records(request_filter: Mapping[str, Any],
             result.extend(get_missed_calls(request_filter, date_filter_fields, pbx_numbers))
 
     if any(isinstance(comm_type, TextCommunicationType) for comm_type in comm_types_set):
-        candidate_sms_comms = _normalize_sms_comms(get_candidate_sms_communications(candidates, date_filter_fields, request_filter))
+        candidate_sms_comms = get_candidate_sms_communications(candidates, date_filter_fields, request_filter)
         result.extend([record for record in candidate_sms_comms])
     return result
 
@@ -317,7 +326,7 @@ def get_sales_and_service_communication_records(request_filter: Mapping[str, Any
             result.extend(get_missed_calls(request_filter, date_filter_fields, pbx_numbers))
 
     if any(isinstance(comm_type, TextCommunicationType) for comm_type in comm_types_set):
-        client_sms_comms = _normalize_sms_comms(get_client_sms_communications(clients, date_filter_fields, request_filter))
+        client_sms_comms = get_client_sms_communications(clients, date_filter_fields, request_filter)
         result.extend([record for record in client_sms_comms])
     return result
 
@@ -358,15 +367,59 @@ def get_client_voice_communication(client: Client, voice_communication_public_id
     return None
 
 
+def get_sms_communication(sms_communication_id: str):
+    sms_message_result = SMSMessage.query.filter(SMSMessage.public_id == sms_communication_id).first()
+    if sms_message_result:
+        return _normalize_sms_comms([sms_message_result])[0]
+    return None
+
+
+def update_sms_communication(data: dict,
+                             sms_communication_id: str = None,
+                             sms_communication: Union[SMSMessage, TextMessage] = None):
+    if sms_communication and isinstance(sms_communication, TextMessage):
+        sms_communication = SMSMessage.query.filter_by(public_id=sms_communication.public_id).first()
+
+    if sms_communication is None:
+        sms_communication = SMSMessage.query.filter_by(public_id=sms_communication_id).first()
+        if not sms_communication:
+            return None
+
+    for attr in data:
+        if hasattr(sms_communication, attr):
+            setattr(sms_communication, attr, data.get(attr))
+
+    db.session.add(sms_communication)
+    db.session.commit()
+
+    return _normalize_sms_comms([sms_communication])[0]
+
+
 def get_voice_communication(voice_communication_id: str):
-    return VoiceCommunication.query.filter_by(public_id=voice_communication_id).first()
+    voice_comm_result = VoiceCommunication.query.filter_by(public_id=voice_communication_id).first()
+    if voice_comm_result:
+        return voice_comm_result
+
+    missed_call_result = VoiceCallEvent.query.filter_by(public_id=voice_communication_id).first()
+    if missed_call_result:
+        return _normalize_missed_calls([missed_call_result])[0]
+    return None
 
 
-def update_voice_communication(data: dict, voice_communication_id: str = None, voice_communication: VoiceCommunication = None):
+def update_voice_communication(data: dict,
+                               voice_communication_id: str = None,
+                               voice_communication: Union[VoiceCommunication, MissedCall, VoiceCallEvent] = None):
+    missed_call = False
+    if voice_communication and isinstance(voice_communication, MissedCall):
+        missed_call = True
+        voice_communication = VoiceCallEvent.query.filter_by(public_id=voice_communication.public_id).first()
+
     if voice_communication is None:
         voice_communication = VoiceCommunication.query.filter_by(public_id=voice_communication_id).first()
         if not voice_communication:
-            return None
+            voice_communication = VoiceCallEvent.query.filter_by(public_id=voice_communication_id).first()
+            if not voice_communication:
+                return None
 
     for attr in data:
         if hasattr(voice_communication, attr):
@@ -375,12 +428,16 @@ def update_voice_communication(data: dict, voice_communication_id: str = None, v
     db.session.add(voice_communication)
     db.session.commit()
 
+    if missed_call:
+        voice_communication = _normalize_missed_calls([voice_communication])[0]
+
     return voice_communication
 
 
 def get_missed_calls(request_filter: Mapping[str, Any],
                      date_filter_fields: List[str] = {},
-                     pbx_numbers: List[PBXNumber] = None):
+                     pbx_numbers: List[PBXNumber] = None,
+                     record_public_id: str = None):
     voice_call_stmt = VoiceCallEvent.query.filter(VoiceCallEvent.status == CallEventType.GOING_TO_VOICEMAIL)
     voice_call_stmt = build_query_from_dates(voice_call_stmt, request_filter['from_date'], request_filter['to_date'], VoiceCallEvent,
                                              *date_filter_fields)
