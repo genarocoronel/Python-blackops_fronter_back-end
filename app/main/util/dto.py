@@ -366,6 +366,9 @@ _communication = {
     'inserted_on': fields.DateTime(required=True),
     'is_viewed': fields.Boolean(required=True),
 }
+_update_communication = {
+    'is_viewed': fields.Boolean(required=False)
+}
 
 
 class EmploymentStatusField(fields.String):
@@ -1165,6 +1168,7 @@ class NotesDto:
 class CommunicationDto:
     api = Namespace('communications', description='Communication related operations')
     communication = api.model('communication', _communication)
+    update_communication = api.model('update_communication', _update_communication)
 
 
 class SmsDto:

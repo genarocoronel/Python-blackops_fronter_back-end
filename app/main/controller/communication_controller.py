@@ -2,10 +2,12 @@ from flask import request, current_app as app
 from flask_restplus import Resource
 from werkzeug.exceptions import Unauthorized
 
+from app.main.model.pbx import TextCommunicationType, VoiceCommunicationType, VoiceCallEvent
 from app.main.service.communication_service import parse_communication_types, date_range_filter, \
     get_voice_communication, create_presigned_url, get_opener_communication_records, get_sales_and_service_communication_records, \
-    get_communication_records, get_all_unassigned_voice_communication_records, update_voice_communication, get_missed_calls, \
-    get_sales_and_service_unassigned_voice_communication_records, get_opener_unassigned_voice_communication_records
+    get_communication_records, get_all_unassigned_voice_communication_records, update_voice_communication, \
+    get_sales_and_service_unassigned_voice_communication_records, get_opener_unassigned_voice_communication_records, get_sms_communication, \
+    update_sms_communication
 from app.main.service.user_service import get_request_user
 from app.main.util.decorator import token_required
 from app.main.util.dto import CommunicationDto
@@ -13,6 +15,9 @@ from app.main.util.parsers import filter_request_parse
 
 api = CommunicationDto.api
 _communication = CommunicationDto.communication
+_update_communication = CommunicationDto.update_communication
+
+COMMUNICATION_RECORD_UPDATE_KEYS = 'is_viewed',
 
 
 @api.route('/')
@@ -63,6 +68,77 @@ class Communications(Resource):
             raise
         except Exception as e:
             api.abort(500, message=f'Failed to retrieve communication records for {current_user.username}. Error: {e}', success=False)
+
+
+@api.route('/<communication_id>')
+class CommunicationsRecord(Resource):
+    @token_required
+    @api.marshal_with(_communication)
+    @api.param('type', "Options are 'voice' or 'text' (all others would be rolled up to their respective type)")
+    @api.doc(security='apikey')
+    @api.doc('Get individual communication record')
+    def get(self, communication_id):
+        """ Get communication record """
+
+        comm_types_set = parse_communication_types(request)
+        if len(comm_types_set) == 0:
+            api.abort(400, message="'type is required", success=False)
+
+        if len(list({type(comm_type) for comm_type in comm_types_set})) > 1:
+            api.abort(400, message="Only one 'type' is valid", success=False)
+
+        # TODO: limit retrieval of record to the respective user requesting
+
+        comm_type = list(comm_types_set)[0]
+        if isinstance(comm_type, TextCommunicationType):
+            sms_comm_record = get_sms_communication(communication_id)
+            if sms_comm_record is None:
+                api.abort(404, message=f'Communication record does not exist', success=False)
+            return sms_comm_record
+
+        if isinstance(comm_type, VoiceCommunicationType):
+            voice_comm_record = get_voice_communication(communication_id)
+            if voice_comm_record is None:
+                api.abort(404, message=f'Communication record does not exist', success=False)
+            return voice_comm_record
+
+        api.abort(400, message="Invalid communication type provided", success=False)
+
+    @token_required
+    @api.marshal_with(_communication)
+    @api.expect(_update_communication)
+    @api.param('type', "Options are 'voice' or 'text' (all others would be rolled up to their respective type)")
+    @api.doc(security='apikey')
+    @api.doc('Update individual communication record')
+    def patch(self, communication_id):
+        """ Update communication record """
+
+        comm_types_set = parse_communication_types(request)
+        if len(comm_types_set) == 0:
+            api.abort(400, message="'type is required", success=False)
+
+        if len(list({type(comm_type) for comm_type in comm_types_set})) > 1:
+            self.abort = api.abort(400, message="Only one 'type' is valid", success=False)
+
+        # TODO: limit update of record to the respective user requesting
+
+        data = request.json
+        update_attrs = {key: data[key] for key in data.keys() & COMMUNICATION_RECORD_UPDATE_KEYS}
+
+        comm_type = list(comm_types_set)[0]
+        if isinstance(comm_type, TextCommunicationType):
+            sms_comm_record = get_sms_communication(communication_id)
+            if sms_comm_record is None:
+                api.abort(404, message=f'Communication record does not exist', success=False)
+            return update_sms_communication(update_attrs, sms_communication=sms_comm_record)
+
+        if isinstance(comm_type, VoiceCommunicationType):
+            voice_comm_record = get_voice_communication(communication_id)
+            if voice_comm_record is None:
+                api.abort(404, message=f'Communication record does not exist', success=False)
+            return update_voice_communication(update_attrs, voice_communication=voice_comm_record)
+
+        api.abort(400, message="Invalid communication type provided", success=False)
 
 
 @api.route('/<communication_id>/file')
