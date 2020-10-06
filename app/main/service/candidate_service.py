@@ -384,21 +384,26 @@ def update_candidate_contact_numbers(candidate, desired_contact_numbers):
         desired_phone_type = ContactNumberType.query.filter_by(id=phone_data_item.get('phone_type_id')).first()
         desired_phonenum = phone_data_item.get('phone_number')
         is_desired_preferred = phone_data_item.get('preferred')
-        
-        if desired_phone_type: 
-            new_candidate_number = CandidateContactNumber()
-            new_candidate_number.candidate = candidate                
-            new_candidate_number.contact_number = ContactNumber(
-                inserted_on=datetime.datetime.utcnow(),
-                contact_number_type_id=phone_data_item.get('phone_type_id'),
-                phone_number=phone_data_item.get('phone_number'),
-                preferred=phone_data_item.get('preferred')
-            )
-            db.session.add(new_candidate_number)
-        else:
-            return None, 'Invalid Contact Number Type'
-
-    save_changes()
+        if desired_phonenum:
+            ext_number = ContactNumber.query \
+            .filter(ContactNumber.phone_number == str(desired_phonenum)).first()
+            if ext_number:
+                return None, f'Phone Number {desired_phonenum} already exist'
+            else:
+                if desired_phone_type: 
+                    new_candidate_number = CandidateContactNumber()
+                    new_candidate_number.candidate = candidate
+                        
+                    new_candidate_number.contact_number = ContactNumber(
+                        inserted_on=datetime.datetime.utcnow(),
+                        contact_number_type_id=phone_data_item.get('phone_type_id'),
+                        phone_number=phone_data_item.get('phone_number') if phone_data_item.get('phone_number') is not '' else None,
+                        preferred=phone_data_item.get('preferred')
+                    )
+                    db.session.add(new_candidate_number)
+                else:
+                    return None, 'Invalid Contact Number Type'
+            save_changes()
 
     return {'message': 'Successfully updated contact numbers'}, None
 

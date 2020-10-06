@@ -706,37 +706,45 @@ def get_client_contact_numbers(client):
     return number_data, None
 
 
-def update_client_contact_numbers(client, contact_numbers):
+def update_client_contact_numbers(client, desired_contact_numbers):
+    existing_contact_numbers = ClientContactNumber.query.join(Client).filter(Client.id == client.id).all()
+    reset_all_existing_phonenums(existing_contact_numbers)
     ## contact number list
-    for data in contact_numbers:
-        phone_type_id = data.get('phone_type_id')
-        phone_type = data.get('phone_type')
-        phone_number = data.get('phone_number')
-        preferred = data.get('preferred')
-
-        # check already exists,if exists update
-        # else create new one
-        ccn = ClientContactNumber.query.join(Client) \
-            .join(ContactNumber) \
-            .filter(and_(Client.id == client.id, ContactNumber.contact_number_type_id == phone_type_id)).first()
-        if ccn is None:
-            new_cn = ContactNumber(inserted_on=datetime.datetime.utcnow(),
-                                   contact_number_type_id=phone_type_id,
-                                   phone_number=phone_number,
-                                   preferred=preferred)
-            save_changes(new_cn)
-            new_ccn = ClientContactNumber(client_id=client.id, contact_number_id=new_cn.id)
-            save_changes(new_ccn)
-        else:
-            cn = ccn.contact_number
-            cn.phone_number = phone_number
-            cn.preferred = preferred
-            db.session.commit()
+    for phone_data_item in desired_contact_numbers:
+        desired_phone_type = ContactNumberType.query.filter_by(id=phone_data_item.get('phone_type_id')).first()
+        desired_phonenum = phone_data_item.get('phone_number')
+        is_desired_preferred = phone_data_item.get('preferred')
+        if desired_phonenum:
+            ext_number = ContactNumber.query \
+            .filter(ContactNumber.phone_number == str(desired_phonenum)).first()
+            if ext_number:
+                return None, f'Phone Number {desired_phonenum} already exist'
+            else:
+                if desired_phone_type: 
+                    new_client_number = ClientContactNumber()
+                    new_client_number.client = client
+                        
+                    new_client_number.contact_number = ContactNumber(
+                        inserted_on=datetime.datetime.utcnow(),
+                        contact_number_type_id=phone_data_item.get('phone_type_id'),
+                        phone_number=phone_data_item.get('phone_number') if phone_data_item.get('phone_number') is not '' else None,
+                        preferred=phone_data_item.get('preferred')
+                    )
+                    db.session.add(new_client_number)
+                else:
+                    return None, 'Invalid Contact Number Type'
+            save_changes()
 
     client.update()
 
     return {'message': 'Successfully updated contact numbers'}, None
 
+def reset_all_existing_phonenums(phone_numbers):
+    for phone_num_item in phone_numbers:
+        phone_id = phone_num_item.contact_number_id
+        ClientContactNumber.query.filter_by(client_id=phone_num_item.client_id, contact_number_id=phone_id).delete()
+        ContactNumber.query.filter_by(id=phone_num_item.contact_number_id).delete()
+    return True
 
 def get_co_client(client):
     # fetch the co-client
