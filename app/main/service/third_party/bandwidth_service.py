@@ -58,8 +58,15 @@ def sms_send(from_phone, to_phone, message_body):
 
 def download_mms_media(media_uri):
     """ Fetches MMS media file """
+    media_uri = None
+    # if ',' in media_uri:
+    #     media_uri = media_uri.split(',')[-1].strip('}')
     if ',' in media_uri:
-        media_uri = media_uri.split(',')[-1]
+        media_parts = media_uri.split(',')
+        for media_part_item in media_parts:
+            if '.xml' not in media_part_item and '.smil' not in media_part_item:
+                media_uri = media_part_item.strip('}')
+                break
     
     mms_media_id = media_uri.split('/')[-3]
     mms_seq = media_uri.split('/')[-2]
