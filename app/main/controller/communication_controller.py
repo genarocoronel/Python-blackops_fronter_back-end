@@ -28,6 +28,7 @@ class Communications(Resource):
     @api.param('_from', 'Start date of communications to query (YYYY-MM-DD)')
     @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
     @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', 'missed_call', or 'sms'")
+    @api.param('is_viewed', "Filter records on whether or not it has been viewed. Default: all. Options: true, false, all")
     @api.doc(security='apikey')
     @api.doc('Get all forms of communication for candidates/clients depending on the requesting user')
     def get(self):
@@ -36,6 +37,9 @@ class Communications(Resource):
 
         try:
             filter = filter_request_parse(request)
+            # TODO: look into leveraging filter object for is_viewed
+            is_viewed = request.args.get('is_viewed', 'all')
+            filter.update({'is_viewed': is_viewed})
             comm_types_set = parse_communication_types(request)
 
             date_range_filter(filter)

@@ -338,6 +338,7 @@ class CandidateCommunications(Resource):
     @api.param('_from', 'Start date of communications to query (YYYY-MM-DD)')
     @api.param('_to', 'End date of communications to query (YYYY-MM-DD)')
     @api.param('type', "Default is 'all'. Options are 'call', 'voicemail', or 'sms'")
+    @api.param('is_viewed', "Filter records on whether or not it has been viewed. Default: all. Options: true, false, all")
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.OPENER_MGR, RACRoles.OPENER_REP])
     def get(self, candidate_id):
@@ -347,6 +348,9 @@ class CandidateCommunications(Resource):
             api.abort(404, **error_response)
         else:
             filter = filter_request_parse(request)
+            # TODO: look into leveraging filter object for is_viewed
+            is_viewed = request.args.get('is_viewed', 'all')
+            filter.update({'is_viewed': is_viewed})
             comm_types_set = parse_communication_types(request)
 
             date_range_filter(filter)
