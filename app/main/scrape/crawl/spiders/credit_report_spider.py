@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from scrapy_splash import SplashRequest
 
 from ..items import Debt
+from flask import current_app as app
 
 
 class CreditReportSpider(scrapy.Spider):
@@ -29,18 +30,114 @@ class CreditReportSpider(scrapy.Spider):
         self.password = password
 
     def parse(self, response):
-        csrf = response.xpath("//input[@name='_csrf']/@value").get()
+        return self.simulated_parse()
+        # csrf = response.xpath("//input[@name='_csrf']/@value").get()
+        
+        # if urlparse(response.url).scheme == 'file':
+        #     return self.parse_credit_report(response)
 
-        if urlparse(response.url).scheme == 'file':
-            return self.parse_credit_report(response)
-        else:
-            return scrapy.FormRequest.from_response(
-                response,
-                formdata={'_csrf': csrf, 'loginType': 'CUSTOMER', 'j_username': self.username, 'j_password': self.password},
-                callback=self.visit_credit_report,
-                dont_filter=True
+        # else:
+        #     return scrapy.FormRequest.from_response(
+        #         response,
+        #         formdata={'_csrf': csrf, 'loginType': 'CUSTOMER', 'j_username': self.username, 'j_password': self.password},
+        #         callback=self.visit_credit_report,
+        #         dont_filter=True
+        #     )
+
+    def simulated_parse(self):
+        state = 'FL'
+        fake_debts = [
+            {
+                'type': 'Charge account',
+                'debt_name': '1ST CAL MG',
+                'acct_number_raw': '74635****',
+                'ecoa': 'No description',
+                'days_delinguent': 'Late 90 Days',
+                'balance_original': '7,567',
+                'payment_amount': '1,177',
+                'credit_limit': '10000',
+                'last_payment': ''
+            },
+            {
+                'type': 'Charge account',
+                'debt_name': 'HRSI BANK-WHIRL',
+                'acct_number_raw': '1590577**** ',
+                'ecoa': 'Individual',
+                'days_delinguent': 'Late 30 Days',
+                'balance_original': '276',
+                'payment_amount': '20',
+                'credit_limit': '1500',
+                'last_payment': ''
+            },
+            {
+                'type': 'Bank',
+                'debt_name': 'HRSI BANK',
+                'acct_number_raw': '101590577****',
+                'ecoa': 'Individual',
+                'days_delinguent': 'Current',
+                'balance_original': '2165',
+                'payment_amount': '200',
+                'credit_limit': '',
+                'last_payment': ''
+            },
+            {
+                'type': 'Department/Variety and Other Retail',
+                'debt_name': 'BURDINES',
+                'acct_number_raw': '225563**** ',
+                'ecoa': 'Individual',
+                'days_delinguent': 'Current',
+                'balance_original': '296',
+                'payment_amount': '7',
+                'credit_limit': '400',
+                'last_payment': ''
+            },
+            {
+                'type': 'Bank Credit Cards',
+                'debt_name': 'CITIBANK NA',
+                'acct_number_raw': '	54241801**** ',
+                'ecoa': 'Individual',
+                'days_delinguent': 'Late 30 Days',
+                'balance_original': '11,201',
+                'payment_amount': '725',
+                'credit_limit': '27500',
+                'last_payment': ''
+            },
+        ]
+
+        for debt_item in fake_debts:
+            app.logger.debug(f'Processing debt: {debt_item["debt_name"]}')
+            type = debt_item['type']
+            if type is None:
+                type = 'None Given'
+
+            debt_name = debt_item['debt_name']
+            acct_number_raw = debt_item['acct_number_raw']
+            ecoa = debt_item['ecoa']
+            days_delinguent = debt_item['days_delinguent']
+            balance_original = debt_item['balance_original']
+            payment_amount = debt_item['payment_amount']
+            credit_limit = debt_item['credit_limit']
+            last_payment = debt_item['last_payment']
+
+            account_number = None
+            if acct_number_raw:
+                account_number = re.findall(r"[0-9]+\*+", acct_number_raw.rstrip())[0]
+
+            yield Debt(
+                credit_account_id=self.credit_account_id,
+                name=debt_name,
+                creditor=debt_name,
+                type=type,
+                ecoa=ecoa,
+                account_number=account_number,
+                days_delinquent=days_delinguent,
+                balance_original=balance_original,
+                payment_amount=payment_amount,
+                credit_limit=credit_limit,
+                last_payment=last_payment,
+                state=state,
             )
-
+    
     def visit_credit_report(self, response):
         yield scrapy.Request(url=self.credit_report_url, callback=self.check_for_order_prompt, dont_filter=True)
 
@@ -66,6 +163,7 @@ class CreditReportSpider(scrapy.Spider):
         state_match = re.search(r'.*,\W+(\w{2})\W+[0-9]+', address, re.M | re.I)
         state = state_match.group(1) if state_match else None
 
+        # This is where the spider is dying: The if statement finds the "debt_tables" NULL, and throws 
         debt_tables = response.xpath("//div[@id='TokenDisplay']//td[@class='crWhiteTradelineHeader']/ancestor::table[2]")
         if debt_tables:
             for debt_table in debt_tables:
