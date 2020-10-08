@@ -55,6 +55,12 @@ class Workflow(object):
     ## CREATE a USER TASK
     def _create_task(self, is_worker=False):
         due = datetime.utcnow() + timedelta(hours=self._task_due)  
+        # if owner not present, assign to service manager
+        if self.owner is None:
+            svc_mgr = User.query.outerjoin(RACRole)\
+                                .filter(RACRole.name==RACRoles.SERVICE_MGR.value).first()
+            self.owner = svc_mgr.id
+            
         agent_id = self.owner
         task = UserTask(assign_type=self._task_assign_type,
                         owner_id=agent_id,
@@ -173,6 +179,31 @@ class AppointmentWorkflow(Workflow):
     def on_ss_incomplete(self):
         self.on_incomplete(is_ss_triggered=True)
 
+class NSFWorkFlow(Workflow):
+    _task_due = 24 ## task expiry in hours
+    _task_assign_type = TaskAssignType.AUTO
+    _task_priority = TaskPriority.MEDIUM
+    _task_ref_type = 'DebtPaymentContract'
+
+    def __init__(self, client):
+        client_id = client.id
+        assigned_to = client.account_manager_id
+        super().__init__(client, assigned_to, client_id)
+
+    def on_failure(self):
+        client = self._object
+        client.status = 'Service Issue:NSF'
+
+        self._task_title = 'Call Client'
+        self._task_desc = 'Payment Failed.  Insufficient Funds in account.  Please call your client'
+        # set all future payments non drafting
+        self._create_task(is_worker=True)
+        self.save()
+
+        # send mail
+        app.queue.enqueue('app.main.tasks.mailer.send_nsf_draft_issue',
+                           self._client_id, failure_ttl=300) 
+
 
 # processing workflow
 class DocprocWorkflow(Workflow):
@@ -233,13 +264,13 @@ class DocprocWorkflow(Workflow):
             self.save()
             
 
-    def on_task_declined(self):
+    def on_task_declined(self, task):
         if self.status == DocprocStatus.WAIT_AM_REVIEW.value:
             self.status = DocprocStatus.REJECT.value 
             # notify doc processor 
             self.save()
 
-    def on_task_completed(self):
+    def on_task_completed(self, task):
         if self.status == DocprocStatus.WAIT_AM_REVIEW.value:
             self.status = DocprocStatus.APPROVED.value
             self.save()
@@ -562,6 +593,35 @@ def create_workflow(code, contract, revision=None):
             except Exception as err:
                 raise ValueError("ChangeDraftDate TR APPROVED handler issue")
 
+    # Redraft for NSF  
+    class NsfRedraft(RevisionWorkflow):
+        def on_tr_approved(self, teamrequest):
+            try:
+                if self.status != RevisionStatus.OPENED:
+                    return
+
+                # fetch the last payment 
+                pymt_record = DebtPaymentSchedule.query\
+                                                 .filter(and_(DebtPaymentSchedule.contract_id==self._object.contract_id,
+                                                              DebtPaymentSchedule.due_date < datetime.now())).order_by(desc(DebtPaymentSchedule.id)).first()
+                if pymt_record.status == DebtEftStatus.NSF.name:
+                    new_due_date = self._object.fields['draft_date']
+                    pymt_record.due_date = new_due_date
+                    # client status  
+                    client = contract.client
+                    if client.program_status == ProgramStatus.SIGNED.name:
+                        client.status_name = 'Sales_ActiveStatus_PendingFirstPayment'
+                    else:
+                        client.status_name = 'Sales_ActiveStatus_Active' 
+
+                    self._task_desc = 'NSF Redraft Approved.\
+                                       Please communicate with your client.'
+                    super().on_tr_approved(teamrequest)
+
+            except Exception as err:
+                raise ValueError("ChangeDraftDate TR APPROVED handler issue")
+           
+
     class ChangeRecurDay(RevisionWorkflow):
 
         def on_tr_approved(self, teamrequest):
@@ -676,6 +736,8 @@ def create_workflow(code, contract, revision=None):
         return Refund(revision)
     elif 'REQUEST_CANCELLATION' in code:
         return RequestCancellation(contract)
+    elif 'NSF_REDRAFT' in code:
+        return NsfRedraft(revision)
             
     # not supported action 
     return None 

@@ -569,12 +569,16 @@ def fetch_payment_schedule(client):
         balance = round(balance - record.amount, 2)
 
         eft_status = DebtEftStatus[record.status]
+        status_value = eft_status.value
+        description = 'Payment {}'.format(index)
+        if eft_status == DebtEftStatus.NSF:
+            description = "{} <br /> {}".format(description, record.transaction.message)
         item = {
             'id': record.id,
             'editable': False,
-            'description': 'Payment {}'.format(index),
+            'description': description,
             'type': 'Payment',
-            'status': eft_status.value,
+            'status': status_value,
             'plus' : '',
             'minus': record.amount, 
             'balance': balance,
@@ -751,7 +755,6 @@ def update_payment_schedule(client, schedule_id, data):
        'success': True,
     }
 
-
 ## payment revision
 def contract_open_revision(user, client, data):
     
@@ -767,6 +770,16 @@ def contract_open_revision(user, client, data):
                                                    status=ContractStatus.ACTIVE).first()
     if contract is None:
         raise ValueError("Active contract not found")
+
+    # validation
+    if method == RevisionMethod.NSF_REDRAFT:
+        if client.status_name != 'Service_ActiveStatus_NSF':
+            raise ValueError('Redraft request in wrong state')
+    
+        pymt_record = DebtPaymentSchedule.query.filter(and_(DebtPaymentSchedule.contract_id==contract.id,
+                                                            DebtPaymentSchedule.due_date < datetime.now())).order_by(desc(DebtPaymentSchedule.id)).first()
+        if pymt_record.status != DebtEftStatus.NSF.name:
+            raise ValueError('Last payment record is not NSF')
 
     
     cr = DebtPaymentContractRevision(contract_id=contract.id,
