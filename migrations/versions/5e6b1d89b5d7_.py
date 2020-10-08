@@ -1,7 +1,7 @@
 """Added new enum val in revisionmethod
 
 Revision ID: 5e6b1d89b5d7
-Revises: 9a39c01a9f0e
+Revises: fef91d0fe63e
 Create Date: 2020-10-08 17:18:00.891355
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '5e6b1d89b5d7'
-down_revision = '9a39c01a9f0e'
+down_revision = 'fef91d0fe63e'
 branch_labels = None
 depends_on = None
 
