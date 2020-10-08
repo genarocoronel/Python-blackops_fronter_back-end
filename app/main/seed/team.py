@@ -56,6 +56,7 @@ def seed_team_request_types():
         {'code': 'RE_INSTATE', 'title': 'Reinstate', 'doc_sign': False, 'description': 'Reinstate an old client'},
         {'code': 'REFUND', 'title': 'Refund', 'doc_sign': False, 'description': 'Process Refund'},
         {'code': 'REQUEST_CANCELLATION', 'title': 'Request Cancellation', 'doc_sign': False, 'description': 'Request Cancellation'},
+        {'code': 'NSF_REDRAFT', 'title': 'NSF Redraft', 'doc_sign': False, 'description': 'Draft new date for the NSF failed schedule'},
     ]
 
     for record in records:
