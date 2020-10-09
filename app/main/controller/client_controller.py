@@ -921,7 +921,7 @@ class ClientSvcSchedule(Resource):
 
 ## used for client actions that doesn't require plan change (fee)
 ## CHANGE DRAFT DATE, CHANGE RECUR DAY, SKIP PAYMENT,
-## ADD EFT, REINSTATE AND REFUND 
+## ADD EFT, REFUND, NSF_REDRAFT
 @api.route('/<client_id>/contract/revision')
 @api.param('client_id', 'Client public identifier')
 @api.response(404, 'Client not found')

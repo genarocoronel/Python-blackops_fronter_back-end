@@ -50,8 +50,9 @@ class RevisionMethod(enum.Enum):
     CHANGE_RECUR_DAY = 'change draft day'
     MANUAL_ADJUSTMENT = 'manual adjustment'
     REFUND = 'refund'
-    RE_INSTATE = 'reinstate',
-    ADD_TO_EFT = 'add to eft',
+    RE_INSTATE = 'reinstate'
+    ADD_TO_EFT = 'add to eft'
+    NSF_REDRAFT = 'nsf redraft' # NSF redraft
 
 class RevisionStatus(enum.Enum):
     OPENED = 'opened'

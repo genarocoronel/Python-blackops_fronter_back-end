@@ -99,7 +99,8 @@ def process_debt_payments():
             bank_account = client.bank_account
             if not bank_account:
                 continue
-
+            if client.status_name == 'Service_ActiveStatus_NSF' or client.status_name == 'Sales_ActiveStatus_NSF':
+                continue
             transaction = payment.transaction
             if transaction and \
               (transaction.status == EftStatus.Pending.value or transaction.status == EftStatus.Settled.value):
@@ -182,24 +183,19 @@ def check_eft_status():
                 if eft.status.value != eft_transaction.status: 
                     eft_transaction.status = eft.status.value 
                     eft_transaction.modified_date = datetime.utcnow()
-                    eft_transaction.message = eft.message
+                    eft_transaction.message = "{} - {} ".format(eft.code, eft.message)
+                    contract = payment.contract                        
+
                     if eft.status == EftStatus.Transmitted:
                         payment.on_eft_transmitted()
                     elif eft.status == EftStatus.Failed or eft.status == EftStatus.Error:
                         payment.on_eft_failed()
-                        client.status = 'Service Issue:NSF'
-                        # send NSF draft issue notice
-                        mailer.send_nsf_draft_issue(client.id)
-                        wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
-                        wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
+                        wflow = workflow.NSFWorkflow(contract)
+                        wflow.on_failure()
                     elif eft.status == EftStatus.Returned or eft.status == EftStatus.Voided:
                         payment.on_eft_failed()
-                        client.status = 'Service Issue:NSF'
-                        # send NSF draft issue notice
-                        mailer.send_nsf_draft_issue(client.id)
-                        # Create a task 
-                        wflow = workflow.GenericWorkflow(client, 'DebtPaymentSchedule', payment)
-                        wflow.create_task('Call Client', 'Payment Failed.  Insufficient Funds in account.  Please call your client')
+                        wflow = workflow.NSFWorkflow(contract)
+                        wflow.on_failure()
                     elif eft.status == EftStatus.Settled:
                         payment.on_eft_settled()
                       
