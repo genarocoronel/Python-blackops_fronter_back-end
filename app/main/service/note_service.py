@@ -25,6 +25,41 @@ def fetch_note(author_id, candidate_id, client_id):
         notes_data.append(data)
     return {"success": True, "data": notes_data}, 200
 
+
+def fetch_notes_for_candidate(client_id):
+    datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+    notes = Note.query.filter_by(candidate_id=client_id).all()
+    notes_data = []
+    for note in notes:
+        data = {
+            "public_id" : note.public_id,
+            "content" : note.content,
+            "inserted_on" : note.inserted_on.strftime(datetime_format),
+            "updated_on" : note.updated_on.strftime(datetime_format),
+        }
+        notes_data.append(data)
+    return {"success": True, "data": notes_data}, 200
+
+
+def fetch_notes_for_client(client_id):
+    datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+    notes = Note.query.filter_by(client_id=client_id).all()
+    notes_data = []
+    for note in notes:
+        data = {
+            "public_id" : note.public_id,
+            "content" : note.content,
+            "inserted_on" : note.inserted_on.strftime(datetime_format),
+            "updated_on" : note.updated_on.strftime(datetime_format),
+        }
+        notes_data.append(data)
+    return {"success": True, "data": notes_data}, 200
+
+
+def fetch_notes_by_candidate_id(candidate_id):
+    return Note.query.filter_by(candidate_id=candidate_id).all()
+
+
 def create_note(author_id, candidate_id, client_id, content):
     datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
     data = {

@@ -23,6 +23,7 @@ from app.main.model.user import User
 from app.main.channels import notification
 from app.main.service.lead_distro import LeadDistroSvc
 from app.main.service import client as svc
+from app.main.service.note_service import fetch_notes_by_candidate_id
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 
@@ -158,6 +159,16 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
                                campaign_id=candidate.campaign_id)
         db.session.add(ccamp)
         db.session.commit()
+
+    # Copy the Notes
+    notes = fetch_notes_by_candidate_id(candidate.id)
+    if notes:
+        for note_item in notes:
+            datetime_format = '%Y-%m-%dT%H:%M:%S.%fZ'
+            if not note_item.client_id:
+                note_item.client_id = new_client.id
+                note_item.updated_on = datetime.datetime.now()
+                save_changes(note_item)
 
     # auto lead assignment
     # TODO Spanish clients
