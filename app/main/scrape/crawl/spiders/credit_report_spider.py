@@ -83,7 +83,7 @@ class CreditReportSpider(scrapy.Spider):
             {
                 'type': 'Department/Variety and Other Retail',
                 'debt_name': 'BURDINES',
-                'acct_number_raw': '225563**** ',
+                'acct_number_raw': '225563****',
                 'ecoa': 'Individual',
                 'days_delinguent': 'Current',
                 'balance_original': '296',
@@ -94,7 +94,7 @@ class CreditReportSpider(scrapy.Spider):
             {
                 'type': 'Bank Credit Cards',
                 'debt_name': 'CITIBANK NA',
-                'acct_number_raw': '	54241801**** ',
+                'acct_number_raw': '54241801****',
                 'ecoa': 'Individual',
                 'days_delinguent': 'Late 30 Days',
                 'balance_original': '11,201',
@@ -119,17 +119,13 @@ class CreditReportSpider(scrapy.Spider):
             credit_limit = debt_item['credit_limit']
             last_payment = debt_item['last_payment']
 
-            account_number = None
-            if acct_number_raw:
-                account_number = re.findall(r"[0-9]+\*+", acct_number_raw.rstrip())[0]
-
             yield Debt(
                 credit_account_id=self.credit_account_id,
                 name=debt_name,
                 creditor=debt_name,
                 type=type,
                 ecoa=ecoa,
-                account_number=account_number,
+                account_number=acct_number_raw,
                 days_delinquent=days_delinguent,
                 balance_original=balance_original,
                 payment_amount=payment_amount,

@@ -10,6 +10,7 @@ import uuid
 
 from app.main import db
 from app.main.model.credit_report_account import CreditReportData
+from flask import current_app as app
 
 
 def get_limitations(address: str) -> int:
@@ -40,9 +41,12 @@ def _sanitize_dollar_amount(value):
 
 class CreditReportPipeline(object):
     def __init__(self):
+        app.logger.debug(f'Initializing pipeline...')
         self._cached_debt_names = {}
 
     def process_item(self, item, spider):
+        app.logger.debug(f'Processing pipeline Debt item with name: {item.get("name")}')
+
         state = item.get('state')
         if state:
             limitation = get_limitations(state)
@@ -56,12 +60,17 @@ class CreditReportPipeline(object):
             graduation = None
 
         credit_account_id = item.get('credit_account_id')
+        if not credit_account_id:
+            app.logger.error(f'Error - This Debt pipeline item did NOT get a Credit Account ID reference!')
+
         debt_name = item.get('name') if item.get('name') else 'NO NAME'
 
         # TODO: I know there is some way to user `any`, `filter` and/or a `lambda` to clean this up
         exists = False
         for key, value in self._cached_debt_names.items():
+            app.logger.debug(f'Checking cached debts in pipeline for duplicates')
             if re.match(f'^{debt_name}$', key):
+                app.logger.debug('This Debt is already cached. Ignoring..')
                 exists = True
                 new_count = self._cached_debt_names[debt_name] + 1
                 self._cached_debt_names[debt_name] = new_count
@@ -69,10 +78,12 @@ class CreditReportPipeline(object):
                 break
 
         if not exists:
+            app.logger.debug('This Debt does not exist in pipeline cache, will track')
             self._cached_debt_names[debt_name] = 1
 
         existing_debt_entry = CreditReportData.query.filter_by(account_id=credit_account_id, debt_name=debt_name).first()
         if existing_debt_entry:
+            app.logger.debug('Found a duplicate record for this Debt. Will update...')
             existing_debt_entry.ecoa = item.get('ecoa')
             existing_debt_entry.account_number = item.get('account_number')
             existing_debt_entry.account_type = item.get('type')
@@ -87,6 +98,7 @@ class CreditReportPipeline(object):
             db.session.add(existing_debt_entry)
             return existing_debt_entry.__dict__
         else:
+            app.logger.debug('Did not find a matching record. Treating as new Debt and will save...')
             new_credit_report_debt = CreditReportData(
                 public_id=str(uuid.uuid4()),
                 account_id=credit_account_id,
