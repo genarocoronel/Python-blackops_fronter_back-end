@@ -8,6 +8,7 @@ from sqlalchemy import or_
 from werkzeug.exceptions import NotFound
 
 from app.main import db
+from app.main.core import DEFAULT_PHONE_REGION
 from app.main.core.helper import convert_to_boolean, is_boolean
 from app.main.model.contact_number import ContactNumberType
 from app.main.model.income import IncomeType
@@ -17,8 +18,6 @@ from app.main.model.monthly_expense import ExpenseType
 from app.main.model.pbx import PBXNumber, PBXSystem
 from app.main.model.user import Department
 from app.main.service.docproc_service import get_docproc_types, get_docproc_statuses
-
-DEFAULT_PHONE_REGION = 'US'
 
 
 def get_contact_number_types():
