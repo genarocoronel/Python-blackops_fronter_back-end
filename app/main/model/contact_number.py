@@ -21,6 +21,7 @@ class ContactNumber(db.Model):
     contact_number_type_id = db.Column(db.Integer, db.ForeignKey('contact_number_types.id'))
 
     # fields
+    # TODO: refactor model to use BigInteger and migrate data
     phone_number = db.Column(db.String(20), unique=True, nullable=True)
     preferred = db.Column(db.Boolean, nullable=False, default=False)
 
