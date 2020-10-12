@@ -643,16 +643,21 @@ class StaffReportSvc(ReportService):
                 if user.team_member:
                     team = user.team_member.team.name  
                 record = {
+                    'public_id': user.public_id,
                     'username': user.username,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'routed_call_phone': user.voip_route_number,
+                    'language': user.language,
+                    'email': user.email,
+                    'pbx_mailbox_id': user.pbx_mailbox_id,
+                    'voip_route_number': user.voip_route_number,
+                    'rac_role': user.role.name,
                     'ext': '',
                     'inbound_did': '',
-                    'phone_number': user.personal_phone,
+                    'personal_phone': user.personal_phone,
                     'sales_manager': '',
                     'department': team,
-                    'status': 'Active',
+                    'is_disabled': user.is_disabled,
                     'start_date': self._dt2str(user.start_date), # add field in table 
                     'park': '',
                     'comments': '',
