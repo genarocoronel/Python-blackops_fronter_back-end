@@ -6,6 +6,7 @@ from flask import request, make_response
 from flask_restplus import Resource
 
 from app.main import db
+from app.main.core import DEFAULT_PHONE_REGION
 from app.main.model.pbx import VoiceCallEvent, CallEventType
 from flask import current_app as app
 from app.main.util.dto import WebhookDto
@@ -13,8 +14,6 @@ from app.main.util.dto import WebhookDto
 api = WebhookDto.api
 _call_initiated_notification = WebhookDto.call_initiated
 _call_missed_notification = WebhookDto.call_missed
-
-DEFAULT_PHONE_REGION = 'US'
 
 
 class WebhookResource(Resource):

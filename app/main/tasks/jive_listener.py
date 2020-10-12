@@ -26,6 +26,7 @@ from sqs_listener import SqsListener
 import boto3
 
 from app.main import db
+from app.main.core import DEFAULT_PHONE_REGION
 from app.main.model.candidate import Candidate, CandidateVoiceCommunication, CandidateFaxCommunication
 from app.main.model.client import Client, ClientVoiceCommunication, ClientFaxCommunication
 from app.main.model.pbx import VoiceCommunication, CommunicationType, PBXNumber, FaxCommunication, VoiceCommunicationType, \
@@ -41,7 +42,6 @@ comms_logger = logging.getLogger('comms_listener')
 TEMP_EMAIL_FILE = '/tmp/email.txt'
 PDF_FILE_TYPE = 'pdf'
 AUDIO_FILE_TYPE = 'audio'
-DEFAULT_PHONE_REGION = 'US'
 DEFAULT_PBX_PROVIDER_NAME = 'JIVE'
 CUSTOMER_TYPES = (Candidate, Client)
 EMPLOYEE_TYPES = (User)

@@ -11,7 +11,8 @@ from sqlalchemy import or_, and_, desc
 from flask import current_app as app
 
 from app.main import db
-from app.main.core.errors import ServiceProviderError
+from app.main.core import DEFAULT_PHONE_REGION
+from app.main.core.errors import ServiceProviderError, ConfigurationError
 from app.main.core.helper import is_boolean, convert_to_boolean
 from app.main.model.candidate import CandidateVoiceCommunication, Candidate
 from app.main.model.client import ClientVoiceCommunication, Client
@@ -19,6 +20,8 @@ from app.main.model.pbx import VoiceCommunicationType, TextCommunicationType, Vo
     VoiceCallEvent, CallEventType, PBXSystem, PBXSystemVoiceCommunication
 from app.main.model.sms import SMSMessage, SMSConvo
 from app.main.model.user import Department
+from app.main.service.candidate_service import get_candidate_contact_numbers
+from app.main.service.client_service import get_client_contact_numbers
 from app.main.service.config_service import get_registered_pbx_numbers
 from app.main.util.query import build_query_from_dates
 
@@ -276,7 +279,7 @@ def get_opener_communication_records(request_filter: Mapping[str, Any],
         result.extend([record.voice_communication for record in candidate_voice_comms])
         if VoiceCommunicationType.MISSED_CALL in comm_types_set:
             pbx_numbers = get_registered_pbx_numbers(enabled=True, departments=[Department.OPENERS])
-            result.extend(get_missed_calls(request_filter, date_filter_fields, pbx_numbers))
+            result.extend(get_missed_calls(candidates, request_filter, date_filter_fields, pbx_numbers))
 
     if any(isinstance(comm_type, TextCommunicationType) for comm_type in comm_types_set):
         candidate_sms_comms = get_candidate_sms_communications(candidates, date_filter_fields, request_filter)
@@ -344,7 +347,7 @@ def get_sales_and_service_communication_records(request_filter: Mapping[str, Any
         result.extend([record.voice_communication for record in client_voice_comms])
         if VoiceCommunicationType.MISSED_CALL in comm_types_set:
             pbx_numbers = get_registered_pbx_numbers(enabled=True, departments=[Department.SALES, Department.SERVICE])
-            result.extend(get_missed_calls(request_filter, date_filter_fields, pbx_numbers))
+            result.extend(get_missed_calls(clients, request_filter, date_filter_fields, pbx_numbers))
 
     if any(isinstance(comm_type, TextCommunicationType) for comm_type in comm_types_set):
         client_sms_comms = get_client_sms_communications(clients, date_filter_fields, request_filter)
@@ -455,7 +458,8 @@ def update_voice_communication(data: dict,
     return voice_communication
 
 
-def get_missed_calls(request_filter: Mapping[str, Any],
+def get_missed_calls(customers: Union[Candidate, List[Candidate], Client, List[Client]],
+                     request_filter: Mapping[str, Any],
                      date_filter_fields: List[str] = {},
                      pbx_numbers: List[PBXNumber] = None,
                      record_public_id: str = None):
@@ -463,6 +467,36 @@ def get_missed_calls(request_filter: Mapping[str, Any],
     voice_call_stmt = apply_request_filters(voice_call_stmt, request_filter, VoiceCallEvent)
     voice_call_stmt = build_query_from_dates(voice_call_stmt, request_filter['from_date'], request_filter['to_date'], VoiceCallEvent,
                                              *date_filter_fields)
+
+    if customers:
+        customer_numbers = []
+        if isinstance(customers, list):
+            if Client in customers:
+                for client in customers:
+                    numbers, _ = get_client_contact_numbers(client)
+                    customer_numbers.extend(numbers)
+            elif Candidate in customers:
+                for candidate in customers:
+                    numbers, _ = get_candidate_contact_numbers(candidate)
+                    customer_numbers.extend(numbers)
+            else:
+                customer_types = list(set([type(customer) for customer in customers]))
+                raise ConfigurationError(f'Customer of type(s) {customer_types} is/are not supported')
+
+        if isinstance(customers, Client):
+            numbers, _ = get_client_contact_numbers(customers)
+            customer_numbers.extend(numbers)
+        elif isinstance(customers, Candidate):
+            numbers, _ = get_candidate_contact_numbers(customers)
+            customer_numbers.extend(numbers)
+        else:
+            raise ConfigurationError(f'Customer of type(s) {type(customers)} is/are not supported')
+
+        # convert string phone numbers to BigInteger values to compare with VoiceCallEvent data
+        for customer_number in customer_numbers:
+            customer_number['phone_number'] = phonenumbers.parse(customer_number['phone_number'], DEFAULT_PHONE_REGION).national_number
+
+        voice_call_stmt = voice_call_stmt.filter(or_(VoiceCallEvent.caller_number == entry['phone_number'] for entry in customer_numbers))
 
     if pbx_numbers:
         voice_call_stmt = voice_call_stmt.filter(and_(
