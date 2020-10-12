@@ -107,6 +107,7 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
         middle_initial=candidate.middle_initial,
         last_name=candidate.last_name,
         estimated_debt=candidate.estimated_debt,
+        ssn=candidate._ssn,
         employment_status=candidate.employment_status,
         language=candidate.language,
         dob=candidate.dob,
