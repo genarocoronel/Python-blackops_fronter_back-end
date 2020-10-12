@@ -100,14 +100,12 @@ def fetch_payment_contract(client):
         }
 
     else:
-        term = 24
-        pymt_start = datetime.utcnow()
-        pymt_rec_begin_date = datetime.utcnow()
+        term = 22
 
         combined_debts = fetch_client_combined_debts(client)
         if len(combined_debts) == 0:
             result = {
-              "term": 24,
+              "term": 22,
               "total_debt": 0,
               "enrolled_debt": 0,
               "bank_fee": 20,
@@ -117,8 +115,8 @@ def fetch_payment_contract(client):
               "total_paid": 0,
               "num_term_paid": 0,
               "active": False, 
-              "payment_1st_date": datetime.utcnow().strftime('%m-%d-%Y'),
-              "payment_2nd_date": datetime.utcnow().strftime('%m-%d-%Y'),
+              "payment_1st_date": '',
+              "payment_2nd_date": '',
             }
             return result
 
@@ -133,8 +131,8 @@ def fetch_payment_contract(client):
                                     total_debt, 
                                     co_sign) 
 
-        result['payment_1st_date'] = pymt_start.strftime('%m-%d-%Y')
-        result['payment_2nd_date'] = pymt_rec_begin_date.strftime('%m-%d-%Y')
+        result['payment_1st_date'] = ''
+        result['payment_2nd_date'] = ''
 
     return result
 
@@ -571,7 +569,7 @@ def fetch_payment_schedule(client):
         eft_status = DebtEftStatus[record.status]
         status_value = eft_status.value
         description = 'Payment {}'.format(index)
-        if eft_status == DebtEftStatus.NSF:
+        if eft_status == DebtEftStatus.NSF and record.transaction:
             description = "{} <br /> {}".format(description, record.transaction.message)
         item = {
             'id': record.id,
