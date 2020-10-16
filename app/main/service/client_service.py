@@ -1,3 +1,4 @@
+import re
 import uuid
 import datetime
 
@@ -97,7 +98,9 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
     inserted_dispo = ClientDisposition.query.filter_by(name='Sales_ActiveStatus_InsertedLead').first()
     if not inserted_dispo:
         raise Exception('Error finding Client disposition record for "Inserted"')
-
+    
+    ssn = re.sub('[- \t]', '', candidate._ssn)
+    
     new_client = Client(
         public_id=str(uuid.uuid4()),
         friendly_id=prequal_number,
@@ -107,6 +110,7 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
         middle_initial=candidate.middle_initial,
         last_name=candidate.last_name,
         estimated_debt=candidate.estimated_debt,
+        ssn=ssn,
         employment_status=candidate.employment_status,
         language=candidate.language,
         dob=candidate.dob,
