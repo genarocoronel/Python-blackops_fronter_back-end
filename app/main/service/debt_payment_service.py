@@ -125,7 +125,6 @@ def fetch_payment_contract(client):
             if record.push is True:
                 total_debt = total_debt + float(record.balance_original)
 
-
         ## calcualte contract values
         result = calc_contract_vals(term, 
                                     total_debt, 
@@ -141,6 +140,11 @@ def fetch_active_contract(client):
     # active contract
     contract = DebtPaymentContract.query.filter_by(client_id=client.id,
                                                    status=ContractStatus.ACTIVE).first()
+    if not contract:
+        # fetch the Approved or planned
+        contract = DebtPaymentContract.query.filter(DebtPaymentContract.client_id==client.id)\
+                                            .filter(or_(DebtPaymentContract.status==ContractStatus.APPROVED, DebtPaymentContract.status==ContractStatus.PLANNED)).first()       
+    # no contract
     if not contract:
         result = {
             "term": 24,
