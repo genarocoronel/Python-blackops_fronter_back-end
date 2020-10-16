@@ -109,7 +109,9 @@ class CreditReportData(db.Model):
     payment_amount = db.Column(db.String(20), nullable=True)
     credit_limit = db.Column(db.String(20), nullable=True)
     graduation = db.Column(db.DateTime, nullable=True)
-
+    requested_balance_original = db.Column(db.String(20), nullable=True)
+    request_approved = db.Column(db.Boolean, nullable=True, default=False)
+    
     def get_tasks_in_progress(self):
         return ScrapeTask.query.filter_by(user=self, complete=False).all()
 
