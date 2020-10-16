@@ -53,6 +53,7 @@ class TemplateAction(enum.Enum):
     NEW_DOCUMENT_NOTICE = "new_document_notice" # new_document_notice.html
     DAY3_REMINDER = "day3_reminder"  # day3_reminder.txt 
     DAY3_REMINDER_SPANISH = "day3_reminder_spanish" # day3_reminder_spanish.txt
+    SMS_PAYMENT_REMINDER = "sms_payment_reminder" # payment_reminder.txt
 
 # email, fax or mail templates
 class Template(db.Model): 

@@ -74,6 +74,8 @@ def seed_templates():
       { 'title': 'Old EDMS_3 Day Text Spanish(SMS)', 'action': 'DAY3_REMINDER_SPANISH', 'path': 'day3_reminder_spanish.txt', 'medium': 'SMS',  'editable': True, 'desc': 'Send three days after the client enrolls in the program.  Appointment Reminder 3 Day Text Spanish (SMS)'},
       # Send 3 days after the client enrolls in the program preferably around 12-1PM
       { 'title': 'EDMS_3 Day Text (SMS)', 'action': 'DAY3_REMINDER', 'path': 'day3_reminder.txt', 'medium': 'SMS',  'editable': True, 'desc': 'Send 3 days after the client enrolls in the program preferably around 12-1PM'},
+      # Payment reminder SMS
+      { 'title': 'Notification EPPS Payment(SMS)', 'action': 'SMS_PAYMENT_REMINDER', 'path': 'payment_reminder.txt', 'medium': 'SMS',  'editable': True, 'desc': 'Send SMS Text Message 5 days and 1 day prior to clients projected draft date to notify client of upcoming  EPPS draft payment.'},
     ]
    
 
