@@ -1,0 +1,1 @@
+{{client.full_name}}, A ${{payment.amount}} withdrawal is scheduled from your bank account ending in {{bank_account_number}} on {{payment.due}} by EPPS per your agreement with ELITE DMS (1-800-560-1774).

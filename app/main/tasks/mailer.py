@@ -79,6 +79,13 @@ class TemplateMailManager(object):
         self._payment_schedule = pymt
 
     @property
+    def bank_account_number(self):
+        ba = self._client.bank_account
+        if ba and ba.account_number:
+            return ba.account_number[-4:]
+        return 'XXXX'
+
+    @property
     def appointment(self):
         return self._appointment
 
@@ -103,6 +110,7 @@ class TemplateMailManager(object):
         result = {}
         if self.client:
             result['client'] = self.client
+            result['bank_account_number'] = self.bank_account_number
         if self.account_manager:
             result['account_manager'] = self.account_manager
         if self.debt:
@@ -336,6 +344,11 @@ def send_payment_reminder(client_id, payment_schedule_id):
     kwargs = {'client_id': client_id, 'payment_schedule_id': payment_schedule_id}
     send_template(TemplateAction.PAYMENT_REMINDER.name, 
                   **kwargs) 
+
+def send_sms_payment_reminder(client_id, payment_schedule_id):
+    kwargs = {'client_id': client_id, 'payment_schedule_id': payment_schedule_id}
+    send_template(TemplateAction.SMS_PAYMENT_REMINDER.name,
+                  **kwargs)
 
 # SPANISH_GENERAL_CALL
 def send_spanish_general_call(client_id):

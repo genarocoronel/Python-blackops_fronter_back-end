@@ -220,10 +220,50 @@ def process_upcoming_payments():
     for payment in payments:
         try:
             contract = payment.contract
+            client = contract.client
+            if client.status_name == 'Service_ActiveStatus_NSF' or client.status_name == 'Sales_ActiveStatus_NSF':
+                continue
             # send 5 day payment reminder notice
             mailer.send_payment_reminder(contract.client_id,
                                          payment.id)
+
+            # send 5 day reminder SMS
+            mailer.send_sms_payment_reminder(contract.client_id,
+                                             payment.id)
+
         except Exception:
             continue 
+
+    # 2 Day reminder
+    due_date = date.today() + timedelta(days=2)
+    payments = DebtPaymentSchedule.query.filter(func.date(DebtPaymentSchedule.due_date)==due_date).all()
+    for payment in payments:
+        try:
+            contract = payment.contract
+            client = contract.client
+            if client.status_name == 'Service_ActiveStatus_NSF' or client.status_name == 'Sales_ActiveStatus_NSF':
+                continue
+            # send 2 day reminder SMS
+            mailer.send_sms_payment_reminder(contract.client_id,
+                                             payment.id)
+
+        except Exception:
+            continue
+
+    # 1 Day reminder
+    due_date = date.today() + timedelta(days=1)
+    payments = DebtPaymentSchedule.query.filter(func.date(DebtPaymentSchedule.due_date)==due_date).all()
+    for payment in payments:
+        try:
+            contract = payment.contract
+            client = contract.client
+            if client.status_name == 'Service_ActiveStatus_NSF' or client.status_name == 'Sales_ActiveStatus_NSF':
+                continue
+            # send 1 day reminder SMS
+            mailer.send_sms_payment_reminder(contract.client_id,
+                                             payment.id)
+
+        except Exception:
+            continue
     
 
