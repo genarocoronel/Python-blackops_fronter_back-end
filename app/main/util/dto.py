@@ -347,6 +347,8 @@ _credit_report_debt_model = {
     'credit_limit': fields.Integer(),
     'graduation': fields.DateTime(),
     'last_update': fields.DateTime(),
+    'requested_balance_original': fields.Float(),
+    'request_approved': fields.Boolean(),
     'client_id': fields.Integer(attribute='credit_report_account.client_id'),
 }
 
