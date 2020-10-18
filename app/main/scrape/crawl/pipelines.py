@@ -118,6 +118,7 @@ class CreditReportPipeline(object):
                 push=False,
                 last_debt_status=None,
                 bureaus=None,
+                request_approved=True
             )
 
             db.session.add(new_credit_report_debt)
