@@ -30,19 +30,19 @@ class CreditReportSpider(scrapy.Spider):
         self.password = password
 
     def parse(self, response):
-        return self.simulated_parse()
-        # csrf = response.xpath("//input[@name='_csrf']/@value").get()
+        #return self.simulated_parse()
+        csrf = response.xpath("//input[@name='_csrf']/@value").get()
         
-        # if urlparse(response.url).scheme == 'file':
-        #     return self.parse_credit_report(response)
+        if urlparse(response.url).scheme == 'file':
+            return self.parse_credit_report(response)
 
-        # else:
-        #     return scrapy.FormRequest.from_response(
-        #         response,
-        #         formdata={'_csrf': csrf, 'loginType': 'CUSTOMER', 'j_username': self.username, 'j_password': self.password},
-        #         callback=self.visit_credit_report,
-        #         dont_filter=True
-        #     )
+        else:
+            return scrapy.FormRequest.from_response(
+                response,
+                formdata={'_csrf': csrf, 'loginType': 'CUSTOMER', 'j_username': self.username, 'j_password': self.password},
+                callback=self.visit_credit_report,
+                dont_filter=True
+            )
 
     def simulated_parse(self):
         app.logger.debug('Simulating parse....')
