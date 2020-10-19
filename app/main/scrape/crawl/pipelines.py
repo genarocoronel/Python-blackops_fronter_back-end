@@ -125,4 +125,5 @@ class CreditReportPipeline(object):
             return new_credit_report_debt.__dict__
 
     def close_spider(self, spider):
+        app.logger.debug('Closing Spider and saving to DB...')
         db.session.commit()
