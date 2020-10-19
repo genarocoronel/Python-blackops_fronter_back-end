@@ -99,7 +99,9 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
     if not inserted_dispo:
         raise Exception('Error finding Client disposition record for "Inserted"')
     
-    ssn = re.sub('[- \t]', '', candidate._ssn)
+    ssn = None
+    if candidate._ssn:
+        ssn = re.sub('[- \t]', '', candidate._ssn)
     
     new_client = Client(
         public_id=str(uuid.uuid4()),

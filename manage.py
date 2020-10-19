@@ -69,10 +69,15 @@ def worker_flush_failed(queue):
     failed_registry = current_app.queue.failed_job_registry
     print(f'Total failed jobs: {failed_registry.count}')
     for failed_job_id in failed_registry.get_job_ids():
+        print(f'Failed Job ID: {failed_job_id}')
         failed_job = current_app.queue.fetch_job(failed_job_id)
         if failed_job:
             print(failed_job_id, failed_job.exc_info)
             failed_job.delete()
+        else:
+            print('Could not fetch that Job! Maybe timed out via TTL settings?')
+
+    failed_registry = current_app.queue.failed_job_registry
     print(f'Total failed jobs remaining: {failed_registry.count}')
 
 
@@ -82,9 +87,12 @@ def worker_squak_failed(queue):
     failed_registry = current_app.queue.failed_job_registry
     print(f'Total failed jobs: {failed_registry.count}')
     for failed_job_id in failed_registry.get_job_ids():
+        print(f'Failed Job ID: {failed_job_id}')
         failed_job = current_app.queue.fetch_job(failed_job_id)
         if failed_job:
             print(failed_job_id, failed_job.exc_info)
+        else:
+            print('Could not fetch that Job! Maybe timed out via TTL settings?')
 
 
 @manager.command
