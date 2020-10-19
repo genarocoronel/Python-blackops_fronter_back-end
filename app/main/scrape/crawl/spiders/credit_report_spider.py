@@ -45,6 +45,7 @@ class CreditReportSpider(scrapy.Spider):
         #     )
 
     def simulated_parse(self):
+        app.logger.debug('Simulating parse....')
         state = 'FL'
         fake_debts = [
             {
@@ -61,7 +62,7 @@ class CreditReportSpider(scrapy.Spider):
             {
                 'type': 'Charge account',
                 'debt_name': 'HRSI BANK-WHIRL',
-                'acct_number_raw': '1590577**** ',
+                'acct_number_raw': '1590577****',
                 'ecoa': 'Individual',
                 'days_delinguent': 'Late 30 Days',
                 'balance_original': '276',
