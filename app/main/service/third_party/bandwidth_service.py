@@ -20,6 +20,7 @@ def sms_send(from_phone, to_phone, message_body):
         raise ConfigurationError("Bandwidth app ID not configured")
 
     bw_user_id = current_app.bandwidth_user_id
+    
     api_url = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/messages'
     payload = {
         'to':to_phone,
@@ -59,7 +60,6 @@ def sms_send(from_phone, to_phone, message_body):
 
 def download_mms_media(media_uri):
     """ Fetches MMS media file """
-    media_uri = None
     # if ',' in media_uri:
     #     media_uri = media_uri.split(',')[-1].strip('}')
     if ',' in media_uri:
