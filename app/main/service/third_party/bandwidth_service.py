@@ -51,7 +51,8 @@ def sms_send(from_phone, to_phone, message_body):
         }
 
     else:
-        raise ServiceProviderError(response_data['errors'][0]['message'])
+        raise ServiceProviderError(f'Bandwidth service provider eror returned code: {response.status_code}')
+        #raise ServiceProviderError(response_data['errors'][0]['message'])
 
     return message_confirmation
 
