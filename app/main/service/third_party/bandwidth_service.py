@@ -20,7 +20,7 @@ def sms_send(from_phone, to_phone, message_body):
         raise ConfigurationError("Bandwidth app ID not configured")
 
     bw_user_id = current_app.bandwidth_user_id
-    api_url = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/messages'
+    api_url = f'{current_app.bandwidth_api_endpoint}/users/{current_app.bandwidth_user_id}/mssages'
     payload = {
         'to':to_phone,
         'from':from_phone,
@@ -51,7 +51,8 @@ def sms_send(from_phone, to_phone, message_body):
         }
 
     else:
-        raise ServiceProviderError(response_data['errors'][0]['message'])
+        raise ServiceProviderError(f'Bandwidth service provider eror returned code: {response.status_code}')
+        #raise ServiceProviderError(response_data['errors'][0]['message'])
 
     return message_confirmation
 
