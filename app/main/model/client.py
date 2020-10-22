@@ -104,6 +104,7 @@ class Client(db.Model):
     email = db.Column(db.String(255), nullable=True)
     language = db.Column(db.String(25), nullable=True)
     best_time = db.Column(db.String(5), nullable=True) # Best time to call
+    best_time_pos = db.Column(db.String(6), nullable=True) # Before/After/At
     loc_time_zone = db.Column(db.String(3), nullable=True) # PST/EST/etc.
     # date of birth
     dob  = db.Column(db.DateTime, nullable=True)
