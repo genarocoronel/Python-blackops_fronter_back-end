@@ -69,7 +69,7 @@ def _normalize_sms_comms(sms_comms: List[SMSMessage]):
 
         sms_media_public_id = None
         if sms.sms_media_files:
-            sms_media_public_id = sms.sms_media_files[0].public_id
+            sms_media_public_id = sms.sms_media_files[1].public_id
 
         comms.append(TextMessage(**{
             'public_id': sms.public_id,
