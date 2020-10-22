@@ -312,14 +312,27 @@ def create_doc_from_fax(src_file_name):
     return synth_doc(doc)
 
 
-def create_doc_from_email(src_file_name):
-    """ Create Document from Email comm """
+""" 
+    Create Document from Email comm
+    @@params
+    @src_file_name --> String representing the S3 object
+    @email_from --> String representing the sender email address
+    @email_subject --> String representing email subject line
+    @email_date --> String representing the email date
+    @artifact_name --> String representing the artifact (e.g., "Main Content", or "Attachment 1 of 2")
+    """
+def create_doc_from_email(src_file_name, email_from, email_subject, email_date, artifact_name):
+    doc_name = f'Inbound Email {email_from}: {artifact_name} - {email_date}'
+    doc_notes = doc_name + ', Subject: {}'.format(email_subject)
+
     public_id = str(uuid.uuid4())
 
     doc = Docproc(
         public_id = public_id,
         orig_file_name=src_file_name,
         file_name=src_file_name,
+        doc_name=doc_name,
+        doc_notes=doc_notes,
         source_channel=DocprocChannel.MAIL.value,
         status=DocprocStatus.NEW.value,
         inserted_on=datetime.datetime.utcnow(),
