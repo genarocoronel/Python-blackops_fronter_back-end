@@ -11,7 +11,7 @@ from app.main.service.bank_account_service import create_bank_account
 from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
-    get_client_addresses, update_client_addresses, get_co_client, update_co_client, get_client_checklist, update_client_checklist, \
+    get_client_addresses, update_client_addresses,update_client_supermoney_options, get_client_supermoney_option, get_co_client, update_co_client, get_client_checklist, update_client_checklist, \
     update_notification_pref, fetch_client_combined_debts, assign_salesrep
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_voice_communication, \
     create_presigned_url, get_sales_and_service_communication_records
@@ -50,6 +50,8 @@ _update_contact_number = ClientDto.update_contact_number
 _lead_address = ClientDto.client_address
 _communication = ClientDto.communication
 _update_lead_address = ClientDto.update_client_address
+_update_client_supermoney_option = ClientDto.update_client_supermoney_option
+_supermoney_options = ClientDto.supermoney_options
 _co_client = LeadDto.co_client
 _new_credit_report_account = LeadDto.new_credit_report_account
 _update_credit_report_account = LeadDto.update_credit_report_account
@@ -280,6 +282,35 @@ class LeadAddresses(Resource):
             else:
                 return result, 200
 
+@api.route('/<client_id>/supermoney')
+@api.param('client_id', 'Client public identifier')
+@api.response(404, 'Client not found')
+class ClientSupermoneyOptions(Resource):
+    @api.response(200, 'Supermoney option successfully created')
+    @api.doc('create new supermoney option')
+    @api.expect(_update_client_supermoney_option, validate=True)
+    @token_required
+    def put(self, client_id):
+        """ Creates new Supermoney Option """
+        supermoney_options = request.json
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+        return update_client_supermoney_options(client, supermoney_options)
+
+    @api.doc('get client Supermoney Option')
+    @api.marshal_with(_supermoney_options)
+    @token_required
+    def get(self, client_id):
+        client, error_response = _handle_get_client(client_id)
+        if not client:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_client_supermoney_option(client)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
 
 @api.route('/<lead_id>/communications')
 class LeadCommunications(Resource):

@@ -93,8 +93,7 @@ class CurrentAddressField(fields.Raw):
                 result['city'] = addr.city
                 result['state'] = addr.state
 
-        return result
-
+        return result    
 
 class PreferedPhoneField(fields.Raw):
     def format(self, records):
@@ -464,6 +463,14 @@ class ClientDto:
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
     })
+    supermoney_options = api.model('supermoney_options', {
+        'military_status': fields.String(attribute='military_status.name'),
+        'residency_status': fields.String(attribute='residency_status.name'),
+        'employment_status': fields.String(attribute='employment_status.name'),
+        'pay_frequency': fields.String(attribute='pay_frequency.name'),
+        'pay_method': fields.String(attribute='pay_method.name'),
+        'checking_account': fields.Boolean()
+    })
     client = api.model('client', {
         'first_name': fields.String(required=True, description='client first name'),
         'last_name': fields.String(required=True, description='client last name'),
@@ -474,6 +481,7 @@ class ClientDto:
         'public_id': fields.String(description='client identifier'),
         'friendly_id': fields.String(description='client friendly identifier'),
         'credit_report_account': fields.Nested(credit_report_account),
+        'supermoney_options': fields.Nested(supermoney_options),
         'account_manager': fields.String(attribute='account_manager.full_name'),
     })
     client_notice = api.model('client', {
@@ -557,6 +565,14 @@ class ClientDto:
         'from_date': fields.Date(required=True, source="from_date"),
         'to_date': fields.Date(required=True, source="to_date"),
         'type': AddressTypeField(required=True)
+    })
+    update_client_supermoney_option = api.model('update_client_supermoney_option', {
+        'military_status': fields.String(attribute='military_status.name'),
+        'residency_status': fields.String(attribute='residency_status.name'),
+        'employment_status': fields.String(attribute='employment_status.name'),
+        'pay_frequency': fields.String(attribute='pay_frequency.name'),
+        'pay_method': fields.String(attribute='pay_method.name'),
+        'checking_account': fields.Boolean()
     })
     credit_report_debt = api.model('credit_report_debt', _credit_report_debt_model)
     client_monthly_expense = api.model('client_monthly_expense', {
@@ -713,6 +729,14 @@ class LeadDto:
         'doc_notification': fields.String(attribute='doc_notification.name'),
         'payment_reminder': fields.String(attribute='payment_reminder.name'),
     })
+    supermoney_options = api.model('supermoney_options', {
+        'military_status': fields.String(attribute='military_status.name'),
+        'residency_status': fields.String(attribute='residency_status.name'),
+        'employment_status': fields.String(attribute='employment_status.name'),
+        'pay_frequency': fields.String(attribute='pay_frequency.name'),
+        'pay_method': fields.String(attribute='pay_method.name'),
+        'checking_account': fields.Boolean()
+    })
     lead = api.model('lead', {
         'public_id': fields.String(description='lead identifier'),
         'friendly_id': fields.String(description='lead friendly identifier'),
@@ -747,6 +771,7 @@ class LeadDto:
         'opener': fields.String(attribute='opener.full_name'),
         'sales_rep': fields.String(attribute='sales_rep.full_name'),
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
+        'supermoney_options': fields.Nested(supermoney_options),
         'phone': PreferedPhoneField(cls_or_instance='ClientContactNumber', attribute='contact_numbers'),
         'notification_pref': fields.Nested(notification_preference),
         'type': ClientTypeField(attribute='type'),
@@ -939,6 +964,14 @@ class CandidateDto:
         'value': fields.String(),
         'description': fields.String()
     })
+    supermoney_options = api.model('supermoney_options', {
+        'military_status': fields.String(attribute='military_status.name'),
+        'residency_status': fields.String(attribute='residency_status.name'),
+        'employment_status': fields.String(attribute='employment_status.name'),
+        'pay_frequency': fields.String(attribute='pay_frequency.name'),
+        'pay_method': fields.String(attribute='pay_method.name'),
+        'checking_account': fields.Boolean()
+    })
     candidate = api.model('candidate', {
         'public_id': fields.String(),
         'prequal_number': fields.String(),
@@ -957,6 +990,7 @@ class CandidateDto:
         'disposition': fields.String(attribute='disposition.value'),
         'credit_report_account': fields.Nested(credit_report_account),
         'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
+        'supermoney_options': fields.Nested(supermoney_options),
         'phone': PreferedPhoneField(cls_or_instance='CandidateContactNumber', attribute='contact_numbers'),
         'best_time': fields.String(required=False, example='13:30'),
         'best_time_pos': fields.String(required=False, example='Before'),
@@ -1033,6 +1067,14 @@ class CandidateDto:
         'from_date': fields.Date(required=False),
         'to_date': fields.Date(required=False),
         'type': AddressTypeField(required=True)
+    })
+    update_candidate_supermoney_option = api.model('update_candidate_supermoney_option', {
+        'military_status': fields.String(attribute='military_status.name'),
+        'residency_status': fields.String(attribute='residency_status.name'),
+        'employment_status': fields.String(attribute='employment_status.name'),
+        'pay_frequency': fields.String(attribute='pay_frequency.name'),
+        'pay_method': fields.String(attribute='pay_method.name'),
+        'checking_account': fields.Boolean()
     })
     candidate_number = api.model('candidate_number', {
         'phone_type_id': fields.Integer(required=True),
@@ -1332,7 +1374,7 @@ class TeamDto:
 
     tr_note = api.model('team_request_notes', {
         'text': fields.String(attribute='note.content'),
-    });
+    })
 
     team_request = api.model('team_requests', {
         'id': fields.String(attribute='public_id'),
@@ -1345,7 +1387,7 @@ class TeamDto:
         'notes': fields.List(fields.Nested(tr_note)),
         'contract': fields.Nested(contract),
         'revision': fields.Nested(revision),
-    });
+    })
 
 
 class TaskDto:
@@ -1367,7 +1409,7 @@ class TaskDto:
         'client': fields.Nested(client),
         'due_date': DateTimeFormatField(),
         'inserted_on': DateTimeFormatField(),
-    });
+    })
 
 
 class TicketDto:
@@ -1404,7 +1446,7 @@ class CreditorDto:
         'is_active': fields.Boolean(),
         'inserted_on': DateTimeFormatField(),
         'updated_on': DateTimeFormatField(),
-    });
+    })
 
 
 class ReportDto:
@@ -1424,7 +1466,7 @@ class ReportDto:
         'account_manager': fields.String(),
         'email': fields.String(),
         'client_id': fields.String(),
-    });
+    })
 
     sales_report = api.model('sales_report', {
         'name': fields.String(),
@@ -1438,7 +1480,7 @@ class ReportDto:
         'retention': fields.Integer(),
         'total_debt': fields.Float(),
 
-    });
+    })
 
     ach_report = api.model('ach_report', {
         'eft_trans_id': fields.String(),
@@ -1459,7 +1501,7 @@ class ReportDto:
         'account_number': fields.String(),
         'account_type': fields.String(),
         'pymt_trans_id': fields.String(),
-    });
+    })
 
     ach_report = api.model('ach_report', {
         'client_id': fields.String(),
@@ -1467,7 +1509,7 @@ class ReportDto:
         'description': fields.String(),
         'effective_date': fields.String(),
         'backend': fields.String(),
-    });
+    })
 
     collector_report = api.model('collector_report', {
         'name': fields.String(),
@@ -1479,7 +1521,7 @@ class ReportDto:
         'status': fields.String(),
         'notes': fields.String(),
         'modified_date': fields.String(),
-    });
+    })
 
     creditor_report = api.model('creditor_report', {
         'name': fields.String(),
@@ -1489,7 +1531,7 @@ class ReportDto:
         'created_date': fields.String(),
         'status': fields.String(),
         'modified_date': fields.String(),
-    });
+    })
 
     task_report = api.model('task_report', {
         'id': fields.String(),
@@ -1503,7 +1545,7 @@ class ReportDto:
         'team_manager': fields.String(),
         'due_date': fields.String(),
         'inserted_date': fields.String(),
-    });
+    })
 
 
 call_notification_parser = parser = reqparse.RequestParser()

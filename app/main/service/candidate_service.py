@@ -23,6 +23,7 @@ from app.main.model.credit_report_account import CreditReportAccount
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import ExpenseType, MonthlyExpense
 from app.main.model.address import Address, AddressType
+from app.main.model.supermoney import SupermoneyOptions
 from app.main.service import client_service
 from app.main.service.third_party.aws_service import upload_to_imports
 
@@ -332,6 +333,34 @@ def update_candidate_addresses(candidate, addresses):
     save_changes()
     return {'message': 'Successfully updated candidate addresses'}, None
 
+def update_candidate_supermoney_options(candidate, supermoney_option):
+    prev_supermoney_option = SupermoneyOptions.query.filter_by(candidate_id=candidate.id).first()
+    if prev_supermoney_option:
+        new_supermoney_option = SupermoneyOptions(
+            candidate_id=candidate.id,
+            client_id=prev_supermoney_option.client_id,
+            military_status=supermoney_option.get('military_status'),
+            residency_status=supermoney_option.get('residency_status'),
+            employment_status=supermoney_option.get('employment_status'),
+            pay_frequency=supermoney_option.get('pay_frequency'),
+            pay_method=supermoney_option.get('pay_method'),
+            checking_account=supermoney_option.get('checking_account')
+        )
+    else:
+        new_supermoney_option = SupermoneyOptions(
+            candidate_id=candidate.id,
+            military_status=supermoney_option.get('military_status'),
+            residency_status=supermoney_option.get('residency_status'),
+            employment_status=supermoney_option.get('employment_status'),
+            pay_frequency=supermoney_option.get('pay_frequency'),
+            pay_method=supermoney_option.get('pay_method'),
+            checking_account=supermoney_option.get('checking_account')
+        )
+    db.session.add(new_supermoney_option)
+    if prev_supermoney_option:
+        SupermoneyOptions.query.filter_by(id=prev_supermoney_option.id).delete()
+    save_changes()
+    return {'message': 'Successfully updated candidate supermoney option'}, None
 
 def get_candidate_addresses(candidate):
     addresses = Address.query.filter_by(candidate_id=candidate.id).all()
@@ -350,6 +379,15 @@ def get_candidate_addresses(candidate):
 
     return address_data, None
 
+def get_candidate_supermoney_option(candidate):
+    supermoney_option = SupermoneyOptions.query.filter_by(candidate_id=candidate.id).first()
+    if not supermoney_option:
+        response_object = {
+            'success': False,
+            'message': 'Supermoney option does not exist'
+        }
+        return None, response_object
+    return supermoney_option, None
 
 def save_changes(data):
     db.session.add(data)
@@ -476,6 +514,7 @@ def candidate_filter(limit=25, sort_col='id', order="asc",
                                .outerjoin(Campaign)\
                                .outerjoin(CreditReportAccount)\
                                .outerjoin(Address)\
+                               .outerjoin(SupermoneyOptions)\
                             #    .outerjoin(CandidateContactNumber)
         # search fields
         if search_fields is not None:
