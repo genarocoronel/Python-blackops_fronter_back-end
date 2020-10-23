@@ -20,7 +20,7 @@ from app.main.service.candidate_service import (save_new_candidate_import, save_
                                                 get_candidate_income_sources,
                                                 update_candidate_income_sources, get_candidate_monthly_expenses,
                                                 update_candidate_monthly_expenses,
-                                                get_candidate_addresses, update_candidate_addresses, convert_candidate_to_lead,
+                                                get_candidate_addresses, get_candidate_supermoney_option, update_candidate_addresses, update_candidate_supermoney_options, convert_candidate_to_lead,
                                                 delete_candidates, candidate_filter, assign_openerrep, verify_assign, 
                                                 allowed_import_file_kinds, import_data_file)
 from app.main.service.communication_service import (parse_communication_types, date_range_filter, 
@@ -56,6 +56,8 @@ _candidate_monthly_expense = CandidateDto.candidate_monthly_expense
 _update_candidate_monthly_expense = CandidateDto.update_candidate_monthly_expense
 _candidate_address = CandidateDto.candidate_address
 _update_candidate_addresses = CandidateDto.update_candidate_addresses
+_update_candidate_supermoney_option = CandidateDto.update_candidate_supermoney_option
+_supermoney_options = CandidateDto.supermoney_options
 _candidate_assign = CandidateDto.candidate_assign
 _candidate_doc = CandidateDto.candidate_doc
 _doc_upload = CandidateDto.doc_upload
@@ -123,7 +125,6 @@ class CandidateFilter(Resource):
         """ Get filtered Candidates """
         # filter args
         fargs = filter_request_parse(request)
-        print("======", fargs)
         result = candidate_filter(**fargs)
         return result, 200
 
@@ -941,6 +942,36 @@ class CandidateAddresses(Resource):
             api.abort(404, **error_response)
         else:
             result, err_msg = get_candidate_addresses(candidate)
+            if err_msg:
+                api.abort(500, err_msg)
+            else:
+                return result, 200
+
+@api.route('/<candidate_id>/supermoney')
+@api.param('candidate_id', 'Candidate public identifier')
+@api.response(404, 'Candidate not found')
+class CandidateSupermoneyOptions(Resource):
+    @api.response(200, 'Supermoney option successfully created')
+    @api.doc('create new supermoney option')
+    @api.expect(_update_candidate_supermoney_option, validate=True)
+    @token_required
+    def put(self, candidate_id):
+        """ Creates new Supermoney Option """
+        supermoney_options = request.json
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        return update_candidate_supermoney_options(candidate, supermoney_options)
+
+    @api.doc('get candidate Supermoney Option')
+    @api.marshal_with(_supermoney_options)
+    @token_required
+    def get(self, candidate_id):
+        candidate, error_response = _handle_get_candidate(candidate_id)
+        if not candidate:
+            api.abort(404, **error_response)
+        else:
+            result, err_msg = get_candidate_supermoney_option(candidate)
             if err_msg:
                 api.abort(500, err_msg)
             else:

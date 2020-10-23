@@ -73,6 +73,7 @@ class Candidate(db.Model):
     income_sources = db.relationship('CandidateIncome')
     monthly_expenses = db.relationship('CandidateMonthlyExpense')
     addresses = db.relationship("Address", backref="candidate")
+    supermoney_options = db.relationship("SupermoneyOptions", uselist=False, backref="candidate")
 
     # fields
     suffix = db.Column(db.String(25), nullable=True)

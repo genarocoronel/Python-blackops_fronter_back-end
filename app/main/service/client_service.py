@@ -16,6 +16,7 @@ from app.main.model.employment import Employment
 from app.main.model.income import IncomeType, Income
 from app.main.model.monthly_expense import MonthlyExpense, ExpenseType
 from app.main.model.address import Address, AddressType
+from app.main.model.supermoney import SupermoneyOptions
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
@@ -138,6 +139,7 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
     for address in candidate.addresses:
         new_client.addresses.append(address)
 
+
     for number in candidate.contact_numbers:
         new_client_contact_number = ClientContactNumber(
             client=new_client,
@@ -146,6 +148,7 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
         db.session.add(new_client_contact_number)
 
     new_client.credit_report_account = candidate.credit_report_account
+    new_client.supermoney_options = candidate.supermoney_options
     # notification preference
     np = NotificationPreference(client_id=new_client.id)
     db.session.add(np)
@@ -226,6 +229,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
         query = Client.query.filter(Client.type!=ClientType.coclient).outerjoin(ClientDisposition) \
             .outerjoin(CreditReportAccount) \
             .outerjoin(Address) \
+            .outerjoin(SupermoneyOptions) \
             # .outerjoin(ClientContactNumber)
         # print("this is query", query)
         # search fields
@@ -609,10 +613,49 @@ def update_client_addresses(client, addresses):
 
     return {'message': 'Successfully updated client addresses'}, None
 
+def update_client_supermoney_options(client, supermoney_option):
+    prev_supermoney_option = SupermoneyOptions.query.filter_by(client_id=client.id).first()
+    if prev_supermoney_option:
+        new_supermoney_option = SupermoneyOptions(
+            client_id=client.id,
+            candidate_id=prev_supermoney_option.candidate_id,
+            military_status=supermoney_option.get('military_status'),
+            residency_status=supermoney_option.get('residency_status'),
+            employment_status=supermoney_option.get('employment_status'),
+            pay_frequency=supermoney_option.get('pay_frequency'),
+            pay_method=supermoney_option.get('pay_method'),
+            checking_account=supermoney_option.get('checking_account')
+        )
+    else:
+        new_supermoney_option = SupermoneyOptions(
+            client_id=client.id,
+            military_status=supermoney_option.get('military_status'),
+            residency_status=supermoney_option.get('residency_status'),
+            employment_status=supermoney_option.get('employment_status'),
+            pay_frequency=supermoney_option.get('pay_frequency'),
+            pay_method=supermoney_option.get('pay_method'),
+            checking_account=supermoney_option.get('checking_account')
+        )
+    db.session.add(new_supermoney_option)
+    if prev_supermoney_option:
+        SupermoneyOptions.query.filter_by(id=prev_supermoney_option.id).delete()
+    save_changes()
+    return {'message': 'Successfully updated client supermoney option'}, None
+
 
 def get_client_addresses(client):
     addresses = Address.query.filter_by(client_id=client.id).all()
     return addresses, None
+
+def get_client_supermoney_option(client):
+    supermoney_option = SupermoneyOptions.query.filter_by(client_id=client.id).first()
+    if not supermoney_option:
+        response_object = {
+            'success': False,
+            'message': 'Supermoney option does not exist'
+        }
+        return None, response_object
+    return supermoney_option, None
 
 
 def get_client_income_sources(client):

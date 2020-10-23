@@ -88,6 +88,7 @@ class Client(db.Model):
     income_sources = db.relationship('ClientIncome')
     monthly_expenses = db.relationship('ClientMonthlyExpense')
     addresses = db.relationship("Address", backref='client')
+    supermoney_options = db.relationship("SupermoneyOptions", uselist=False, backref='client')
     contact_numbers = db.relationship('ClientContactNumber')
     # account manager
     team_manager = db.relationship('User', backref='team_accounts', foreign_keys=[team_manager_id])
