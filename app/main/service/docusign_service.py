@@ -11,7 +11,6 @@ TOKEN_EXPIRATION_IN_SECONDS = 3600
 # Docsign object to interface with Docsign cloud service
 class DocuSign(object):
     # Account Id
-    _BASE_PATH  = 'https://demo.docusign.net/restapi'
     _EMAIL_SUBJECT = 'Please sign this document from CRM Limited'
     
     # AUTH
@@ -30,8 +29,9 @@ class DocuSign(object):
         if self._check_token() is False:
             self._update_token()
         # set the access token in Authorization headers
-        self._client.set_base_path(self._BASE_PATH)
-        self._client.host = self._BASE_PATH
+        base_path = "{}/restapi".format(app.config['DOCUSIGN_URI'])
+        self._client.set_base_path(base_path)
+        self._client.host = base_path
         self._client.set_default_header("Authorization", "Bearer " + self._access_token)
         return self._client
 
