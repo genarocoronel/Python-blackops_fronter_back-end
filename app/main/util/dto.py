@@ -115,6 +115,15 @@ class FullNameField(fields.String):
         else:
             return ''
 
+class AssignedUserField(fields.Raw):
+    def format(self, user_assoc):
+        if user_assoc and len(user_assoc) > 0:
+            user = user_assoc[0].user
+            return user.full_name
+
+        return ''
+         
+
 
 authorizations = {
     'apikey': {
@@ -962,7 +971,7 @@ class CandidateDto:
         'best_time_pos': fields.String(required=False, example='Before'),
         'loc_time_zone': fields.String(required=False, attribute="loc_time_zone",example='PST'),
         'ssn4': fields.String(required=False, attribute="ssn4"),
-        'opener_rep': fields.String(),
+        'opener': AssignedUserField(cls_or_instance='UserCandidateAssignment', attribute='user_candidate_assignment_assoc'),
     })
     candidate_dispositions = api.model('candidate_disposition', {
         'select_type': CandidateDispositionTypeField(),
