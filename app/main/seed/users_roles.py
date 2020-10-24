@@ -494,7 +494,7 @@ def seed_permissions():
          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
         # team request
         {'name': 'clients.tr.view', 'desc': 'Clients Team requests',
-         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
+         'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
         {'name': 'tr.view', 'desc': 'Team requests view',
          'roles': [RACRoles.SALES_MGR, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
         {'name': 'tr.update', 'desc': 'Team requests update',
