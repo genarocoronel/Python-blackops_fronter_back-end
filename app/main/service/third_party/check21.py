@@ -12,6 +12,8 @@ import logging
 logging.getLogger('zeep').setLevel(logging.ERROR)
 
 class Check(object):
+    _MEMO_TXT = 'Financial Program Payment'
+
     def __init__(self):
         self._payer = None
         self._addr1 = None
@@ -23,7 +25,7 @@ class Check(object):
         self._transit_no = None
         self._dda_no = None
         self._check_no = None
-        self._memo = None
+        self._memo = self._MEMO_TXT
         self._signature = None
 
     # payer
@@ -31,7 +33,7 @@ class Check(object):
     def payer(self): return self._payer
     @payer.setter
     def payer(self, value):
-        self._owner = value
+        self._payer = value
 
     # payer addr1
     @property
@@ -167,7 +169,7 @@ class Check(object):
         self.amount = info['CheckAmount']
         self.entry_class = info['EntryClass']
         self.post_date = info['PostingDate']
-        self.send_status = info['SendToFed']
+        self.send_status = info['SentToFed']
         self.ret_status = info['ReturnStatus'] 
 
 class CreateCheckError(object):
