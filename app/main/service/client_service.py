@@ -194,8 +194,8 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
 def assign_friendly_id(client):
     """ Assigns a random Friendly ID to the given Client """
     friendly_id = generate_rand_code(8, client.public_id)
-    max_tries = 3;
-    current_tries = 1;
+    max_tries = 3
+    current_tries = 1
 
     while does_friendly_id_exists(friendly_id):
         friendly_id = generate_rand_code(8, client.public_id)
@@ -226,7 +226,7 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         # base query
-        query = Client.query.filter(Client.type!=ClientType.coclient).outerjoin(ClientDisposition) \
+        query = Client.query.filter(Client.type!=ClientType.coclient).filter(Client.type==client_type).outerjoin(ClientDisposition) \
             .outerjoin(CreditReportAccount) \
             .outerjoin(Address) \
             .outerjoin(SupermoneyOptions) \
