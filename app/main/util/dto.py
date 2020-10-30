@@ -472,6 +472,20 @@ class ClientDto:
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
     })
+    bank_account = api.model('bank_accounts', {
+        'bank_name': fields.String(),
+        'account_number': fields.String(),
+        'routing_number': fields.String(),
+        'owner_name': fields.String(),
+        'type': fields.String(attribute='type.value'),
+        'owner_type': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'ssn': fields.String(),
+        'zip': fields.String(),
+        'email': fields.String(),
+    })
     supermoney_options = api.model('supermoney_options', {
         'military_status': fields.String(attribute='military_status.name'),
         'residency_status': fields.String(attribute='residency_status.name'),
@@ -492,6 +506,11 @@ class ClientDto:
         'credit_report_account': fields.Nested(credit_report_account),
         'supermoney_options': fields.Nested(supermoney_options),
         'account_manager': fields.String(attribute='account_manager.full_name'),
+        'bank_account': fields.Nested(bank_account),
+        'ssn': fields.String(description='client ssn'),
+        'disposition': fields.String(attribute='disposition.value'),
+        'bank_account': fields.Nested(bank_account),
+        'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
     })
     client_notice = api.model('client', {
         'public_id': fields.String(description='client identifier'),
