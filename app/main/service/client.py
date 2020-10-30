@@ -190,7 +190,7 @@ class ClientTrService(ClientService):
     _model = TeamRequest
 
     def __init__(self, id=None, public_id=None):
-        super().__init__(id, public_id)
+        super().__init__(id=id, public_id=public_id)
 
     def _queryset(self):
         return TeamRequest.query.outerjoin(DebtPaymentContract)\
