@@ -472,6 +472,20 @@ class ClientDto:
         'public_id': fields.String(),
         'status': CreditReportAccountStatusField()
     })
+    bank_account = api.model('bank_accounts', {
+        'bank_name': fields.String(),
+        'account_number': fields.String(),
+        'routing_number': fields.String(),
+        'owner_name': fields.String(),
+        'type': fields.String(attribute='type.value'),
+        'owner_type': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'ssn': fields.String(),
+        'zip': fields.String(),
+        'email': fields.String(),
+    })
     supermoney_options = api.model('supermoney_options', {
         'military_status': fields.String(attribute='military_status.name'),
         'residency_status': fields.String(attribute='residency_status.name'),

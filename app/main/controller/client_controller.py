@@ -31,9 +31,10 @@ from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_s
 from app.main.service.user_service import get_request_user, get_a_user
 from app.main.service.debt_payment_service import fetch_active_contract
 from app.main.util.parsers import filter_request_parse
-from ..util.dto import ClientDto, AppointmentDto, TaskDto, TeamDto
+from ..util.dto import LeadDto, ClientDto, AppointmentDto, TaskDto, TeamDto
 
 api = ClientDto.api
+_lead = LeadDto.lead
 _client = ClientDto.client
 _update_client = ClientDto.update_client
 _client_employment = ClientDto.client_employment
@@ -66,7 +67,7 @@ CLIENT = ClientType.client
 @api.route('/')
 class ClientList(Resource):
     @api.doc('list_of_clients')
-    @api.marshal_list_with(_client, envelope='data')
+    @api.marshal_list_with(_lead, envelope='data')
     @token_required
     @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP, 
                                 RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
