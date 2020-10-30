@@ -506,11 +506,6 @@ class ClientDto:
         'credit_report_account': fields.Nested(credit_report_account),
         'supermoney_options': fields.Nested(supermoney_options),
         'account_manager': fields.String(attribute='account_manager.full_name'),
-        'bank_account': fields.Nested(bank_account),
-        'ssn': fields.String(description='client ssn'),
-        'disposition': fields.String(attribute='disposition.value'),
-        'bank_account': fields.Nested(bank_account),
-        'address': CurrentAddressField(cls_or_instance='Address', attribute='addresses'),
     })
     client_notice = api.model('client', {
         'public_id': fields.String(description='client identifier'),
