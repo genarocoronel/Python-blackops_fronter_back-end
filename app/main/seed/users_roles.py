@@ -458,6 +458,10 @@ def seed_permissions():
          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
         {'name': 'clients.view', 'desc': 'View Client', 
          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,]},
+        # temp, need to relook
+        {'name': 'clients.base.view', 'desc': 'View Client', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,
+                   RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
         {'name': 'clients.assignment', 'desc': 'Client Assignment', 
          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, ]},
         {'name': 'clients.debts.view', 'desc': 'View Client debts', 

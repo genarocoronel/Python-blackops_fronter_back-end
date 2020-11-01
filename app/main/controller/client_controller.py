@@ -70,8 +70,7 @@ class ClientList(Resource):
     @api.doc('list_of_clients')
     @api.marshal_list_with(_lead, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP, 
-                                RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    @user_has_permission('clients.base.view')
     def get(self):
         """ List all clients """
         clients = get_all_clients(client_type=CLIENT)

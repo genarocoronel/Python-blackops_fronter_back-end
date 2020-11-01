@@ -28,6 +28,8 @@ from app.main.service import client as svc
 from app.main.service.note_service import fetch_notes_by_candidate_id
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
+from app.main.core.rac import RACRoles
+from flask import g
 
 
 def save_new_client(data, client_type=ClientType.lead):
@@ -210,9 +212,24 @@ def assign_friendly_id(client):
 
 
 def get_all_clients(client_type=ClientType.client):
-    # TODO - Refactor to use user_service::get_lead_assignments(), and user_service::get_client_assignments()
-    # when frontend assigment feature ready
-    return Client.query.filter_by(type=client_type).all()
+    try:
+        # TODO - Refactor to use user_service::get_lead_assignments(), and user_service::get_client_assignments()
+        # when frontend assigment feature ready
+        query = Client.query.filter(Client.type==client_type)
+        # role and obj permissions    
+        req_user = g.current_user
+        user_id = req_user['user_id']
+        user_role = req_user['rac_role']
+        if user_role == RACRoles.SALES_REP.value:
+            query = query.filter(Client.sales_rep_id==user_id)
+        elif user_role == RACRoles.SERVICE_REP.value:
+            query = query.filter(Client.account_manager_id==user_id)
+
+        return query.all()
+
+    except Exception as err:
+        app.logger.warning('Fetch Clients issue, {}'.format(str(err)))
+        raise ValueError('Fetch Clients issue, {}'.format(str(err)))    
 
 
 def client_filter(limit=25, sort_col='id', order="desc",
@@ -231,6 +248,17 @@ def client_filter(limit=25, sort_col='id', order="desc",
             .outerjoin(Address) \
             .outerjoin(SupermoneyOptions) \
             # .outerjoin(ClientContactNumber)
+
+        # current user and obj permissions
+        req_user = g.current_user
+        user_id = req_user['user_id']
+        user_role = req_user['rac_role']
+        if user_role == RACRoles.SALES_REP.value:
+            query = query.filter(Client.sales_rep_id==user_id)
+        elif user_role == RACRoles.SERVICE_REP.value:
+            query = query.filter(Client.account_manager_id==user_id)
+
+
         # print("this is query", query)
         # search fields
         if search_fields is not None:
