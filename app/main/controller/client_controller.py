@@ -10,7 +10,7 @@ from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.model.audit import Auditable
 from app.main.service.audit_service import get_last_audit_item
-from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments,
+from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments, client_filter,
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
@@ -35,6 +35,7 @@ from ..util.dto import LeadDto, ClientDto, AppointmentDto, TaskDto, TeamDto
 
 api = ClientDto.api
 _lead = LeadDto.lead
+_lead_pagination = LeadDto.lead_pagination
 _client = ClientDto.client
 _update_client = ClientDto.update_client
 _client_employment = ClientDto.client_employment
@@ -85,6 +86,18 @@ class ClientList(Resource):
         """ Creates new Client """
         data = request.json
         return save_new_client(data=data, client_type=CLIENT)
+
+@api.route('/filter')
+class ClientFilter(Resource):
+    @api.doc('Clients filter with pagination info')
+    @api.marshal_with(_lead_pagination)
+    @token_required
+    @user_has_permission('clients.view')
+    def get(self):
+        #filter args
+        fargs = filter_request_parse(request)
+        result =  client_filter(client_type=CLIENT, **fargs)
+        return result, 200
 
 @api.route('/data')
 class ClientList(Resource):
