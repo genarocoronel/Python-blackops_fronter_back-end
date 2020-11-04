@@ -234,7 +234,7 @@ def create_doc_manual(data, client = None, return_model = False):
     is_published = False
     curr_user = None
     
-    if data['source_channel'] == DocprocChannel.PORTAL.value:
+    if hasattr(data,'source_channel') and data['source_channel'] == DocprocChannel.PORTAL.value:
         is_published = True
         curr_username = 'system'
     else:
@@ -256,7 +256,7 @@ def create_doc_manual(data, client = None, return_model = False):
         is_published = is_published
     )
 
-    if data['source_channel'] == DocprocChannel.DSTAR.value:
+    if hasattr(data,'source_channel') and data['source_channel'] == DocprocChannel.DSTAR.value:
         doc.source_channel = DocprocChannel.DSTAR.value
         
 
