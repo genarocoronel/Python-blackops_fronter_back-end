@@ -161,8 +161,9 @@ class Check(object):
         return result
 
     def parse(self, message):
-        info = message['CheckInfo']
+        info = message
         #print(info)
+        self.check_id = info['CheckID']
         self.check_no = info['CheckNumber']
         self.transit_no = info['TransitNumber']
         self.dda_no = info['DDANumber']
@@ -171,6 +172,7 @@ class Check(object):
         self.post_date = info['PostingDate']
         self.send_status = info['SentToFed']
         self.ret_status = info['ReturnStatus'] 
+        self.payer = info['IndividualName']
 
 class CreateCheckError(object):
     
@@ -250,14 +252,15 @@ class Check21Client(object):
             #print(response)
             code = response['Code']
             if code == 0:
-                check.parse(response)
+                message = response['CheckInfo']
+                check.parse(message)
                 return {
-                    'code': 0,
+                    'success': True,
                 }
             else:
                 message = response['Message']
                 return {
-                    'code': code,
+                    'success': False,
                     'message': message
                 } 
 
@@ -290,6 +293,106 @@ class Check21Client(object):
 
         except Exception as err:
             app.logger.warning('Check21 Create RCC {}'.format(str(err)))
+
+    def fetch_check_details(self, check): 
+        try:
+            kwargs = {}
+            kwargs['Username'] = self._user
+            kwargs['Password'] = self._pswd
+            kwargs['ClientID'] = self._account_id
+            kwargs['Query'] = '<CheckID><Operation>Equal</Operation><Value>{}</Value></CheckID>'.format(check.check_id)
+            response = self._client.service.FindChecksDetails(**kwargs)
+            code = response['Code']
+            if code == 0:
+                if 'Checks' in response:
+                    checks = response['Checks'] 
+                    cklist = checks['CheckInfo']
+                    if len(cklist) > 0:
+                        message = cklist[0]
+                        check.parse(message)
+                        return {
+                            'success': True,
+                        }
+            else:
+                message = response['Message']
+                return {
+                    'success': False,
+                    'message': message,
+                }
+            
+        except Exception as err:
+            app.logger.warning('Check21 Fetch Returns {}'.format(str(err)))
+
+    def fetch_returns_details(self, frm_date, to_date):
+        try:
+            check_list = []
+            kwargs = {}
+            kwargs['Username'] = self._user
+            kwargs['Password'] = self._pswd
+            kwargs['ClientID'] = self._account_id
+            kwargs['Query'] = '<UploadDate><Operation>Between</Operation><Value>{}</Value><Value>{}</Value></UploadDate>'.format(frm_date, to_date)
+            response = self._client.service.FindReturnsDetails(**kwargs)
+            code = response['Code']
+            if code == 0:
+                if 'Checks' in response:
+                    checks = response['Checks']
+                    cklist = checks['CheckInfo']
+                    if len(cklist) > 0:
+                        for item in cklist:
+                            ck = Check()
+                            ck.parse(item)
+                            check_list.append(ck)
+
+                return {
+                    'success': True,
+                    'checks': check_list,
+                }
+
+            else:
+                message = response['Message']
+                return {
+                    'success': False,
+                    'message': message,
+                }
+
+        except Exception as err:
+            app.logger.warning('Check21 Fetch Returns {}'.format(str(err)))
+
+    def fetch_checks_details(self, frm_date, to_date):
+        try:
+            check_list = []
+            kwargs = {}
+            kwargs['Username'] = self._user
+            kwargs['Password'] = self._pswd
+            kwargs['ClientID'] = self._account_id
+            kwargs['Query'] = '<UploadDate><Operation>Between</Operation><Value>{}</Value><Value>{}</Value></UploadDate>'.format(frm_date, to_date)
+            response = self._client.service.FindChecksDetails(**kwargs)
+            code = response['Code']
+            if code == 0:
+                if 'Checks' in response:
+                    checks = response['Checks']
+                    cklist = checks['CheckInfo']
+                    if len(cklist) > 0:
+                        for item in cklist:
+                            print(item)
+                            ck = Check()
+                            ck.parse(item)
+                            check_list.append(ck)
+
+                return {
+                    'success': True,
+                    'checks': check_list,
+                }
+
+            else:
+                message = response['Message']
+                return {
+                    'success': False,
+                    'message': message,
+                }
+
+        except Exception as err:
+            app.logger.warning('Check21 Fetch Returns {}'.format(str(err)))
 
 # REST Service
 class Check21(object):
