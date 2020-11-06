@@ -8,7 +8,7 @@ from app.main.util.decorator import (token_required, user_has_permission)
 from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.service.bank_account_service import create_bank_account
-from app.main.service.client_service import get_all_clients, save_new_client, get_client, get_client_income_sources, \
+from app.main.service.client_service import get_all_clients, get_clients_by_disposition, save_new_client, get_client, get_client_income_sources, \
     update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses, get_client_employments, \
     update_client_employments, update_client, client_filter, get_client_contact_numbers, update_client_contact_numbers, \
     get_client_addresses, update_client_addresses,update_client_supermoney_options, get_client_supermoney_option, get_co_client, update_co_client, get_client_checklist, update_client_checklist, \
@@ -96,6 +96,18 @@ class LeadFilter(Resource):
         #filter args
         fargs = filter_request_parse(request)
         result =  client_filter(client_type=LEAD, **fargs)
+        return result, 200
+
+@api.route('/filter/disposition')
+class LeadFilterByDisposition(Resource):
+    @api.doc('Leads filter by disposition')
+    @api.marshal_list_with(_lead, envelope='data')
+    @token_required
+    @user_has_permission('leads.view')
+    def get(self):
+        #filter args
+        disposition = request.args.get('_q', None)
+        result =  get_clients_by_disposition(disposition, client_type=LEAD)
         return result, 200
 
 
