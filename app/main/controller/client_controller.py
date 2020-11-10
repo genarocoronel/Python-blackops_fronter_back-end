@@ -10,7 +10,7 @@ from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.model.audit import Auditable
 from app.main.service.audit_service import get_last_audit_item
-from app.main.service.client_service import (get_all_clients, save_new_client, get_client, get_client_appointments, client_filter,
+from app.main.service.client_service import (get_all_clients, get_clients_by_disposition, save_new_client, get_client, get_client_appointments, client_filter,
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
@@ -97,6 +97,18 @@ class ClientFilter(Resource):
         #filter args
         fargs = filter_request_parse(request)
         result =  client_filter(client_type=CLIENT, **fargs)
+        return result, 200
+
+@api.route('/filter/disposition')
+class ClientFilterByDisposition(Resource):
+    @api.doc('Clients filter by disposition')
+    @api.marshal_list_with(_lead, envelope='data')
+    @token_required
+    @user_has_permission('clients.view')
+    def get(self):
+        #filter args
+        disposition = request.args.get('_q', None)
+        result =  get_clients_by_disposition(disposition, client_type=CLIENT)
         return result, 200
 
 @api.route('/data')

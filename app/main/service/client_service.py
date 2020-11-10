@@ -217,6 +217,14 @@ def get_all_clients(client_type=ClientType.client):
     # when frontend assigment feature ready
     return Client.query.filter_by(type=client_type).all()
 
+def get_clients_by_disposition(disposition, client_type=ClientType.client):
+    search = "%{}%".format(disposition)
+    dispositions = ClientDisposition.query.filter(ClientDisposition.value.ilike(search)).all()
+    dispositionIds = [disposition.id for disposition in dispositions]
+    return Client.query.filter(ClientDisposition.id.in_(dispositionIds)).outerjoin(ClientDisposition) \
+        .outerjoin(CreditReportAccount) \
+        .outerjoin(Address) \
+        .outerjoin(SupermoneyOptions).all()
 
 def client_filter(limit=25, sort_col='id', order="desc",
                   pageno=1, search_fields=None, search_val="",
