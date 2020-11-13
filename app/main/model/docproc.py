@@ -17,7 +17,7 @@ class DocprocStatus(enum.Enum):
     NEW = 'New'
     PENDING = 'Pending'
     REJECT = 'Reject'
-    WAIT_AM_REVIEW = 'Wait AM Review'
+    WAIT_AM_REVIEW = 'Wait for AM Review'
     APPROVED = 'Approved'
     NEW_REJECT = 'New and Reject'
 

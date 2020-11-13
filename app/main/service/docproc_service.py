@@ -7,11 +7,12 @@ from werkzeug.utils import secure_filename
 from flask import g, send_from_directory, after_this_request, current_app as app
 
 from app.main.core.errors import BadRequestError, NotFoundError
-from app.main.core.rac import RACRoles
+from app.main.core.rac import RACMgr, RACRoles
 from app.main.core.io import (save_file, stream_file, delete_file, generate_secure_filename, 
     get_extension_for_filename, get_mime_from_extension)
 from app.main.config import upload_location
 from app.main import db
+from app.main.model.user import User
 from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus, 
     DocprocNote, Docproc)
 from app.main.model.candidate_docs import CandidateDoc
@@ -51,6 +52,29 @@ def get_docs_for_client(client):
     
     return docs
 
+def get_doc_processors():
+    """ Gets all Doc Processors with detailed info """
+    doc_processors = []
+    role = RACMgr.get_role_record_by_name(RACRoles.DOC_PROCESS_REP.value)
+    docproc_users = User.query.filter_by(role=role).all()
+
+    for docproc_user in docproc_users:
+        doc_new = Docproc.query.filter_by(docproc_user_id=docproc_user.id, status=DocprocStatus.NEW.value).count()
+        doc_wait_am_review = Docproc.query.filter_by(docproc_user_id=docproc_user.id, status=DocprocStatus.WAIT_AM_REVIEW.value).count()
+        doc_reject = Docproc.query.filter_by(docproc_user_id=docproc_user.id, status=DocprocStatus.REJECT.value).count()
+        doc_approved = Docproc.query.filter_by(docproc_user_id=docproc_user.id, status=DocprocStatus.APPROVED.value).count()
+        doc_processor = {
+            'public_id': docproc_user.public_id,
+            'username': docproc_user.username,
+            'first_name': docproc_user.first_name,
+            'last_name': docproc_user.last_name,
+            'doc_new': doc_new,
+            'doc_wait_am_review': doc_wait_am_review,
+            'doc_reject': doc_reject,
+            'doc_approved': doc_approved,
+        }
+        doc_processors.append(doc_processor)
+    return doc_processors
 
 def get_docs_for_portal_user():
     """ Gets Docs for current Portal User """
