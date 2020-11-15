@@ -2,7 +2,7 @@ from flask import request
 from flask import current_app as app
 import enum
 from .channel import Channel
-from .serializer import serialize
+from .serializer import serialize, bcast_serialize
 from app.main.util.dto import TeamDto, TaskDto, ClientDto, TicketDto
 
 
@@ -11,6 +11,7 @@ class NotificationType(enum.Enum):
     TEAMREQUEST = 'team_request'
     CLIENT_NOTICE = 'client_notice'
     TICKET = 'ticket'
+    CLIENT_UPDATE = 'client_update'
 
 ## this channel is used to send real time announcements
 ## to user dashboards
@@ -50,6 +51,28 @@ class NotificationChannel(Channel):
         except Exception as err:
             app.logger.warning("Notification Channel send_message {}".format(str(err)))
             return False
+    
+    ## broadcast
+    @classmethod
+    @bcast_serialize
+    def broadcast(cls, data):
+        try:
+            if not isinstance(cls.type, NotificationType):
+                return False
+
+            event_type = cls.type.value
+            ns = cls.namespace
+
+            # send through transmit channel
+            cls._tx_chnl.broadcast_event(event_type,
+                                         data,
+                                         namespace=ns)
+            return True
+
+        except Exception as err:
+            app.logger.warning("Notification Channel broadcast {}".format(str(err)))
+            return False
+
 
     ## register name space
     @classmethod
@@ -79,6 +102,11 @@ class ClientNoticeChannel(NotificationChannel):
 class TicketChannel(NotificationChannel):
     type = NotificationType.TICKET
     serializer_class = TicketDto.ticket
+
+## client update
+class ClientUpdateChannel(NotificationChannel):
+    type = NotificationType.CLIENT_UPDATE
+    serializer_class = ClientDto.client_update_notice
 
 
 # register the channel

@@ -11,7 +11,7 @@ from app.main.model.user import User
 from app.main.model.rac import RACRole
 from app.main.core.rac import RACRoles
 from dateutil.relativedelta import relativedelta
-from app.main.channels.notification import TaskChannel
+from app.main.channels.notification import TaskChannel, ClientUpdateChannel
 from app.main.tasks import channel as wkchannel
 from sqlalchemy import desc, asc, and_
 from datetime import datetime, timedelta
@@ -160,6 +160,10 @@ class AppointmentWorkflow(Workflow):
                 if ServiceScheduleType.INTRO_CALL.value in appt.service_schedule.type:
                     client.status = 'Acct Manager Intro Complete'
                     db.session.commit()
+                    # send notififcaton
+                    notice = wkchannel.ClientUpdateNotice(client, 'Intro Call Completed')
+                    ClientUpdateChannel.broadcast(notice)
+
                     app.queue.enqueue('app.main.tasks.mailer.send_intro_call',
                                       client.id, failure_ttl=300)
                     return
@@ -199,6 +203,10 @@ class NSFWorkFlow(Workflow):
         # set all future payments non drafting
         self._create_task(is_worker=True)
         self.save()
+        
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, 'NSF Issue')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
         # send mail
         app.queue.enqueue('app.main.tasks.mailer.send_nsf_draft_issue',
@@ -465,6 +473,9 @@ def create_workflow(code, contract, revision=None):
                                                          client)
 
                 db.session.commit() 
+                # send notififcaton
+                notice = wkchannel.ClientUpdateNotice(client, 'Client signed the contract')
+                wkchannel.WkCientUpdateChannel.broadcast(notice)
 
               
     class TermChange(ContractWorkflow): 
@@ -617,6 +628,9 @@ def create_workflow(code, contract, revision=None):
                     self._task_desc = 'NSF Redraft Approved.\
                                        Please communicate with your client.'
                     super().on_tr_approved(teamrequest)
+                    # send notififcaton
+                    notice = wkchannel.ClientUpdateNotice(client, 'NSF Redraft request')
+                    CientUpdateChannel.broadcast(notice)
 
             except Exception as err:
                 raise ValueError("ChangeDraftDate TR APPROVED handler issue")
@@ -698,6 +712,9 @@ def create_workflow(code, contract, revision=None):
             for item in schedule:
                 item.status = ServiceScheduleStatus.INCOMPLETE.value
             db.session.commit()
+            # send notification
+            notice = wkchannel.ClientUpdateNotice(client, 'Request cancellation TR approved')
+            CientUpdateChannel.broadcast(notice) 
 
             # create task
             wflow = GenericWorkflow(client, 'Client', client)

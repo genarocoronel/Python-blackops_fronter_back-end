@@ -26,6 +26,8 @@ from app.main.channels import notification
 from app.main.service.lead_distro import LeadDistroSvc
 from app.main.service import client as svc
 from app.main.service.note_service import fetch_notes_by_candidate_id
+from app.main.channels.notification import ClientUpdateChannel
+from app.main.tasks import channel as wkchannel
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 from app.main.core.rac import RACRoles
@@ -269,7 +271,6 @@ def client_filter(limit=25, sort_col='id', order="desc",
         elif user_role == RACRoles.SERVICE_REP.value:
             query = query.filter(Client.account_manager_id==user_id)
 
-
         # print("this is query", query)
         # search fields
         if search_fields is not None:
@@ -364,7 +365,6 @@ def client_filter(limit=25, sort_col='id', order="desc",
         total = query.count()
         query = query.order_by(sort).paginate(pageno, limit, False)
         records = query.items
-
         return {'data': records, "page_number": pageno, "total_records": total, "limit": limit}
 
 
@@ -454,6 +454,10 @@ def update_client(client, data, client_type=ClientType.client):
 
         save_changes(client)
         client.update()
+
+        # notify the update
+        cup = wkchannel.ClientUpdateNotice(client)
+        ClientUpdateChannel.broadcast(cup)
 
         return client
     else:

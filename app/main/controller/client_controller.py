@@ -70,7 +70,7 @@ class ClientList(Resource):
     @api.doc('list_of_clients')
     @api.marshal_list_with(_lead, envelope='data')
     @token_required
-    @user_has_permission('clients.base.view')
+    @user_has_permission('clients.view')
     def get(self):
         """ List all clients """
         clients = get_all_clients(client_type=CLIENT)
@@ -128,14 +128,14 @@ class ClientList(Resource):
 @api.response(404, 'Client not found')
 class Client(Resource):
     @api.doc('get client')
-    @api.marshal_with(_client)
+    @api.marshal_with(_lead)
     @token_required
     @user_has_permission('clients.view')
     def get(self, public_id):
         """ Get client with provided identifier"""
-        client, error_response = _handle_get_client(public_id, client_type=CLIENT)
+        client = get_client(public_id)
         if not client:
-            api.abort(404, **error_response)
+            api.abort(404, "Client not found")
         else:
             return client
 
@@ -951,7 +951,7 @@ class ClientSvcSchedule(Resource):
         except NotFoundError as e:
             api.abort(404, message='Error updating Service Schedule for client, {}'.format(str(e)), success=False)
         except Exception as e:
-            api.abort(500, message=f'Failed updating Service Schedule for Client with ID {client_public_id}', success=False)
+            api.abort(500, message=f'Failed updating Service Schedule for Client with ID {client.public_id}', success=False)
 
         return result, 200
 
