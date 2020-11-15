@@ -155,12 +155,14 @@ def fetch_active_contract(client):
             "num_term_paid": '',
             "term_left": '',
             "balance": '',
-            "payment_1st_date": ''
+            "payment_1st_date": '',
+            "payment_2nd_date": '',
         }
         return result
 
     term = contract.term
     pymt_start = contract.payment_start_date
+    pymt_rec_begin_date = contract.payment_recurring_begin_date
     term_left = term - contract.num_inst_completed
     balance = term_left * contract.monthly_fee 
 
@@ -174,6 +176,7 @@ def fetch_active_contract(client):
         "term_left": term_left,
         "balance" : balance,
         "payment_1st_date": pymt_start.strftime('%Y-%m-%d'),
+        "payment_2nd_date": pymt_rec_begin_date.strftime('%Y-%m-%d'),
     }  
 
     return result
