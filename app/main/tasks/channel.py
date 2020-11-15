@@ -58,7 +58,7 @@ class WorkerChannel(object):
 
 class ClientUpdateNotice(object):
     
-    def __init__(self, client, msg=None):
+    def __init__(self, client, msg=None, action='update'):
         self._public_id = client.public_id
         self._friendly_id = client.friendly_id
         if msg is None:
@@ -66,6 +66,7 @@ class ClientUpdateNotice(object):
         else:
             self._msg = msg
         self._client_type = client.type.value
+        self._action = action
 
     @property
     def public_id(self):
@@ -78,6 +79,10 @@ class ClientUpdateNotice(object):
     @property
     def client_type(self):
         return self._client_type
+
+    @property
+    def action(self):
+        return self._action
 
     @property
     def msg(self):

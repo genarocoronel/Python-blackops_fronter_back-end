@@ -95,6 +95,9 @@ def save_new_client(data, client_type=ClientType.lead):
         new_client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
         notification.ClientNoticeChannel.send(user.id,
                                               new_client)
+    # notify the addition
+    event = wkchannel.ClientUpdateNotice(new_client, msg='New Lead', action='add')
+    ClientUpdateChannel.broadcast(event)  
 
     return new_client, 201
 
@@ -194,6 +197,9 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
         new_client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
         notification.ClientNoticeChannel.send(user.id,
                                               new_client)
+    # notify the addition
+    event = wkchannel.ClientUpdateNotice(new_client, msg='New Lead', action='add')
+    ClientUpdateChannel.broadcast(event)  
 
     return new_client
 

@@ -474,7 +474,7 @@ def create_workflow(code, contract, revision=None):
 
                 db.session.commit() 
                 # send notififcaton
-                notice = wkchannel.ClientUpdateNotice(client, 'Client signed the contract')
+                notice = wkchannel.ClientUpdateNotice(client, msg='Client signed the contract', action='add')
                 wkchannel.WkCientUpdateChannel.broadcast(notice)
 
               

@@ -509,6 +509,7 @@ class ClientDto:
     })
     client_notice = api.model('client', {
         'public_id': fields.String(description='client identifier'),
+        'friendly_id': fields.String(description='client friendly identifier'), 
         'full_name': fields.String(attribute='full_name'),
         'account_manager': fields.String(attribute='account_manager.full_name'),
         'sales_rep': fields.String(attribute='sales_rep.full_name'),
@@ -526,6 +527,7 @@ class ClientDto:
         'public_id': fields.String(description='client identifier'),
         'friendly_id': fields.String(description='client friendly identifier'), 
         'client_type': fields.String(description='Client type'),
+        'action': fields.String(description='event action'),
         'msg': fields.String(description='Update message'),
     })    
 
