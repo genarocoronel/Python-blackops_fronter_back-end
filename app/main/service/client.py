@@ -90,7 +90,7 @@ class ClientService(ApiService):
                 db.session.commit()
 
         # notify the connected UIs
-        notice = ClientUpdateNotice(client, 'Request cancellation request')
+        notice = ClientUpdateNotice(client, msg='Request cancellation request')
         ClientUpdateChannel.broadcast(notice)
  
     def on_disposition_change(self, disposition):
@@ -157,7 +157,7 @@ class ClientService(ApiService):
             self._audit_action(ClientAction.DEAL_COMPLETE.value)
             db.session.commit()
             # notify the connected UIs
-            notice = ClientUpdateNotice(client, 'Deal Complete request')
+            notice = ClientUpdateNotice(client, msg='Deal Complete request')
             ClientUpdateChannel.broadcast(notice)
 
     def _on_deal_reject(self, params=None):
@@ -167,7 +167,7 @@ class ClientService(ApiService):
             self._audit_action(ClientAction.DEAL_REJECT.value)
             db.session.commit()
             # notify the connected UIs
-            notice = ClientUpdateNotice(client, 'Deal Reject request')
+            notice = ClientUpdateNotice(client, msg='Deal Reject request')
             ClientUpdateChannel.broadcast(notice)
 
     def on_execute_action(self, data):

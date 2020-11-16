@@ -161,7 +161,7 @@ class AppointmentWorkflow(Workflow):
                     client.status = 'Acct Manager Intro Complete'
                     db.session.commit()
                     # send notififcaton
-                    notice = wkchannel.ClientUpdateNotice(client, 'Intro Call Completed')
+                    notice = wkchannel.ClientUpdateNotice(client, msg='Intro Call Completed')
                     ClientUpdateChannel.broadcast(notice)
 
                     app.queue.enqueue('app.main.tasks.mailer.send_intro_call',
@@ -205,7 +205,7 @@ class NSFWorkFlow(Workflow):
         self.save()
         
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'NSF Issue')
+        notice = wkchannel.ClientUpdateNotice(client, msg='NSF Issue')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
         # send mail
@@ -629,7 +629,7 @@ def create_workflow(code, contract, revision=None):
                                        Please communicate with your client.'
                     super().on_tr_approved(teamrequest)
                     # send notififcaton
-                    notice = wkchannel.ClientUpdateNotice(client, 'NSF Redraft request')
+                    notice = wkchannel.ClientUpdateNotice(client, msg='NSF Redraft request')
                     CientUpdateChannel.broadcast(notice)
 
             except Exception as err:
@@ -713,7 +713,7 @@ def create_workflow(code, contract, revision=None):
                 item.status = ServiceScheduleStatus.INCOMPLETE.value
             db.session.commit()
             # send notification
-            notice = wkchannel.ClientUpdateNotice(client, 'Request cancellation TR approved')
+            notice = wkchannel.ClientUpdateNotice(client, msg='Request cancellation TR approved')
             CientUpdateChannel.broadcast(notice) 
 
             # create task

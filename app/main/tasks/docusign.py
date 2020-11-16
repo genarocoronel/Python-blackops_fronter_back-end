@@ -75,7 +75,7 @@ def check_sessions():
                 db.session.commit()
                 if new_status != DocusignSessionStatus.COMPLETED:
                     # send notififcaton
-                    notice = wkchannel.ClientUpdateNotice(client, 'Docusign session status changed') 
+                    notice = wkchannel.ClientUpdateNotice(client, msg='Docusign session status changed') 
                     wkchannel.WkCientUpdateChannel.broadcast(notice)
 
                 # failed status
@@ -354,7 +354,7 @@ def send_contract_for_signature(client_id):
         client.status = 'Contract Sent'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign New contract sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign New contract sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
 
@@ -503,7 +503,7 @@ def send_additional_debts_for_signature(client_id):
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign Add debts amendment sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Add debts amendment sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
 
@@ -664,7 +664,7 @@ def _handle_removal_debts(client_id,
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign Remove debts amendment sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Remove debts amendment sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
@@ -813,7 +813,7 @@ def send_modify_debts_for_signature(client_id):
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign Modify debts amendment sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Modify debts amendment sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
@@ -935,7 +935,7 @@ def send_term_change_for_signature(client_id):
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign Term change amendment sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Term change amendment sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
@@ -1055,7 +1055,7 @@ def send_eft_authorization_for_signature(client_id):
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign EFT Auth amendment sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign EFT Auth amendment sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
@@ -1212,7 +1212,7 @@ def send_add_coclient_for_signature(client_id):
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign Add Co-client amendment sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Add Co-client amendment sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
 
@@ -1367,7 +1367,7 @@ def send_remove_coclient_for_signature(client_id):
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
         # send notififcaton
-        notice = wkchannel.ClientUpdateNotice(client, 'Docusign Remove co-client amendment sent')
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Remove co-client amendment sent')
         wkchannel.WkCientUpdateChannel.broadcast(notice)
 
 
