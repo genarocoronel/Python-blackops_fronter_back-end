@@ -1359,6 +1359,17 @@ class DocprocDto:
         'creditor_name': fields.String(required=False, example='ZYZ Bank'),
         'collector_name': fields.String(required=False, example='Zoo, Collection Firm')
     })
+    doc_processor = api.model('doc_processor', {
+        'public_id': fields.String(required=False),
+        'username': fields.String(required=False),
+        'first_name': fields.String(required=False),
+        'last_name': fields.String(required=False),
+        'doc_new': fields.Integer(required=False),
+        'doc_wait_am_review': fields.Integer(required=False),
+        'doc_reject': fields.Integer(required=False),
+        'doc_approved': fields.Integer(required=False),
+        'doc_approval_rate': fields.Integer(required=False),
+    })
 
 
 class TeamDto:

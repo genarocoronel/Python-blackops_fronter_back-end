@@ -5,7 +5,7 @@ from app.main.util.dto import DocprocDto
 from app.main.util.decorator import (token_required, enforce_rac_policy, enforce_rac_required_roles)
 from app.main.core.errors import BadRequestError, NotFoundError
 from app.main.core.rac import RACRoles
-from app.main.service.docproc_service import (get_all_docs, get_doc_by_pubid, multiassign_for_processing, 
+from app.main.service.docproc_service import (get_all_docs, get_doc_by_pubid, get_doc_processors, multiassign_for_processing, 
     update_doc, move_to_client_dossier, create_doc_note, allowed_doc_file_kinds, attach_file_to_doc,
     create_doc_manual, stream_doc_file)
 from app.main.service.user_service import get_a_user
@@ -20,6 +20,7 @@ _doc_update = DocprocDto.doc_update
 _doc_move = DocprocDto.doc_move
 _doc_note_create = DocprocDto.doc_note_create
 _doc_upload = DocprocDto.doc_upload
+_doc_processor = DocprocDto.doc_processor
 
 @api.route('')
 class Doc(Resource):
@@ -68,7 +69,7 @@ class DocAssign(Resource):
         if not docproc_user:
             api.abort(404, message='That Doc Processor Rep could not be found.', success=False)
         
-        docs_to_assign = [];
+        docs_to_assign = []
         for doc_item in request_data['docs']:
             tmp_doc = get_doc_by_pubid(doc_item['public_id'])
             if not tmp_doc:
@@ -240,3 +241,14 @@ class DocFile(Resource):
             api.abort(404, message='Error getting File for Doc, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to get File for Doc with ID {doc_public_id}', success=False)
+
+@api.route('/docprocessor/')
+class DocProcessors(Resource):
+    @api.doc('Gets DocProcessors with status')
+    @api.marshal_list_with(_doc_processor, envelope='data')
+    @token_required
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, 
+        RACRoles.DOC_PROCESS_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    def get(self):
+        """ Gets a list of Doc Processors """
+        return get_doc_processors()
