@@ -7,7 +7,8 @@ from app.main.model.rac import RACRole
 from app.main.model.audit import Audit, Auditable
 from app.main.core.rac import RACRoles
 from .apiservice import ApiService
-from app.main.channels.notification import TaskChannel, TeamRequestChannel
+from app.main.channels.notification import TaskChannel, TeamRequestChannel, ClientUpdateChannel
+from app.main.tasks.channel import ClientUpdateNotice
 from datetime import datetime, timedelta
 from sqlalchemy import and_
 from app.main import db
@@ -88,7 +89,10 @@ class ClientService(ApiService):
                 client.status_name = 'Sales_ActiveStatus_RequestCancellationInitiated'
                 db.session.commit()
 
-    
+        # notify the connected UIs
+        notice = ClientUpdateNotice(client, msg='Request cancellation request')
+        ClientUpdateChannel.broadcast(notice)
+ 
     def on_disposition_change(self, disposition):
         client = self._client
         current_status_name = client.status_name
@@ -130,6 +134,7 @@ class ClientService(ApiService):
             db.session.commit()
             TeamRequestChannel.send(team_manager.id,
                                     tr)
+
     def _audit_action(self, action):
         requestor = self._req_user
         # create audit record
@@ -151,6 +156,9 @@ class ClientService(ApiService):
             client.status_name = 'Sales_ActiveStatus_PendingFirstPayment'
             self._audit_action(ClientAction.DEAL_COMPLETE.value)
             db.session.commit()
+            # notify the connected UIs
+            notice = ClientUpdateNotice(client, msg='Deal Complete request')
+            ClientUpdateChannel.broadcast(notice)
 
     def _on_deal_reject(self, params=None):
         client = self._client
@@ -158,6 +166,9 @@ class ClientService(ApiService):
             client.status_name = 'Sales_ActiveStatus_DealRejected'
             self._audit_action(ClientAction.DEAL_REJECT.value)
             db.session.commit()
+            # notify the connected UIs
+            notice = ClientUpdateNotice(client, msg='Deal Reject request')
+            ClientUpdateChannel.broadcast(notice)
 
     def on_execute_action(self, data):
         action = data.get('action')

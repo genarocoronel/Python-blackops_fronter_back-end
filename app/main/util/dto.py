@@ -509,12 +509,12 @@ class ClientDto:
     })
     client_notice = api.model('client', {
         'public_id': fields.String(description='client identifier'),
+        'friendly_id': fields.String(description='client friendly identifier'), 
         'full_name': fields.String(attribute='full_name'),
         'account_manager': fields.String(attribute='account_manager.full_name'),
         'sales_rep': fields.String(attribute='sales_rep.full_name'),
         'msg': fields.String(),
     })
-
     update_client = api.model('update_client', {
         'first_name': fields.String(description='client first name'),
         'last_name': fields.String(description='client last name'),
@@ -523,6 +523,14 @@ class ClientDto:
         'phone': fields.String(description='client phone number'),
         'type': ClientTypeField(description='client type')
     })
+    client_update_notice = api.model('client_update_notice', {
+        'public_id': fields.String(description='client identifier'),
+        'friendly_id': fields.String(description='client friendly identifier'), 
+        'client_type': fields.String(description='Client type'),
+        'action': fields.String(description='event action'),
+        'msg': fields.String(description='Update message'),
+    })    
+
     new_bank_account = api.model('new_bank_account', {
         'account_number': fields.String(required=True, description='client bank account number'),
         'routing_number': fields.String(required=True, description='client bank routing number')

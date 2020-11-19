@@ -11,6 +11,7 @@ from app.main.model.contact_number import ContactNumberType
 from app.main.model.debt_payment import DebtPaymentContract, ContractAction, ContractStatus, DebtPaymentContractCreditData, \
                                         DebtPaymentSchedule, DebtEftStatus
 import app.main.service.workflow as workflow
+from app.main.tasks import channel as wkchannel
 from sqlalchemy import or_, and_, desc, asc
 
 from flask import current_app as app
@@ -72,6 +73,10 @@ def check_sessions():
                 disp_value = _to_disposition(env_status)
                 client.status = disp_value
                 db.session.commit()
+                if new_status != DocusignSessionStatus.COMPLETED:
+                    # send notififcaton
+                    notice = wkchannel.ClientUpdateNotice(client, msg='Docusign session status changed') 
+                    wkchannel.WkCientUpdateChannel.broadcast(notice)
 
                 # failed status
                 if new_status == DocusignSessionStatus.DECLINED:
@@ -346,9 +351,12 @@ def send_contract_for_signature(client_id):
                                   envelope_id=key,
                                   contract_id=payment_contract.id)
         db.session.add(session)
-
         client.status = 'Contract Sent'
         db.session.commit()
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign New contract sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
+
 
     except Exception as err:
         app.logger.warning('Error in sending contract {}'.format(str(err)))
@@ -494,6 +502,9 @@ def send_additional_debts_for_signature(client_id):
         #client disposition
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Add debts amendment sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
 
     except Exception as err:
@@ -652,6 +663,9 @@ def _handle_removal_debts(client_id,
         #client disposition
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Remove debts amendment sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
         app.logger.warning('Sending Remove debts failed {}'.format(str(err)))
@@ -798,8 +812,9 @@ def send_modify_debts_for_signature(client_id):
         #client disposition
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
-
-        # add client disposition
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Modify debts amendment sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
         app.logger.warning('Sending Modify debts failed {}'.format(str(err)))
@@ -919,6 +934,9 @@ def send_term_change_for_signature(client_id):
         #client disposition
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Term change amendment sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
         app.logger.warning('Sending Term change failed {}'.format(str(err)))
@@ -1036,6 +1054,9 @@ def send_eft_authorization_for_signature(client_id):
         #client disposition
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign EFT Auth amendment sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
     except Exception as err:
         app.logger.warning('Send EFT Authorization failed {}'.format(str(err)))
@@ -1190,6 +1211,9 @@ def send_add_coclient_for_signature(client_id):
         #client disposition
         client.status = 'Service Issue:Signature Pending'
         db.session.commit()
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Add Co-client amendment sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
 
     except Exception as err:
@@ -1341,8 +1365,10 @@ def send_remove_coclient_for_signature(client_id):
         db.session.add(session)
         #client disposition
         client.status = 'Service Issue:Signature Pending'
-
         db.session.commit()
+        # send notififcaton
+        notice = wkchannel.ClientUpdateNotice(client, msg='Docusign Remove co-client amendment sent')
+        wkchannel.WkCientUpdateChannel.broadcast(notice)
 
 
     except Exception as err:

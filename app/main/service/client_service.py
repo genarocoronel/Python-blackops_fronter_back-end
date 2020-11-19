@@ -26,6 +26,8 @@ from app.main.channels import notification
 from app.main.service.lead_distro import LeadDistroSvc
 from app.main.service import client as svc
 from app.main.service.note_service import fetch_notes_by_candidate_id
+from app.main.channels.notification import ClientUpdateChannel
+from app.main.tasks import channel as wkchannel
 from sqlalchemy import desc, asc, or_, and_
 from flask import current_app as app
 from app.main.core.rac import RACRoles
@@ -93,6 +95,9 @@ def save_new_client(data, client_type=ClientType.lead):
         new_client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
         notification.ClientNoticeChannel.send(user.id,
                                               new_client)
+    # notify the addition
+    event = wkchannel.ClientUpdateNotice(new_client, msg='New Lead', action='add')
+    ClientUpdateChannel.broadcast(event)  
 
     return new_client, 201
 
@@ -192,6 +197,9 @@ def create_client_from_candidate(candidate, prequal_number, client_type=ClientTy
         new_client.msg = 'You have been assigned a new Lead-Contact within 15 minutes.'
         notification.ClientNoticeChannel.send(user.id,
                                               new_client)
+    # notify the addition
+    event = wkchannel.ClientUpdateNotice(new_client, msg='New Lead', action='add')
+    ClientUpdateChannel.broadcast(event)  
 
     return new_client
 
@@ -268,7 +276,6 @@ def client_filter(limit=25, sort_col='id', order="desc",
             query = query.filter(Client.sales_rep_id==user_id)
         elif user_role == RACRoles.SERVICE_REP.value:
             query = query.filter(Client.account_manager_id==user_id)
-
 
         # print("this is query", query)
         # search fields
@@ -364,7 +371,6 @@ def client_filter(limit=25, sort_col='id', order="desc",
         total = query.count()
         query = query.order_by(sort).paginate(pageno, limit, False)
         records = query.items
-
         return {'data': records, "page_number": pageno, "total_records": total, "limit": limit}
 
 
@@ -454,6 +460,10 @@ def update_client(client, data, client_type=ClientType.client):
 
         save_changes(client)
         client.update()
+
+        # notify the update
+        cup = wkchannel.ClientUpdateNotice(client)
+        ClientUpdateChannel.broadcast(cup)
 
         return client
     else:

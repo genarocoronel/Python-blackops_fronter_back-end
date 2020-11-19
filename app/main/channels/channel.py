@@ -47,6 +47,9 @@ class Channel(Namespace):
         if sid:
             emit(event_type, event_params, room=sid, namespace=namespace)
 
+    @staticmethod
+    def broadcast_event(event_type, event_params, namespace):
+        emit(event_type, event_params, namespace=namespace, broadcast=True)
 
     @classmethod
     def register(cls, obj):
