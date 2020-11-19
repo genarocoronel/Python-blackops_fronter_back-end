@@ -12,7 +12,6 @@ import logging
 logging.getLogger('zeep').setLevel(logging.ERROR)
 
 class Check(object):
-    _MEMO_TXT = 'Financial Program Payment'
 
     def __init__(self):
         self._payer = None
@@ -25,8 +24,10 @@ class Check(object):
         self._transit_no = None
         self._dda_no = None
         self._check_no = None
-        self._memo = self._MEMO_TXT
-        self._signature = None
+        self._memo = app.config['CHECK21_MEMO']
+        self._signature = app.config['CHECK21_SIGNATURE']
+        self._ret_status = None
+        self._send_status = False
 
     # payer
     @property
@@ -302,10 +303,16 @@ class Check21Client(object):
             kwargs['ClientID'] = self._account_id
             kwargs['Query'] = '<CheckID><Operation>Equal</Operation><Value>{}</Value></CheckID>'.format(check.check_id)
             response = self._client.service.FindChecksDetails(**kwargs)
+            #print(response)
             code = response['Code']
             if code == 0:
                 if 'Checks' in response:
                     checks = response['Checks'] 
+                    if checks is None:
+                        return {
+                            'success': True,
+                        }
+
                     cklist = checks['CheckInfo']
                     if len(cklist) > 0:
                         message = cklist[0]
@@ -374,7 +381,7 @@ class Check21Client(object):
                     cklist = checks['CheckInfo']
                     if len(cklist) > 0:
                         for item in cklist:
-                            print(item)
+                            #print(item)
                             ck = Check()
                             ck.parse(item)
                             check_list.append(ck)

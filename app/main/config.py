@@ -81,6 +81,12 @@ class Config:
 
     EPPS_USERNAME = os.getenv('EPPS_USERNAME', 'ASOL_API')
     EPPS_PASSWORD = os.getenv('EPPS_PASSWORD', 'b075f05e-79ed-11ea-a215-005056a3526c')
+    # check21
+    CHECK21_USERNAME = os.getenv('CHECK21_USERNAME', 'Davidkwright27@gmail.com')
+    CHECK21_PASSWORD = os.getenv('CHECK21_PASSWORD', '$%Money2020')
+    CHECK21_CLIENTID = os.getenv('CHECK21_CLIENTID', '9900017832')
+    CHECK21_MEMO = os.getenv('CHECK21_MEMO', 'Financial Program Payment')
+    CHECK21_SIGNATURE = os.getenv('CHECK21_SIGNATURE', 'DavidkWright27@gmail.com')
 
     # Templating module
     TMPL_BASE_DIR = os.getenv('TMPL_DIR', f'{basedir}/templates')

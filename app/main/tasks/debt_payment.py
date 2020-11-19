@@ -6,6 +6,7 @@ from app.main.model.contact_number import ContactNumberType
 from app.main.model.address import Address, AddressType
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_, and_
+from app.main.service.third_party.check21 import Check, Check21Client
 import app.main.tasks.mailer as mailer
 import app.main.service.workflow as workflow
 
@@ -160,6 +161,85 @@ def process_debt_payments():
     except Exception as err:
         logging.warning("Add EFT task issue {}".format(str(err)))
 
+
+# updated payment routine used for check21 provider
+def schedule_check21_payments():
+    try:
+        BASE_CHECK_NO = 1000
+
+        ck21 = Check21Client()
+        ck21.connect()
+
+        # fetch payments due on tommorrow 
+        due = date.today() + timedelta(days=1)
+        payments = DebtPaymentSchedule.query\
+                                      .filter(and_(func.date(DebtPaymentSchedule.due_date)==due, DebtPaymentSchedule.status==DebtEftStatus.FUTURE.name)).all()
+        for payment in payments:
+            # validation
+            contract = payment.contract
+            if not contract:
+                continue
+            client = contract.client
+            if not client:
+                continue
+            bank_account = client.bank_account
+            if not bank_account:
+                continue
+            if client.status_name == 'Service_ActiveStatus_NSF' or client.status_name == 'Sales_ActiveStatus_NSF':
+                continue
+            transaction = payment.transaction
+            if transaction and \
+              (transaction.status == EftStatus.Pending.value or transaction.status == EftStatus.Settled.value):
+                continue
+            # address
+            client_address = Address.query.filter_by(client_id=client.id, type=AddressType.CURRENT).first()
+            if not client_address:
+                continue
+
+            check_no = BASE_CHECK_NO + (payment.id % 1000)
+            #print(check_no)
+
+            ck = Check()
+            ck.payer = client.full_name 
+            ck.addr1 = client_address.address1
+            ck.addr2 = client_address.city
+            ck.addr3 = client_address.zip_code
+            ck.check_date = payment.due_date
+            ck.payee = 'Elite document Management Solutions'
+            ck.amount = payment.amount
+            ck.transit_no = bank_account.routing_number
+            ck.dda_no = bank_account.account_number
+            ck.check_no = check_no
+        
+            eft_status = 'Create EFT Pending'
+            message = 'success'
+            response = ck21.create_eft(ck)
+            #print(response)
+            if response['success'] is True:
+                trans_id = ck.check_id
+                payment.status = DebtEftStatus.SEND_TO_EFT.name 
+            else:
+                trans_id = 0
+                payment.status = DebtEftStatus.NSF.name
+                eft_status = 'Failed'
+                message = response['message']
+            if not transaction:
+                transaction = DebtPaymentTransaction(trans_id=trans_id,
+                                                     status=eft_status,
+                                                     message=message,
+                                                     payment_id=payment.id)
+                db.session.add(transaction)
+            else:
+                transaction.trans_id = trans_id
+                transaction.status = eft_status
+                transaction.message = message
+
+            db.session.commit()
+                   
+    except Exception as err:
+        logging.warning("Schedule Payments with the provider {}".format(str(err)))
+
+
 """
 task routine to check the status of EFTs send to EPPS
 @@params None
@@ -176,7 +256,6 @@ def check_eft_status():
         for payment in payments:
             client = payment.contract.client
             #fetch transaction
-            print(payment.id)
             eft_transaction = payment.transaction
             if eft_transaction:
                 eft = epps_chnl.find_eft_by_transaction(eft_transaction.trans_id)
@@ -205,6 +284,43 @@ def check_eft_status():
     except Exception as err:    
         logging.warning("Check EFT Status issue {}".format(str(err)))
         
+
+def process_check_status():
+    try:
+        ck21 = Check21Client()
+        ck21.connect()
+           
+        dt_now = datetime.now()
+        payments = DebtPaymentSchedule.query.filter(or_(DebtPaymentSchedule.status==DebtEftStatus.SEND_TO_EFT.name,
+                                                        DebtPaymentSchedule.status==DebtEftStatus.TRANSMITTED.name)).all()
+        for payment in payments:
+            dt_offset = payment.due_date + timedelta(days=1)
+            dt_offset = dt_offset.replace(hour=0, minute=0, second=0, microsecond=0)
+            if dt_now < dt_offset:
+                continue
+            client = payment.contract.client
+            transaction = payment.transaction
+            if transaction is not None:
+                ck = Check()
+                ck.check_id = transaction.trans_id
+                response = ck21.fetch_check_details(ck)
+                if response['success'] is True:
+                    if ck.ret_status is not None:
+                        # error
+                        payment.on_eft_failed()
+                        wflow = workflow.NSFWorkflow(contract)
+                        wflow.on_failure()
+                        transaction.status = 'Failed'
+                    else:
+                        if ck.send_status is True:
+                            payment.on_eft_settled() 
+                            transaction.status = 'Settled'
+
+                db.session.commit()
+                
+
+    except Exception as err:
+        logging.warning("Process check status issue {}".format(str(err)))
 
 
 def process_upcoming_payments():

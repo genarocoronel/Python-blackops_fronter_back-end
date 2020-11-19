@@ -163,7 +163,7 @@ class DebtPaymentSchedule(db.Model):
                     desc = 'Commission from 1st Payment'
                     if contract.num_inst_completed == 2:
                         desc = 'Commission from 2nd Payment'
-                    sc = SalesCommision(agent_id=client.sales_rep_id,
+                    sc = SalesCommission(agent_id=client.sales_rep_id,
                                         client_id=client.id,
                                         transaction_id=self.transaction.id,
                                         amount=amount,
