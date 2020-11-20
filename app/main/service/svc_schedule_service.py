@@ -96,7 +96,10 @@ def update_svc_schedule(client, schedule_data):
                     func = getattr(wflow, handler, None)
                     if func:
                         func()
-
+                else:
+                    if ServiceScheduleType.INTRO_CALL.value in appt.service_schedule.type:
+                        client.status = 'Acct Manager Intro Complete'
+                        save_changes()
         if is_updated:
             sched_item_record.updated_on = datetime.datetime.utcnow()
             sched_item_record.updated_by_username = g.current_user['username']
@@ -160,11 +163,16 @@ def _generate_boilerplate_svc_schedule(client):
     """ Generates the Boilerplate Service Schedule """
     boilerplate_sched = []
 
+    # default intro call date to next day
+    dt_intro_call = datetime.datetime.utcnow() + datetime.timedelta(days=1)    
+    dt_intro_call = dt_intro_call.replace(hour=12, minute=0, second=0, microsecond=0)
+
     svc_sched1001 = ServiceSchedule(
         public_id = str(uuid.uuid4()),
         schedule_item = 1001,
         type = 'Introduction Call',
         status = ServiceScheduleStatus.PENDING.value,
+        scheduled_for=dt_intro_call,
         client_id = client.id,
         inserted_on = datetime.datetime.utcnow(),
         updated_on = datetime.datetime.utcnow(),
@@ -172,7 +180,18 @@ def _generate_boilerplate_svc_schedule(client):
     )
     db.session.add(svc_sched1001)
     boilerplate_sched.append(svc_sched1001)
-
+    # if account manager is already assigned
+    if client.account_manager:
+        appointment =  Appointment(public_id=str(uuid.uuid4()),
+                                   client_id=client.id,
+                                   agent_id=client.account_manager_id,
+                                   scheduled_at=dt_intro_call,
+                                   summary=svc_sched1001.type,
+                                   type=AppointmentType.SERVICE_CALL.name)
+        db.session.add(appointment)
+        db.session.commit()
+        svc_sched1001.appointment_id = appointment.id
+         
     # 3 DAY Text - Auto
     dt3 = datetime.datetime.utcnow() + datetime.timedelta(days=3)
     # 12 Noon
