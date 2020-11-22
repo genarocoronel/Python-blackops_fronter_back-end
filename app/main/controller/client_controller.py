@@ -14,7 +14,7 @@ from app.main.service.client_service import (get_all_clients, get_clients_by_dis
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
-                                             update_client_contact_numbers, assign_servicerep)
+                                             update_client_contact_numbers, assign_servicerep, unassign_salesrep)
 from app.main.service.client import ClientService, ClientTaskService, ClientTrService
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_voice_communication, \
     create_presigned_url, get_sales_and_service_communication_records
@@ -188,7 +188,11 @@ class ClientAssignment(Resource):
 
         try:
             assign_servicerep(client, asignee.id)
-            
+            # TODO: modify this behavior when call routing includes other departments
+            #  interim fix is to remove any assignments for client with sales rep so calles aren't routed to sales rep
+            #  reference: https://app.asana.com/0/1145671275220852/1154169158060944/f
+            unassign_salesrep(client)
+
         except Exception as e:
             api.abort(500, message=f'Failed to assign a Service Rep for this Client. Error: {e}', success=False)
 

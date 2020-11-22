@@ -3,6 +3,7 @@ import uuid
 import datetime
 
 from phonenumbers import PhoneNumber
+from typing import Union
 
 from app.main.core.helper import generate_rand_code
 from app.main import db
@@ -480,10 +481,34 @@ def update_client(client, data, client_type=ClientType.client):
         return response_object, 404
 
 
-def assign_salesrep(client, user_public_id):
+def get_lead_assigned_employee(client_id: int):
+    """ Get lead's assigned employee if one exists"""
+    lead_assignment = UserLeadAssignment.query.join(Client).filter(Client.id == client_id).first()
+    if lead_assignment:
+        return lead_assignment.user
+    return None
+
+
+def get_client_assigned_employee(client_id: int):
+    """ Get client's assigned employee if one exists"""
+    client_assignment = UserClientAssignment.query.join(Client).filter(Client.id == client_id).first()
+    if client_assignment:
+        return client_assignment.user
+    return None
+
+
+def assign_salesrep(client,
+                    user_id: Union[str, int]  # could come in as the public identifier (uuid) or the database identifier (int)
+                    ):
     """ Assigns a Sales Rep user to a Lead """
     # fetch the user
-    user = User.query.filter_by(public_id=user_public_id).first()
+    if isinstance(user_id, str):
+        user = User.query.filter_by(public_id=user_id).first()
+    elif isinstance(user_id, int):
+        user = User.query.filter_by(id=user_id).first()
+    else:
+        raise ValueError('Invalid identifier for Sales Rep')
+
     if not user:
         raise ValueError('Sales Rep not found')
 
@@ -509,9 +534,29 @@ def assign_salesrep(client, user_public_id):
                                           client)
     return True
 
-def assign_servicerep(client, user_public_id):
+
+def unassign_salesrep(client):
+    """ Unassigns a Sales Rep user from a Lead """
+    assert client is not None
+
+    assignments = UserLeadAssignment.query.filter_by(client_id=client.id).all()
+    if assignments:
+        for assignment in assignments:
+            db.session.delete(assignment)
+        db.session.commit()
+
+
+def assign_servicerep(client,
+                      user_id: Union[str, int]  # could come in as the public identifier (uuid) or the database identifier (int)
+                      ):
     """ Assigns a Service Rep user to a Client """
-    user = User.query.filter_by(public_id=user_public_id).first()
+    if isinstance(user_id, str):
+        user = User.query.filter_by(public_id=user_id).first()
+    elif isinstance(user_id, int):
+        user = User.query.filter_by(id=user_id).first()
+    else:
+        raise ValueError('Invalid identifier for Service Rep')
+
     if not user:
         raise ValueError('Service Rep not found')
 

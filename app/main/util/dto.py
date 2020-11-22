@@ -1602,6 +1602,7 @@ class WebhookDto:
     api = Namespace('webhooks', description='Webhook definitions')
     call_initiated = call_notification_parser
     call_missed = call_notification_parser
+    call_route_request = call_notification_parser
 
 
 class LeadDistroDto:
