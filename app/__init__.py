@@ -5,8 +5,8 @@ from .main.config import _convert_bool
 from gevent import monkey
 if not _convert_bool(os.environ.get('LOCAL_DEBUG', False)): monkey.patch_all()
 
-#import logging
-#logging.basicConfig(level=logging.INFO)
+# import logging
+# logging.basicConfig(level=logging.INFO)
 
 from flask_restplus import Api
 from flask import Blueprint
@@ -43,7 +43,6 @@ from .main.portal_api.config import api as portal_config_ns
 from .main.portal_api.ticket import api as portal_ticket_ns
 from .main.controller.webook_controller import api as webhook_ns
 from .main.controller.audit_controller import api as audit_ns
-
 
 blueprint = Blueprint('api', __name__)
 
@@ -90,11 +89,11 @@ api.add_namespace(template_ns)
 # Portal API Namespaces
 portal_blueprint = Blueprint('portal-api', __name__)
 portal_api = Api(portal_blueprint,
-        title='Portal API',
-        version='1.0',
-        description='API for Client Portal resources',
-        authorizations=authorizations
-        )
+                 title='Portal API',
+                 version='1.0',
+                 description='API for Client Portal resources',
+                 authorizations=authorizations
+                 )
 
 portal_api.add_namespace(portal_auth_ns)
 portal_api.add_namespace(portal_doc_ns)
