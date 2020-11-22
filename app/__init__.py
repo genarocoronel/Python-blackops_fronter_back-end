@@ -1,6 +1,9 @@
 # app/__init__.py
+import os
+from .main.config import _convert_bool
+
 from gevent import monkey
-monkey.patch_all()
+if not _convert_bool(os.environ.get('LOCAL_DEBUG', False)): monkey.patch_all()
 
 #import logging
 #logging.basicConfig(level=logging.INFO)
