@@ -333,6 +333,61 @@ class TemplateMailManager(object):
             db.session.add(mbox)
             db.session.commit() 
 
+    def send_composed_mail(self, subject, content):
+        app.logger.info('executing Mail Manager send content')
+        # check client is set or not
+        if not self.client:
+            raise ValueError("Client is not set for the mail manager")
+
+        ts = int(datetime.now().timestamp())            
+        transport = MailTransport.EMAIL.name
+        dest = self.client.email
+        attachments = []
+
+        html = content 
+        email_service.send_mail(app.config['TMPL_DEFAULT_FROM_EMAIL'], 
+                                [dest,] , 
+                                subject, 
+                                html=html, 
+                                attachments=attachments)
+
+        doc_name = "{}_{}_{}.pdf".format(subject.lower(), # action
+                                         self.client.id, # client id
+                                         ts)  # timestamp
+
+        upload_dir_path = app.config['UPLOAD_LOCATION']
+        pdfdoc = "{}/{}".format(upload_dir_path, # directory path for the document
+                                doc_name)            
+
+        buff = generate_pdf(html)
+        with open(pdfdoc, 'wb') as fd:
+            fd.write(buff)
+
+        # upload to AWS S3
+        upload_to_docproc(pdfdoc, doc_name) 
+        
+        # Add to the document store
+        docproc = Docproc(public_id=str(uuid.uuid4()),
+                          inserted_on=datetime.now(),
+                          updated_on=datetime.now(),
+                          client_id=self.client.id,
+                          file_name=doc_name,
+                          doc_name=subject.lower(),
+                          source_channel=DocprocChannel.EMAIL.value,
+                          is_published=True)
+        db.session.add(docproc)
+
+        ## test send mail
+        mbox = MailBox(timestamp=datetime.now(),
+                       client_id=self.client.id,
+                       body=html,
+                       to_addr=dest,
+                       channel=transport)
+        db.session.add(mbox)
+        db.session.commit()
+        # delete file
+        io.delete_file(pdfdoc)
+        
 
 # PAYMENT_REMINDER
 def send_payment_reminder(client_id, payment_schedule_id):
@@ -635,6 +690,19 @@ def send_delete_document_notice():
 def send_add_document_notice():
     pass
 
+# send mail manualy composed by user
+def send_composed_mail(client_id, subject, content):
+    client = Client.query.filter_by(id=client_id).first()
+    if not client:
+        raise ValueError("On send composed: Client not found {}".format(client_id))
+    # composed mail
+    # no template
+    mail_mgr = TemplateMailManager(None)
+    # set the client
+    mail_mgr.client = client
+    # send the mail
+    mail_mgr.send_composed_mail(subject, content)
+    
 # SMS 
 # text messaging
 def send_day3_reminder(client_id):

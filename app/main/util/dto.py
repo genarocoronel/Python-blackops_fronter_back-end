@@ -1614,21 +1614,21 @@ class LeadDistroDto:
         'time_per_lead': fields.Float(),
         'priority': fields.Integer(),
         'is_active': fields.Boolean(),
-    });
+    })
 
     sales_flow = api.model('sales_flow', {
         'lead_id': fields.String(attribute='lead.friendly_id'),
         'lead': fields.String(attribute='lead.full_name'),
         'agent': fields.String(attribute='agent.full_name'),
         'assigned_on': DateTime12hFormatField(), 
-    });
+    })
 
     profile = api.model('lead_distro_profile', {
         'hunt_type': fields.String(),
         'flow_interval': fields.String(),
         'sales_boards': fields.List(fields.Nested(sales_board)),
         'assigned_history': fields.List(fields.Nested(sales_flow)),
-    });
+    })
 
 
 class AuditDto(object):
@@ -1638,4 +1638,12 @@ class AuditDto(object):
         'auditable_subject_pubid': fields.String(required=True, description='The top-level subject public ID. For example, if Auditable is "client", then give the Client public ID.'),
         'action': fields.String(required=True, description='The action to record', example='client.call.outbound'),
         'message': fields.String(required=False, description='An optional message', example='Initial welcome call')
+    })
+
+class TemplateDto:
+    api = Namespace('lead-distro', description='Mail templates related endpoints')
+
+    template = api.model('template', {
+        'public_id': fields.String(),
+        'title': fields.String(),    
     })

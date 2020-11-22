@@ -29,6 +29,7 @@ from .main.controller.creditor_controller import api as creditor_ns
 from .main.controller.ticket_controller import api as ticket_ns
 from .main.controller.report_controller import api as report_ns
 from .main.controller.lead_distro_controller import api as lead_distro_ns
+from .main.controller.template_controller import api as template_ns
 from .main.portal_api.auth import api as portal_auth_ns
 from .main.portal_api.docs import api as portal_doc_ns
 from .main.portal_api.budget import api as portal_budget_ns
@@ -81,6 +82,7 @@ api.add_namespace(report_ns)
 api.add_namespace(webhook_ns)
 api.add_namespace(lead_distro_ns)
 api.add_namespace(audit_ns)
+api.add_namespace(template_ns)
 
 # Portal API Namespaces
 portal_blueprint = Blueprint('portal-api', __name__)
