@@ -7,7 +7,7 @@ from phonenumbers import PhoneNumber
 from app.main.core.helper import generate_rand_code
 from app.main import db
 from app.main.model import Frequency
-from app.main.model.appointment import Appointment
+from app.main.model.appointment import Appointment, AppointmentType
 from app.main.model.client import Client, ClientType, ClientEmployment, ClientIncome, ClientCheckList, \
     ClientMonthlyExpense, ClientContactNumber, ClientDisposition, ClientDispositionType, EmploymentStatus, ClientCampaign
 from app.main.model.user import UserClientAssignment
@@ -22,6 +22,7 @@ from app.main.model.contact_number import ContactNumber, ContactNumberType
 from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
 from app.main.model.user import User
+from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleType
 from app.main.channels import notification
 from app.main.service.lead_distro import LeadDistroSvc
 from app.main.service import client as svc
@@ -522,6 +523,20 @@ def assign_servicerep(client, user_public_id):
     # tmp: support for legacy features
     client.account_manager_id = user.id 
     client.status_name = 'Sales_ActiveStatus_AcctManagerIntroIncomplete'
+
+    # create intro call appointment
+    svc_schedule = ServiceSchedule.query.filter_by(client_id=client.id, 
+                                                   type=ServiceScheduleType.INTRO_CALL.value).first()
+    if svc_schedule:
+        appointment = Appointment(public_id=str(uuid.uuid4()),
+                                  client_id=client.id,
+                                  agent_id=user.id,
+                                  scheduled_at=svc_schedule.scheduled_for,
+                                  summary=svc_schedule.type,
+                                  type=AppointmentType.SERVICE_CALL.name)
+        db.session.add(appointment)
+        db.session.commit()
+        svc_schedule.appointment_id = appointment.id
 
     save_changes()
     client.msg = 'New Client assigned, please follow up.'
