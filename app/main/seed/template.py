@@ -69,7 +69,7 @@ def seed_templates():
       { 'title': 'Sold Package Mail', 'action': 'SOLD_PACKAGE_MAIL', 'path': 'sold_package_mail.html', 'editable': False, 'medium': 'FAX', 'desc': 'Send when changing status to Sold Package Sent.'},
 
       { 'title': 'Delete Document (Email)', 'action': 'DELETE_DOCMENT_NOTICE', 'path': 'delete_document_notice.html', 'editable': False, 'desc': 'Sends when document is deleted.', 'subject': 'A document has been deleted'},
-      { 'title': 'New Document (Email)', 'action': 'NEW_DOCUMENT_NOTICE', 'path': 'new_document_notice.html', 'editable': False, 'desc': 'Sends when new document is added.', 'subject': 'A document has been created'},
+      { 'title': 'New Document', 'action': 'NEW_DOCUMENT_NOTICE', 'path': 'new_document_notice.html', 'editable': False, 'desc': 'Sends when new document is added.', 'subject': 'A document has been created'},
       # Send three days after the client enrolls in the program.  Appointment Reminder 3 Day Text Spanish (SMS). EDMS
       { 'title': 'Old EDMS_3 Day Text Spanish(SMS)', 'action': 'DAY3_REMINDER_SPANISH', 'path': 'day3_reminder_spanish.txt', 'medium': 'SMS',  'editable': False, 'desc': 'Send three days after the client enrolls in the program.  Appointment Reminder 3 Day Text Spanish (SMS)'},
       # Send 3 days after the client enrolls in the program preferably around 12-1PM

@@ -105,6 +105,13 @@ class TemplateMailManager(object):
     def org(self, org):
         self._org = org
 
+    @property
+    def doc(self):
+        return self._doc
+
+    @doc.setter
+    def doc(self, doc):
+        self._doc = doc
 
     def _to_dict(self):
         result = {}
@@ -123,6 +130,8 @@ class TemplateMailManager(object):
             result['org'] = self.org
         if self.p1date:
             result['date_p1_receipt'] = self.p1date 
+        if self.doc:
+            result['doc'] = self.doc
 
         result['date_now'] = datetime.utcnow().strftime("%m/%d/%Y")
         result['is_via_fax'] = self._is_via_fax
@@ -233,7 +242,7 @@ class TemplateMailManager(object):
                                     html=html, 
                                     attachments=attachments)
 
-            doc_name = "{}_{}_{}.pdf".format(self._tmpl.action.lower(), # action
+            doc_name = "{}_{}_{}.html".format(self._tmpl.action.lower(), # action
                                              self.client.id, # client id
                                              ts)  # timestamp
 
@@ -241,8 +250,9 @@ class TemplateMailManager(object):
             pdfdoc = "{}/{}".format(upload_dir_path, # directory path for the document
                                     doc_name)            
 
-            buff = generate_pdf(html)
-            with open(pdfdoc, 'wb') as fd:
+            #buff = generate_pdf(html)
+            buff = html
+            with open(pdfdoc, 'w') as fd:
                 fd.write(buff)
 
             # upload to AWS S3
@@ -687,8 +697,10 @@ def send_privacy_policy(client_id):
 def send_delete_document_notice():
     pass
 
-def send_add_document_notice():
-    pass
+def send_new_document_notice(client_id, doc_id):
+    kwargs = { 'client_id': client_id, 'doc_id': doc_id }
+    send_template(TemplateAction.NEW_DOCUMENT_NOTICE.name,
+                  **kwargs)
 
 # send mail manualy composed by user
 def send_composed_mail(client_id, subject, content):
@@ -787,6 +799,13 @@ def send_template(action, **kwargs):
         # set the appointment property
         mail_mgr.appointment = appointment
         mail_mgr.appointment.schedule = appointment.scheduled_at.strftime("%m/%d/%Y %H:%M")
+
+    ## document
+    if kwargs.get('doc_id'):
+        docproc = Docproc.query.filter_by(id=kwargs.get('doc_id')).first()
+        if not docproc:
+            raise ValueError("Document not found")
+        mail_mgr.doc = docproc
 
     # p1 date
     if kwargs.get('p1_date'):

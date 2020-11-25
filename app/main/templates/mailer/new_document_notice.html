@@ -1,7 +1,21 @@
-﻿<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
-<body>
-    <p>Created by: {{agent.full_name}}</p>
-    <p>ClientISN: {{client.isn}}</p>
-    <p>Document Name: {{document.name}}/p>
-</body>
+﻿<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>New Document</title>
+  </head>
+  <body style="font-size: 110%; padding-top: 10px; padding-left: 10px">
+    <p>Hello {{client.first_name}},</p>
+    <p>
+      This is to confirm that we have received a new document titled <strong>{{doc.doc_name}}</strong> through {{doc.source_channel}}.
+    </p>
+    <p></br></p>
+    <p>Sincerely,</p>
+    <p ><strong>{{account_manager.full_name}}</strong></p>
+    <p > Account Manager</p>
+    <p >P: {{account_manager.phone}}  F: {{account_manager.fax}}</p>
+    <p>
+      <a href="{{org.url}}"><img src="{{org.logo_url}}"/></a></p>
+    <p>
+    <strong>Click </strong><a href="{{org.client_portal}}"><strong>here</strong></a><strong> to log into your client portal.</strong></p>
+  </body>
 </html>
