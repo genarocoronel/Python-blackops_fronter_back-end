@@ -8,19 +8,20 @@ from flask import g, send_from_directory, after_this_request, current_app as app
 
 from app.main.core.errors import BadRequestError, NotFoundError
 from app.main.core.rac import RACMgr, RACRoles
-from app.main.core.io import (save_file, stream_file, delete_file, generate_secure_filename, 
-    get_extension_for_filename, get_mime_from_extension)
+from app.main.core.io import (save_file, stream_file, delete_file, generate_secure_filename,
+                              get_extension_for_filename, get_mime_from_extension)
 from app.main.config import upload_location
 from app.main import db
 from app.main.model.user import User
-from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus, 
-    DocprocNote, Docproc)
+from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus,
+                                    DocprocNote, Docproc)
 from app.main.model.candidate_docs import CandidateDoc
 from app.main.service.user_service import get_user_by_id, get_request_user, get_system_user
 from app.main.service.client_service import get_client_by_id
 from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc)
 
 ALLOWED_DOC_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
+
 
 def get_all_docs():
     """ Gets all Doc to Process """
@@ -30,12 +31,12 @@ def get_all_docs():
         doc_records = Docproc.query.filter_by(docproc_user_id=curr_user.id).all()
     else:
         doc_records = Docproc.query.filter_by().all()
-        
+
     if doc_records:
         for doc_item in doc_records:
             tmp_doc = synth_doc(doc_item)
             docs.append(tmp_doc)
-    
+
     return docs
 
 
@@ -44,13 +45,14 @@ def get_docs_for_client(client):
     docs = []
 
     doc_records = Docproc.query.filter_by(client_id=client.id).all()
-        
+
     if doc_records:
         for doc_item in doc_records:
             tmp_doc = synth_doc(doc_item)
             docs.append(tmp_doc)
-    
+
     return docs
+
 
 def get_doc_processors():
     """ Gets all Doc Processors with detailed info """
@@ -76,11 +78,12 @@ def get_doc_processors():
         doc_processors.append(doc_processor)
     return doc_processors
 
+
 def get_docs_for_portal_user():
     """ Gets Docs for current Portal User """
     docs = []
-    doc_records = Docproc.query.filter_by(client_id=g.current_portal_user['client_id'], 
-                                            is_published=True).all()
+    doc_records = Docproc.query.filter_by(client_id=g.current_portal_user['client_id'],
+                                          is_published=True).all()
 
     if doc_records:
         for doc_item in doc_records:
@@ -108,12 +111,12 @@ def get_docproc_types():
 def get_docproc_statuses():
     """ Gets all known Doc Process Statuses """
     statuses = [
-        {'name':DocprocStatus.NEW.value}, 
-        {'name':DocprocStatus.PENDING.value},
-        {'name':DocprocStatus.REJECT.value},
-        {'name':DocprocStatus.WAIT_AM_REVIEW.value},
-        {'name':DocprocStatus.APPROVED.value},
-        {'name':DocprocStatus.NEW_REJECT.value}
+        {'name': DocprocStatus.NEW.value},
+        {'name': DocprocStatus.PENDING.value},
+        {'name': DocprocStatus.REJECT.value},
+        {'name': DocprocStatus.WAIT_AM_REVIEW.value},
+        {'name': DocprocStatus.APPROVED.value},
+        {'name': DocprocStatus.NEW_REJECT.value}
     ]
 
     return statuses
@@ -136,7 +139,7 @@ def multiassign_for_processing(docs_to_assign, docproc_user):
 
     if docproc_user.role.name != RACRoles.DOC_PROCESS_REP.value:
         raise BadRequestError(f'Assignee user must be a member of the Doc Process Role')
-    
+
     for doc_item in docs_to_assign:
         doc_item.docproc_user_id = docproc_user.id
         db.session.add(doc_item)
@@ -150,6 +153,7 @@ def multiassign_for_processing(docs_to_assign, docproc_user):
 
 import app.main.service.workflow as workflow
 
+
 def move_to_client_dossier(doc, client):
     """ Moves a Doc to a Client dossier """
     doc.client_id = client.id
@@ -159,7 +163,7 @@ def move_to_client_dossier(doc, client):
     ## creating tasks 
     dwf = workflow.DocprocWorkflow(doc)
     dwf.on_doc_recv()
-    
+
     return synth_doc(doc)
 
 
@@ -172,7 +176,7 @@ def update_doc(doc, data):
                 if not requested_type:
                     raise NotFoundError(f"The requested type with ID {attr['public_id']} could not be found.")
                 doc.type = requested_type
-            
+
             else:
                 setattr(doc, attr, data.get(attr))
 
@@ -253,12 +257,12 @@ def stream_doc_file(doc, send_as_attachment=False):
     return stream_file(upload_location, doc.file_name, as_attachment=True, mimetype=mime)
 
 
-def create_doc_manual(data, client = None, return_model = False):
+def create_doc_manual(data, client=None, return_model=False):
     """ Creates a new Doc manually """
     is_published = False
     curr_user = None
-    
-    if hasattr(data,'source_channel') and data['source_channel'] == DocprocChannel.PORTAL.value:
+
+    if hasattr(data, 'source_channel') and data['source_channel'] == DocprocChannel.PORTAL.value:
         is_published = True
         curr_username = 'system'
     else:
@@ -269,25 +273,24 @@ def create_doc_manual(data, client = None, return_model = False):
             curr_username = 'system'
 
     doc = Docproc(
-        public_id = str(uuid.uuid4()),
+        public_id=str(uuid.uuid4()),
         doc_name=data['doc_name'],
         source_channel=DocprocChannel.MAIL.value,
         status=DocprocStatus.NEW.value,
         inserted_on=datetime.datetime.utcnow(),
-        created_by_username = curr_username,
+        created_by_username=curr_username,
         updated_on=datetime.datetime.utcnow(),
         updated_by_username=curr_username,
-        is_published = is_published
+        is_published=is_published
     )
 
-    if hasattr(data,'source_channel') and data['source_channel'] == DocprocChannel.DSTAR.value:
+    if hasattr(data, 'source_channel') and data['source_channel'] == DocprocChannel.DSTAR.value:
         doc.source_channel = DocprocChannel.DSTAR.value
-        
 
     for attr in data:
         if hasattr(doc, attr):
             if attr == 'doc_name':
-                pass    
+                pass
             elif attr == 'type':
                 if 'public_id' in data:
                     requested_type = get_doctype_by_pubid(data.get(attr)['public_id'])
@@ -299,16 +302,16 @@ def create_doc_manual(data, client = None, return_model = False):
                     if not requested_type:
                         raise NotFoundError(f"The default requested type 'Other' could not be found.")
                     doc.type = requested_type
-            
+
             else:
                 setattr(doc, attr, data.get(attr))
-    
+
     if client:
         move_to_client_dossier(doc, client)
     else:
         db.session.add(doc)
         _save_changes()
-    
+
     if return_model:
         return doc
     else:
@@ -320,19 +323,19 @@ def create_doc_from_fax(src_file_name):
     public_id = str(uuid.uuid4())
 
     doc = Docproc(
-        public_id = public_id,
+        public_id=public_id,
         orig_file_name=src_file_name,
         file_name=src_file_name,
         source_channel=DocprocChannel.FAX.value,
         status=DocprocStatus.NEW.value,
         inserted_on=datetime.datetime.utcnow(),
-        created_by_username = 'system',
+        created_by_username='system',
         updated_on=datetime.datetime.utcnow(),
         updated_by_username='system',
     )
     db.session.add(doc)
     _save_changes()
-    
+
     return synth_doc(doc)
 
 
@@ -379,10 +382,10 @@ def create_doc_note(doc, content):
     """ Creates a Note for a given Doc """
     curr_user = get_request_user()
     note = DocprocNote(
-        public_id = str(uuid.uuid4()),
-        content = content,
-        doc_id = doc.id,
-        author_id = curr_user.id,
+        public_id=str(uuid.uuid4()),
+        content=content,
+        doc_id=doc.id,
+        author_id=curr_user.id,
         inserted_on=datetime.datetime.utcnow(),
         updated_on=datetime.datetime.utcnow(),
     )
@@ -398,24 +401,24 @@ def create_doc_candidate(data, candidate):
     curr_username = curr_user.username
 
     doc = CandidateDoc(
-        public_id = str(uuid.uuid4()),
-        type = 'Credit Reports',
-        doc_name = data['doc_name'],
-        source_channel = DocprocChannel.DSTAR.value,
-        inserted_on = datetime.datetime.utcnow(),
-        created_by_username = curr_username,
-        updated_on = datetime.datetime.utcnow(),
-        updated_by_username = curr_username,
-        candidate_id = candidate.id
+        public_id=str(uuid.uuid4()),
+        type='Credit Reports',
+        doc_name=data['doc_name'],
+        source_channel=DocprocChannel.DSTAR.value,
+        inserted_on=datetime.datetime.utcnow(),
+        created_by_username=curr_username,
+        updated_on=datetime.datetime.utcnow(),
+        updated_by_username=curr_username,
+        candidate_id=candidate.id
     )
-    
+
     db.session.add(doc)
     _save_changes()
 
     return synth_doc_candidate(doc)
 
 
-def get_doc_candidate_by_pubid(pub_id, should_return_model = False):
+def get_doc_candidate_by_pubid(pub_id, should_return_model=False):
     """ Gets a Candidate Doc by public ID """
     result = None
 
