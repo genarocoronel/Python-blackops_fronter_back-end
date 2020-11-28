@@ -123,6 +123,12 @@ def get_all_users():
     return User.query.all()
 
 
+def get_system_user():
+    """ Get System Admin User """
+    role = RACMgr.get_role_record_by_name("super_admin")
+    return User.query.filter_by(role=role).first()
+
+
 def get_all_users_by_rolename(rac_role_name):
     """ Gets all Users belonging to a RAC Role name """
     role = RACMgr.get_role_record_by_name(rac_role_name)

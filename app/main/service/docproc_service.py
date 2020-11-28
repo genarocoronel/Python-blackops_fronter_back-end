@@ -16,7 +16,7 @@ from app.main.model.user import User
 from app.main.model.docproc import (DocprocChannel, DocprocType, DocprocStatus, 
     DocprocNote, Docproc)
 from app.main.model.candidate_docs import CandidateDoc
-from app.main.service.user_service import get_user_by_id, get_request_user
+from app.main.service.user_service import get_user_by_id, get_request_user, get_system_user
 from app.main.service.client_service import get_client_by_id
 from app.main.service.third_party.aws_service import (upload_to_docproc, download_from_docproc)
 
@@ -336,37 +336,42 @@ def create_doc_from_fax(src_file_name):
     return synth_doc(doc)
 
 
-""" 
-    Create Document from Email comm
-    @@params
-    @src_file_name --> String representing the S3 object
-    @email_from --> String representing the sender email address
-    @email_subject --> String representing email subject line
-    @email_date --> String representing the email date
-    @artifact_name --> String representing the artifact (e.g., "Main Content", or "Attachment 1 of 2")
-    """
 def create_doc_from_email(src_file_name, email_from, email_subject, email_date, artifact_name):
+    """
+        Create Document from Email comm
+        @@params
+        @src_file_name --> String representing the S3 object
+        @email_from --> String representing the sender email address
+        @email_subject --> String representing email subject line
+        @email_date --> String representing the email date
+        @artifact_name --> String representing the artifact (e.g., "Main Content", or "Attachment 1 of 2")
+    """
     doc_name = f'Inbound Email {email_from}: {artifact_name} - {email_date}'
-    doc_notes = doc_name + ', Subject: {}'.format(email_subject)
+    note = DocprocNote(
+        public_id=str(uuid.uuid4()),
+        content=doc_name + ', Subject: {}'.format(email_subject),
+        author=get_system_user(),
+        inserted_on=datetime.datetime.utcnow(),
+        updated_on=datetime.datetime.utcnow(),
+    )
 
     public_id = str(uuid.uuid4())
-
     doc = Docproc(
-        public_id = public_id,
+        public_id=public_id,
         orig_file_name=src_file_name,
         file_name=src_file_name,
         doc_name=doc_name,
-        doc_notes=doc_notes,
-        source_channel=DocprocChannel.MAIL.value,
+        doc_notes=[note],
+        source_channel=DocprocChannel.EMAIL.value,
         status=DocprocStatus.NEW.value,
         inserted_on=datetime.datetime.utcnow(),
-        created_by_username = 'system',
+        created_by_username='system',
         updated_on=datetime.datetime.utcnow(),
         updated_by_username='system',
     )
     db.session.add(doc)
     _save_changes()
-    
+
     return synth_doc(doc)
 
 

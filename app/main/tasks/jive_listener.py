@@ -1,29 +1,28 @@
 import abc
 import datetime
 import email
+import email.utils
 import json
 import logging
 import tempfile
 import uuid
 from dataclasses import dataclass
+from email.message import Message
 from typing import Union
 from urllib.parse import unquote
 
+import boto3
+import phonenumbers
 import pytz
-from dateutil.tz import gettz
 from dateutil import parser as date_parser
+from dateutil.tz import gettz
 from flask import current_app
+from lxml import html as htmllib
+from mutagen.mp3 import MP3
 from phonenumbers import PhoneNumber
 from pytimeparse import parse as time_parser
-
-import phonenumbers
-from mutagen.mp3 import MP3
-from lxml import html as htmllib
-from email.message import Message
-
 from sqlalchemy import or_
 from sqs_listener import SqsListener
-import boto3
 
 from app.main import db
 from app.main.core import DEFAULT_PHONE_REGION
@@ -34,8 +33,8 @@ from app.main.model.pbx import VoiceCommunication, CommunicationType, PBXNumber,
 from app.main.model.user import User, UserVoiceCommunication, UserFaxCommunication
 from app.main.service.communication_service import get_missed_call_event
 from app.main.service.customer_service import identify_customer_by_phone
+from app.main.service.docproc_service import create_doc_from_fax, create_doc_from_email
 from app.main.service.user_service import get_user_by_mailbox_id
-from app.main.service.docproc_service import create_doc_from_fax
 
 comms_logger = logging.getLogger('comms_listener')
 
@@ -114,10 +113,12 @@ class Handler(abc.ABC):
         ).first()
 
         customer = next((entity for entity in (source, destination) if isinstance(entity, CUSTOMER_TYPES)), None)
-        customer_number = next((number for number in (source_number, destination_number) if number and number.national_number != pbx_number), None)
+        customer_number = next(
+            (number for number in (source_number, destination_number) if number and number.national_number != pbx_number), None)
 
         employee = next((entity for entity in (source, destination) if isinstance(entity, EMPLOYEE_TYPES)), None)
-        employee_number = next((number for number in (source_number, destination_number) if number and number.national_number == pbx_number), None)
+        employee_number = next(
+            (number for number in (source_number, destination_number) if number and number.national_number == pbx_number), None)
 
         comms_logger.info(f'Communication record is being associated to PBX System {self.pbx_system_name}')
         pbx_system = PBXSystem.query.filter_by(name=self.pbx_system_name).one_or_none()
@@ -339,6 +340,33 @@ class JiveVoicemailHandler(Handler):
 
         self._create_comm_records(communication_data, VoiceCommunicationType.VOICEMAIL)
         comms_logger.info('Voicemail capture completed!')
+
+
+class DefaultEmailHandler(Handler):
+    HANDLER_NAME = 'default-email-handler'
+
+    def handle(self, message):
+        comms_logger.info('Handling email...')
+        comms_logger.debug(f'Received message:\n{message}')
+
+        queue_message = json.loads(message.get('Message'))
+        action = queue_message['receipt']['action']
+        bucket_name = action['bucketName']
+        object_key = unquote(action['objectKey'])
+
+        resource = boto3.resource('s3')
+
+        resource.Object(bucket_name, object_key).download_file(TEMP_EMAIL_FILE)
+        with open(TEMP_EMAIL_FILE, 'r') as file:
+            email_message = email.message_from_file(file)  # type: Message
+
+        comms_logger.info('Creating Doc Proc entry from email...')
+        try:
+            create_doc_from_email(object_key, email_message['From'], email_message['Subject'], email_message['Date'], 'Main Content')
+            comms_logger.info('Doc Proc entry created successfully')
+        except Exception:
+            comms_logger.exception(f'Failed to create Doc Proc entry for S3 email located here: {bucket_name}/{object_key}')
+            raise
 
 
 class JiveEmailHandler(Handler):
