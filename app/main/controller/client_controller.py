@@ -62,6 +62,8 @@ _doc_note_create = ClientDto.doc_note_create
 _task = TaskDto.user_task
 _team_request = TeamDto.team_request
 _last_action = ClientDto.last_action
+# debt dispute 
+dispute_api = DebtDisputeDto.api
 _debt_dispute = DebtDisputeDto.debt_dispute
 CLIENT = ClientType.client
 

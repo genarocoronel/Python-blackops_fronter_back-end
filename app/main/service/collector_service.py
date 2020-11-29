@@ -92,6 +92,16 @@ def update_collector(collector_id, data):
 
     return collector
 
+def search_collector(request):
+    result = []
+    q = request.args.get('q', None)
+    search_val = "%{}%".format(q)
+
+    if q is not None:
+        result = DebtCollector.query.filter(DebtCollector.name.ilike(search_val)).all()
+
+    return result
+
 def _save_changes(*data):
     for entry in data:
         db.session.add(entry)
