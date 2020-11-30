@@ -537,6 +537,13 @@ def seed_permissions():
          'roles': []},
         {'name': 'users.update', 'desc': 'Update Users',
          'roles': []},
+        # templates
+        {'name': 'templates.view', 'desc': 'View templates', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,
+                   RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        {'name': 'templates.send', 'desc': 'Send Template', 
+         'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,
+                   RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
 
     ]
 

@@ -248,6 +248,12 @@ class DocprocWorkflow(Workflow):
         self._create_task() 
         self.save()
 
+        # send email confirmation
+        app.queue.enqueue('app.main.tasks.mailer.send_new_document_notice',
+                          client.id, 
+                          self._object.id,
+                          failure_ttl=300)
+
     def on_doc_update(self):
         self._task_title = 'Document Review'
         self._task_desc = 'Document Review - Action Required'

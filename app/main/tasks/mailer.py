@@ -105,6 +105,13 @@ class TemplateMailManager(object):
     def org(self, org):
         self._org = org
 
+    @property
+    def doc(self):
+        return self._doc
+
+    @doc.setter
+    def doc(self, doc):
+        self._doc = doc
 
     def _to_dict(self):
         result = {}
@@ -123,6 +130,8 @@ class TemplateMailManager(object):
             result['org'] = self.org
         if self.p1date:
             result['date_p1_receipt'] = self.p1date 
+        if self.doc:
+            result['doc'] = self.doc
 
         result['date_now'] = datetime.utcnow().strftime("%m/%d/%Y")
         result['is_via_fax'] = self._is_via_fax
@@ -233,7 +242,7 @@ class TemplateMailManager(object):
                                     html=html, 
                                     attachments=attachments)
 
-            doc_name = "{}_{}_{}.pdf".format(self._tmpl.action.lower(), # action
+            doc_name = "{}_{}_{}.html".format(self._tmpl.action.lower(), # action
                                              self.client.id, # client id
                                              ts)  # timestamp
 
@@ -241,8 +250,9 @@ class TemplateMailManager(object):
             pdfdoc = "{}/{}".format(upload_dir_path, # directory path for the document
                                     doc_name)            
 
-            buff = generate_pdf(html)
-            with open(pdfdoc, 'wb') as fd:
+            #buff = generate_pdf(html)
+            buff = html
+            with open(pdfdoc, 'w') as fd:
                 fd.write(buff)
 
             # upload to AWS S3
@@ -333,6 +343,61 @@ class TemplateMailManager(object):
             db.session.add(mbox)
             db.session.commit() 
 
+    def send_composed_mail(self, subject, content):
+        app.logger.info('executing Mail Manager send content')
+        # check client is set or not
+        if not self.client:
+            raise ValueError("Client is not set for the mail manager")
+
+        ts = int(datetime.now().timestamp())            
+        transport = MailTransport.EMAIL.name
+        dest = self.client.email
+        attachments = []
+
+        html = content 
+        email_service.send_mail(app.config['TMPL_DEFAULT_FROM_EMAIL'], 
+                                [dest,] , 
+                                subject, 
+                                html=html, 
+                                attachments=attachments)
+
+        doc_name = "{}_{}_{}.pdf".format(subject.lower(), # action
+                                         self.client.id, # client id
+                                         ts)  # timestamp
+
+        upload_dir_path = app.config['UPLOAD_LOCATION']
+        pdfdoc = "{}/{}".format(upload_dir_path, # directory path for the document
+                                doc_name)            
+
+        buff = generate_pdf(html)
+        with open(pdfdoc, 'wb') as fd:
+            fd.write(buff)
+
+        # upload to AWS S3
+        upload_to_docproc(pdfdoc, doc_name) 
+        
+        # Add to the document store
+        docproc = Docproc(public_id=str(uuid.uuid4()),
+                          inserted_on=datetime.now(),
+                          updated_on=datetime.now(),
+                          client_id=self.client.id,
+                          file_name=doc_name,
+                          doc_name=subject.lower(),
+                          source_channel=DocprocChannel.EMAIL.value,
+                          is_published=True)
+        db.session.add(docproc)
+
+        ## test send mail
+        mbox = MailBox(timestamp=datetime.now(),
+                       client_id=self.client.id,
+                       body=html,
+                       to_addr=dest,
+                       channel=transport)
+        db.session.add(mbox)
+        db.session.commit()
+        # delete file
+        io.delete_file(pdfdoc)
+        
 
 # PAYMENT_REMINDER
 def send_payment_reminder(client_id, payment_schedule_id):
@@ -632,9 +697,24 @@ def send_privacy_policy(client_id):
 def send_delete_document_notice():
     pass
 
-def send_add_document_notice():
-    pass
+def send_new_document_notice(client_id, doc_id):
+    kwargs = { 'client_id': client_id, 'doc_id': doc_id }
+    send_template(TemplateAction.NEW_DOCUMENT_NOTICE.name,
+                  **kwargs)
 
+# send mail manualy composed by user
+def send_composed_mail(client_id, subject, content):
+    client = Client.query.filter_by(id=client_id).first()
+    if not client:
+        raise ValueError("On send composed: Client not found {}".format(client_id))
+    # composed mail
+    # no template
+    mail_mgr = TemplateMailManager(None)
+    # set the client
+    mail_mgr.client = client
+    # send the mail
+    mail_mgr.send_composed_mail(subject, content)
+    
 # SMS 
 # text messaging
 def send_day3_reminder(client_id):
@@ -719,6 +799,13 @@ def send_template(action, **kwargs):
         # set the appointment property
         mail_mgr.appointment = appointment
         mail_mgr.appointment.schedule = appointment.scheduled_at.strftime("%m/%d/%Y %H:%M")
+
+    ## document
+    if kwargs.get('doc_id'):
+        docproc = Docproc.query.filter_by(id=kwargs.get('doc_id')).first()
+        if not docproc:
+            raise ValueError("Document not found")
+        mail_mgr.doc = docproc
 
     # p1 date
     if kwargs.get('p1_date'):
