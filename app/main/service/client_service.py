@@ -274,7 +274,12 @@ def client_filter(limit=25, sort_col='id', order="desc",
         user_id = req_user['user_id']
         user_role = req_user['rac_role']
         if user_role == RACRoles.SALES_REP.value:
-            query = query.filter(Client.sales_rep_id==user_id)
+            # Sales user should not be able to see "leads" that are in any "dead" disposition in their view #
+            search = "%{}%".format("Dead")
+            dispositions = ClientDisposition.query.filter(ClientDisposition.value.ilike(search)).all()
+            dispositionIds = [disposition.id for disposition in dispositions]
+            
+            query = query.filter(~ClientDisposition.id.in_(dispositionIds)).filter(Client.sales_rep_id==user_id)
         elif user_role == RACRoles.SERVICE_REP.value:
             query = query.filter(Client.account_manager_id==user_id)
 
