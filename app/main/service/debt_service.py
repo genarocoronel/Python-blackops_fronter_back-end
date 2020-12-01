@@ -102,12 +102,12 @@ def update_debt(data):
         setattr(debt_data, 'last_update', datetime.datetime.utcnow())
 
         # check for collector information
-        collector_name = data.get('collector_name')
-        if collector_name:
-            dc = DebtCollector.query.filter_by(name=collector_name).first()
+        collector_id = data.get('collector_id')
+        if collector_id:
+            dc = DebtCollector.query.filter_by(public_id=collector_id).first()
             if not dc:
                 dc = DebtCollector(public_id=str(uuid.uuid4()),
-                                   name=collector_name,
+                                   name=data.get('collector_name'),
                                    phone=data.get('collector_phone'),
                                    fax=data.get('collector_fax'),
                                    address=data.get('collector_address'),

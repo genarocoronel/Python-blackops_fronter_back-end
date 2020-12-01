@@ -57,6 +57,7 @@ class DebtDisputeService(object):
                                        is_active=True,
                                        p1_date=now,
                                        collector_id=debt.collector_id,
+                                       collector_ref_no=debt.collector_ref_no,
                                        created_date=now,
                                        modified_date=now)
             db.session.add(debt_dispute)
@@ -85,6 +86,7 @@ class DebtDisputeService(object):
                                           is_active=True,
                                           p1_date=now,
                                           collector_id=debt.collector_id,
+                                          collector_ref_no=debt.collector_ref_no,
                                           created_date=now,
                                           modified_date=now)
 

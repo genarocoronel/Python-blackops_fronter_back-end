@@ -36,6 +36,7 @@ class DebtDispute(db.Model):
     # collector
     collector_id = db.Column(db.Integer, db.ForeignKey('debt_collectors.id', name='debt_disputes_collector_id_fkey'), nullable=False)
     collector = db.relationship('DebtCollector', backref='debt_disputes')
+    collector_ref_no = db.Column(db.String(100), nullable=True)
 
     # p1 send date
     p1_date = db.Column(db.DateTime, nullable=True)
