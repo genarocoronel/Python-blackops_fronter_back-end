@@ -419,7 +419,7 @@ def get_client_by_id(id):
     return Client.query.filter_by(id=id).first()
 
 
-def get_client_contact_by_phone(phone_no: PhoneNumber):
+def get_client_contact_by_phone(phone_no: PhoneNumber) -> ClientContactNumber:
     assert phone_no is not None
 
     client_cn = ClientContactNumber.query \

@@ -192,11 +192,6 @@ class ClientAssignment(Resource):
 
         try:
             assign_servicerep(client, asignee.id)
-            # TODO: modify this behavior when call routing includes other departments
-            #  interim fix is to remove any assignments for client with sales rep so calles aren't routed to sales rep
-            #  reference: https://app.asana.com/0/1145671275220852/1154169158060944/f
-            unassign_salesrep(client)
-
         except Exception as e:
             api.abort(500, message=f'Failed to assign a Service Rep for this Client. Error: {e}', success=False)
 

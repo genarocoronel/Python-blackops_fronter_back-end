@@ -8,6 +8,7 @@ from flask_restplus import Resource
 
 from app.main import db
 from app.main.core import DEFAULT_PHONE_REGION
+from app.main.model.client import ClientType
 from app.main.model.pbx import VoiceCallEvent, CallEventType
 from flask import current_app as app
 
@@ -135,24 +136,24 @@ class RouteCallWebHookResource(WebhookResource):
 
         caller_number, _ = self._get_call_numbers(request)
 
+        no_resp = make_response('', 204)
+        no_resp.headers['Content-Length'] = 0
+        no_resp.headers['Content-Type'] = 'text/plain'
+
         client_contact = get_client_contact_by_phone(caller_number)
         if not client_contact:
-            resp = make_response('', 204)
-            resp.headers['Content-Length'] = 0
-            resp.headers['Content-Type'] = 'text/plain'
-            return resp
+            return no_resp
 
         # TODO: modify behavior when routing in other departments is supported
         #  currently -> only look for assigned leads; clients in Service would most likely call direct line for their assigned employee
         #  reference: https://app.asana.com/0/1145671275220852/1154169158060944/f
-        assigned_employee = get_lead_assigned_employee(client_contact.client_id)
-        if assigned_employee:
-            extension = assigned_employee.pbx_mailbox_id
-            resp = make_response(extension, 200)
-            resp.headers['Content-Type'] = 'text/plain'
-        else:
-            resp = make_response('', 204)
-            resp.headers['Content-Length'] = 0
-            resp.headers['Content-Type'] = 'text/plain'
+        if client_contact.client.type == ClientType.lead:
+            assigned_employee = get_lead_assigned_employee(client_contact.client.id)
+            if assigned_employee:
+                extension = assigned_employee.pbx_mailbox_id
+                resp = make_response(extension, 200)
+                resp.headers['Content-Type'] = 'text/plain'
+                return resp
 
-        return resp
+        return no_resp
+
