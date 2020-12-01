@@ -43,6 +43,10 @@ class DocprocNote(db.Model):
     doc_id = db.Column(db.Integer, db.ForeignKey('docproc.id', name='fk_docproc_notes_doc_id'))
     author_id = db.Column(db.Integer, db.ForeignKey('users.id', name='fk_docproc_notes_author_user_id'))
 
+    # relationships
+    author = db.relationship('User', backref='docproc_notes')
+
+
 class Docproc(db.Model):
     """ Represents a Document Process """
     __tablename__ = "docproc"
@@ -54,14 +58,16 @@ class Docproc(db.Model):
     updated_on = db.Column(db.DateTime, nullable=False)
     updated_by_username = db.Column(db.String(50), default='System')
 
-    # relationships
+    # foreign keys
     type_id = db.Column(db.Integer, db.ForeignKey('docproc_types.id', name='fk_docproc_type_id'), nullable=True)
-    type = db.relationship('DocprocType', backref='docproc')
-    doc_notes = db.relationship('DocprocNote', backref='docproc')
     client_id = db.Column(db.Integer, db.ForeignKey('clients.id', name='fk_docproc_client_id'), nullable=True)
-    client = db.relationship('Client', backref='documents')
     docproc_user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='fk_docproc_user_id'), nullable=True)
     accmgr_user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='fk_docproc_accmgr_user_id'), nullable=True)
+
+    # relationships
+    type = db.relationship('DocprocType', backref='docproc')
+    doc_notes = db.relationship('DocprocNote', backref='docproc')
+    client = db.relationship('Client', backref='documents')
 
     file_name = db.Column(db.String(256))
     orig_file_name = db.Column(db.String(1024))

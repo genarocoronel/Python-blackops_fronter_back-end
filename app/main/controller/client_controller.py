@@ -10,11 +10,12 @@ from app.main.core.types import CustomerType
 from app.main.model.client import ClientType
 from app.main.model.audit import Auditable
 from app.main.service.audit_service import get_last_audit_item
-from app.main.service.client_service import (get_all_clients, get_clients_by_disposition, save_new_client, get_client, get_client_appointments, client_filter,
+from app.main.service.client_service import (get_all_clients, get_clients_by_disposition, save_new_client, get_client,
+                                             get_client_appointments, client_filter,
                                              update_client, get_client_employments, update_client_employments, get_client_income_sources,
                                              update_client_income_sources, get_client_monthly_expenses, update_client_monthly_expenses,
                                              update_client_addresses, get_client_addresses, get_client_contact_numbers,
-                                             update_client_contact_numbers, assign_servicerep)
+                                             update_client_contact_numbers, assign_servicerep, unassign_salesrep)
 from app.main.service.client import ClientService, ClientTaskService, ClientTrService
 from app.main.service.communication_service import parse_communication_types, date_range_filter, get_client_voice_communication, \
     create_presigned_url, get_sales_and_service_communication_records
@@ -86,6 +87,7 @@ class ClientList(Resource):
         data = request.json
         return save_new_client(data=data, client_type=CLIENT)
 
+
 @api.route('/filter')
 class ClientFilter(Resource):
     @api.doc('Clients filter with pagination info')
@@ -93,10 +95,11 @@ class ClientFilter(Resource):
     @token_required
     @user_has_permission('clients.view')
     def get(self):
-        #filter args
+        # filter args
         fargs = filter_request_parse(request)
-        result =  client_filter(client_type=CLIENT, **fargs)
+        result = client_filter(client_type=CLIENT, **fargs)
         return result, 200
+
 
 @api.route('/filter/disposition')
 class ClientFilterByDisposition(Resource):
@@ -105,18 +108,19 @@ class ClientFilterByDisposition(Resource):
     @token_required
     @user_has_permission('clients.view')
     def get(self):
-        #filter args
+        # filter args
         disposition = request.args.get('_q', None)
-        result =  get_clients_by_disposition(disposition, client_type=CLIENT)
+        result = get_clients_by_disposition(disposition, client_type=CLIENT)
         return result, 200
+
 
 @api.route('/data')
 class ClientList(Resource):
     @api.doc('list_of_clients')
     @api.marshal_list_with(_client, envelope='data')
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP, 
-                                RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
+    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP,
+                                 RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_MGR, RACRoles.SERVICE_REP])
     def get(self):
         """ List all clients """
         clients = get_all_clients(client_type=CLIENT)
@@ -181,14 +185,13 @@ class ClientAssignment(Resource):
         client = get_client(public_id, client_type=CLIENT)
         if not client:
             api.abort(404, "Client not found")
-        
+
         asignee = get_a_user(user_public_id)
         if not asignee:
             api.abort(404, message='That Sales Rep could not be found.', success=False)
 
         try:
             assign_servicerep(client, asignee.id)
-            
         except Exception as e:
             api.abort(500, message=f'Failed to assign a Service Rep for this Client. Error: {e}', success=False)
 
@@ -420,7 +423,8 @@ class ClientCommunications(Resource):
             date_range_filter(filter)
 
             date_filter_fields = filter.get('dt_fields', [])
-            result = get_sales_and_service_communication_records(filter, comm_types_set, clients=client, date_filter_fields=date_filter_fields)
+            result = get_sales_and_service_communication_records(filter, comm_types_set, clients=client,
+                                                                 date_filter_fields=date_filter_fields)
 
             return sorted(result, key=lambda record: record.receive_date, reverse=True)
 
@@ -465,7 +469,7 @@ class ClientDebtDispute(Resource):
         credit_account, error_response = _handle_get_credit_report(client)
         if not credit_account:
             api.abort(404, **error_response)
-        
+
         for debt_item in credit_account.records:
             if debt_item.public_id == debt_id:
                 DebtDisputeService.process_collection_letter(client, debt_item)
@@ -629,7 +633,7 @@ class UpdateCreditReportAccount(Resource):
                     'full_ssn_required': True
                 }
                 return response_object, 502
-                
+
             else:
                 response_object = {
                     'success': False,
@@ -967,7 +971,7 @@ class ClientPaymentScheduleRevision(Resource):
     @token_required
     @api.doc('revises payment schedule')
     @token_required
-    @user_has_permission('clients.amendment.request') 
+    @user_has_permission('clients.amendment.request')
     def put(self, client_id):
         """ Revises client payment schedule"""
         client = get_client(public_id=client_id, client_type=CLIENT)
@@ -990,7 +994,7 @@ class ClientReinstate(Resource):
     @token_required
     @api.doc('revises payment schedule')
     @token_required
-    @user_has_permission('clients.amendment.request') 
+    @user_has_permission('clients.amendment.request')
     def put(self, client_id):
         """ Reinstate a client"""
         client = get_client(public_id=client_id, client_type=CLIENT)
@@ -1004,13 +1008,14 @@ class ClientReinstate(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
+
 @api.route('/<client_id>/docs')
 @api.param('client_id', 'Client public identifier')
 class ClientDocs(Resource):
     @api.doc('Get Client documents')
     @api.marshal_list_with(_doc)
     @token_required
-    @user_has_permission('clients.docs.view') 
+    @user_has_permission('clients.docs.view')
     def get(self, client_id):
         """ Get Client documents """
         client, error_response = _handle_get_client(client_id)
@@ -1024,7 +1029,7 @@ class ClientDocs(Resource):
     @api.doc('Creates a Doc')
     @api.expect(_doc_create, validate=True)
     @token_required
-    @user_has_permission('clients.docs.create') 
+    @user_has_permission('clients.docs.create')
     def post(self, client_id):
         """ Creates a Doc manually """
         client, error_response = _handle_get_client(client_id)
@@ -1052,7 +1057,7 @@ class ClientDocs(Resource):
 class ClientDocFile(Resource):
     @api.doc('Get a Doc file for a given Client')
     @token_required
-    @user_has_permission('clients.docs.view') 
+    @user_has_permission('clients.docs.view')
     def get(self, client_id, public_id):
         """ Get a Doc file for a given Client """
         client, error_response = _handle_get_client(client_id)
@@ -1081,7 +1086,7 @@ class ClientDocUpdate(Resource):
     @api.doc('Updates a Doc')
     @api.expect(_doc_update, validate=True)
     @token_required
-    @user_has_permission('clients.docs.update') 
+    @user_has_permission('clients.docs.update')
     def put(self, client_id, public_id):
         """ Updates a Doc """
         request_data = request.json
@@ -1113,7 +1118,7 @@ class ClientDocUpload(Resource):
     @api.doc('Uploads a File to a Doc')
     @api.expect(_doc_upload, validate=True)
     @token_required
-    @user_has_permission('clients.docs.create') 
+    @user_has_permission('clients.docs.create')
     def post(self, client_id, doc_public_id):
         """ Uploads a File to a Doc """
         client, error_response = _handle_get_client(client_id)
@@ -1126,7 +1131,7 @@ class ClientDocUpload(Resource):
 
         args = _doc_upload.parse_args()
         file = args['doc_file']
-        
+
         if not file:
             api.abort(400, message='Doc file is missing from the request.', success=False)
         elif file.filename == '':
@@ -1134,7 +1139,7 @@ class ClientDocUpload(Resource):
 
         if not allowed_doc_file_kinds(file.filename):
             api.abort(400, message='That Doc file kind is not allowed. Try PDF, PNG, JPG, JPEG, or GIF.', success=False)
-        
+
         try:
             updated_doc = attach_file_to_doc(doc, file)
 
@@ -1144,7 +1149,7 @@ class ClientDocUpload(Resource):
             api.abort(404, message='Error uploading file for Doc, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to upload File for Doc with ID {doc_public_id}', success=False)
-        
+
         return updated_doc, 200
 
 
@@ -1155,7 +1160,7 @@ class ClientDocNote(Resource):
     @api.doc('Creates a Doc Note')
     @api.expect(_doc_note_create, validate=True)
     @token_required
-    @user_has_permission('clients.docs.create') 
+    @user_has_permission('clients.docs.create')
     def post(self, client_id, doc_public_id):
         """ Creates a Doc Note """
         request_data = request.json
@@ -1167,7 +1172,7 @@ class ClientDocNote(Resource):
         doc = get_doc_by_pubid(doc_public_id)
         if not doc:
             api.abort(404, message='That Doc could not be found.', success=False)
-        
+
         try:
             updated_doc = create_doc_note(doc, request_data['content'])
 
@@ -1177,8 +1182,9 @@ class ClientDocNote(Resource):
             api.abort(404, message='Error creating a Note for Doc, {}'.format(str(e)), success=False)
         except Exception as e:
             api.abort(500, message=f'Failed to create Note for Doc with ID {doc_public_id}', success=False)
-        
+
         return updated_doc, 200
+
 
 ## fetch all the tasks for a given client
 @api.route('/<client_id>/tasks')
@@ -1188,7 +1194,7 @@ class ClientTasks(Resource):
     @api.doc('fetches service tasks for a given client')
     @api.marshal_list_with(_task)
     @token_required
-    @user_has_permission('clients.view') 
+    @user_has_permission('clients.view')
     def get(self, client_id):
         try:
             s = ClientTaskService(public_id=client_id)
@@ -1200,6 +1206,7 @@ class ClientTasks(Resource):
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
 
+
 # fetch all the team requests for a given client
 @api.route('/<client_id>/teamrequests')
 @api.param('client_id', 'Client public identifier')
@@ -1208,7 +1215,7 @@ class ClientTeamRequests(Resource):
     @api.doc('fetches team requests for a given client')
     @api.marshal_list_with(_team_request)
     @token_required
-    @user_has_permission('clients.tr.view') 
+    @user_has_permission('clients.tr.view')
     def get(self, client_id):
         try:
             s = ClientTrService(public_id=client_id)
@@ -1227,7 +1234,7 @@ class ClientTeamRequests(Resource):
 class ClientActiveContract(Resource):
     @api.doc('fetch payment contract')
     @token_required
-    @user_has_permission('clients.view') 
+    @user_has_permission('clients.view')
     def get(self, client_id):
         """ Fetch payment contract for the client """
         client = get_client(public_id=client_id)
@@ -1240,6 +1247,7 @@ class ClientActiveContract(Resource):
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 
+
 @api.route('/<client_id>/add-to-retention')
 @api.param('client_id', 'Client public identifier')
 @api.response(404, 'Client not found')
@@ -1251,7 +1259,7 @@ class ClientAddToRetention(Resource):
         """ Add a client to retention"""
         try:
             svc = ClientService(public_id=client_id)
-            svc.on_add2retention() 
+            svc.on_add2retention()
 
             response_object = {
                 'success': True,
@@ -1261,6 +1269,7 @@ class ClientAddToRetention(Resource):
 
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
+
 
 @api.route('/<client_id>/action')
 @api.param('client_id', 'Client public identifier')

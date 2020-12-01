@@ -264,6 +264,7 @@ class ClientFaxCommunication(db.Model):
     client = db.relationship('Client', backref='fax_communication_client_assoc')
     fax_communication = db.relationship('FaxCommunication', backref='client_fax_communication_assoc')
 
+
 # client campaign association
 class ClientCampaign(db.Model):
     __tablename__ = "client_campaigns"
