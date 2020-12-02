@@ -1648,3 +1648,31 @@ class TemplateDto:
         'public_id': fields.String(),
         'title': fields.String(),    
     })
+
+class DebtDisputeDto:
+    api = Namespace('debt-dispute', description='Debt dispute information')
+
+    debt_dispute_log = api.model('debt_dispute_log', {
+        'title': fields.String(),
+        'message': fields.String(),
+        'status': fields.String(),
+        'created_on': DateTimeFormatField(),
+    })
+
+    collector = api.model('collector', {
+        'public_id': fields.String(),
+        'name': fields.String(),
+        'phone': fields.String(),
+        'fax': fields.String(),
+        'address': fields.String(),
+        'city': fields.String(),
+        'state': fields.String(),
+        'zip_code': fields.String(),
+    }) 
+
+    debt_dispute = api.model('debt_dispute', {
+        'collector': fields.Nested(collector),
+        'collector_ref_no': fields.String(attribute='debt.collector_ref_no'),
+        'status': fields.String(),
+        'history': fields.List(fields.Nested(debt_dispute_log), attribute='logs'),
+    })

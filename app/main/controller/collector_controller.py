@@ -5,7 +5,7 @@ from flask import current_app as app
 from app.main.util.dto import CollectorDto
 from app.main.util.decorator import (token_required, user_has_permission)
 from app.main.core.errors import BadRequestError, NotFoundError
-from app.main.service.collector_service import get_all_collectors, create_collector, update_collector
+from app.main.service.collector_service import get_all_collectors, create_collector, update_collector, search_collector
 
 api = CollectorDto.api
 _collector = CollectorDto.collector
@@ -54,4 +54,16 @@ class CollectorRecord(Resource):
             return collector, 200
         except Exception as e:
             api.abort(500, message=f'Failed to update debt collector', success=False)
+
+@api.route('/search')
+class CollectorSearch(Resource):
+    @api.doc('Search Collector')
+    @api.marshal_list_with(_collector, envelope='data')
+    @token_required
+    @user_has_permission('collectors.view')
+    def get(self):
+        try:
+            return search_collector(request)
+        except Exception as e:
+            api.abort(500, "{}".format(str(err)))
 

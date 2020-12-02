@@ -6,6 +6,7 @@ from app.main.model.template import TemplateAction, Template, MailBox
 from app.main.model.template import TemplateMedium as MailTransport
 from app.main.model.organization import Organization
 from app.main.model.debt_payment import DebtPaymentSchedule
+from app.main.model.debt import DebtDispute, DebtDisputeStatus, DebtDisputeLog
 from app.main.model.address import Address, AddressType
 from app.main import db
 from datetime import datetime
@@ -34,6 +35,8 @@ class TemplateMailManager(object):
     _p1date = None
     _is_via_fax = False
     _org = None
+    _doc = None
+    _disp = None
 
     def __init__(self, template):
         self._tmpl = template
@@ -113,6 +116,14 @@ class TemplateMailManager(object):
     def doc(self, doc):
         self._doc = doc
 
+    @property
+    def dispute(self):
+        return self._disp
+
+    @dispute.setter
+    def dispute(self, disp):
+        self._disp = disp
+ 
     def _to_dict(self):
         result = {}
         if self.client:
@@ -214,6 +225,22 @@ class TemplateMailManager(object):
             db.session.commit()
             # delete file
             io.delete_file(pdfdoc)
+
+            if self.dispute:
+                disp_status = DebtDisputeStatus[self.dispute.status].value
+                disp_title = "{}".format(disp_status)
+                if self._is_via_fax:
+                    disp_msg = 'Sent to Collector via Fax: {} - {}'.format(self.debt.debt_collector.fax, doc_name)
+                else:
+                    disp_msg = 'Send to Collector via Post'
+
+                log = DebtDisputeLog(created_on=datetime.now(),
+                                     title=disp_title,
+                                     message=disp_msg,
+                                     status=disp_status,
+                                     dispute_id=self.dispute.id)
+                db.session.add(log)
+                db.session.commit()
                 
         elif transport == MailTransport.EMAIL.name:
             # check client is set or not
@@ -522,48 +549,48 @@ def send_spanish_intro(client_id):
 
 # NOIR_NOTICE
 # FAX
-def send_noir_notice(client_id, debt_id):
+def send_noir_notice(client_id, debt_id, debt_dispute_id):
     """
     Send noir notice to debt collector
     : param int client_id: Client Identifier (required)
     : param int debt_id: Debt Identifier (required)
     """
-    kwargs = { 'client_id': client_id, 'debt_id': debt_id }
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'dispute_id': debt_dispute_id}
     send_template(TemplateAction.NOIR_NOTICE.name,
                   **kwargs)
 
 # NOIR_2_NOTICE
 # FAX
-def send_noir_2_notice(client_id, debt_id):
+def send_noir_2_notice(client_id, debt_id, debt_dispute_id):
     """
     Send noir2 notice to debt collector
     : param int client_id: Client Identifier (required)
     : param int debt_id: Debt Identifier (required)
     """
-    kwargs = { 'client_id': client_id, 'debt_id': debt_id }
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'dispute_id': debt_dispute_id}
     send_template(TemplateAction.NOIR_2_NOTICE.name,
                   **kwargs)
 
 # NON_RESPONSE_NOTICE
 # FAX
-def send_non_response_notice(client_id, debt_id, p1_date):
+def send_non_response_notice(client_id, debt_id, p1_date, debt_dispute_id):
     """
     Send non response notice to debt collector
     : param int client_id: Client Identifier (required)
     : param int debt_id: Debt Identifier (required)
     : param datetime p1_date: P1 send date (required)
     """
-    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'p1_date': p1_date }
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'p1_date': p1_date, 'dispute_id': debt_dispute_id }
     send_template(TemplateAction.NON_RESPONSE_NOTICE.name,
                   **kwargs)
 
-def send_noir_fdcpa_notice(client_id, debt_id):
+def send_noir_fdcpa_notice(client_id, debt_id, debt_dispute_id):
     """
     Send fdcpa notice to debt collector
     : param int client_id: Client Identifier (required)
     : param int debt_id: Debt Identifier (required)
     """
-    kwargs = { 'client_id': client_id, 'debt_id': debt_id }
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'dispute_id': debt_dispute_id }
     send_template(TemplateAction.NOIR_FDCPA_NOTICE.name,
                   **kwargs)
 
@@ -658,24 +685,24 @@ def send_client_portal_info(client_id):
                   **kwargs)
  
 
-def send_initial_dispute_mail(client_id, debt_id):
+def send_initial_dispute_mail(client_id, debt_id, debt_dispute_id):
     """
     Send initial dispute mail
     : param int client_id: Client Identifier (required)
     : param int debt_id: Debt Identifier (required)
     """
-    kwargs = { 'client_id': client_id, 'debt_id': debt_id }
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'dispute_id': debt_dispute_id }
     send_template(TemplateAction.INITIAL_DISPUTE_MAIL.name,
                   **kwargs)
     
 
-def send_sold_package_mail(client_id, debt_id):
+def send_sold_package_mail(client_id, debt_id, debt_dispute_id):
     """
     Send sold package mail
     : param int client_id: Client Identifier (required)
     : param int debt_id: Debt Identifier (required)
     """
-    kwargs = { 'client_id': client_id, 'debt_id': debt_id }
+    kwargs = { 'client_id': client_id, 'debt_id': debt_id, 'dispute_id': debt_dispute_id }
     send_template(TemplateAction.SOLD_PACKAGE_MAIL.name,
                   **kwargs)
 
@@ -811,6 +838,11 @@ def send_template(action, **kwargs):
     if kwargs.get('p1_date'):
         p1_date = kwargs.get('p1_date')
         mail_mgr.p1date = p1_date.strftime("%m/%d/%Y")
+
+    # debt dispute
+    if kwargs.get('dispute_id'):
+        disp = DebtDispute.query.filter_by(id=kwargs.get('dispute_id')).first()
+        mail_mgr.dispute = disp
 
     ## Organization
     ## tmp: fetch the first

@@ -32,7 +32,7 @@ from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_s
 from app.main.service.user_service import get_request_user, get_a_user
 from app.main.service.debt_payment_service import fetch_active_contract
 from app.main.util.parsers import filter_request_parse
-from ..util.dto import LeadDto, ClientDto, AppointmentDto, TaskDto, TeamDto
+from ..util.dto import LeadDto, ClientDto, AppointmentDto, TaskDto, TeamDto, DebtDisputeDto
 
 api = ClientDto.api
 _lead = LeadDto.lead
@@ -63,6 +63,9 @@ _doc_note_create = ClientDto.doc_note_create
 _task = TaskDto.user_task
 _team_request = TeamDto.team_request
 _last_action = ClientDto.last_action
+# debt dispute 
+dispute_api = DebtDisputeDto.api
+_debt_dispute = DebtDisputeDto.debt_dispute
 CLIENT = ClientType.client
 
 
@@ -1289,6 +1292,26 @@ class ClientExecuteAction(Resource):
                 'message': f'Successfully executed client action'
             }
             return response_object, 200
+
+        except Exception as err:
+            api.abort(500, "{}".format(str(err)))
+
+@api.route('/<client_id>/debt/<debt_id>/disputes')
+@api.param('client_id', 'Client public identifier')
+@api.param('debt_id', 'Debt public identifier')
+class ClientDebtDisputes(Resource):
+    @api.doc('fetch debt disputes for a client')
+    @api.marshal_list_with(_debt_dispute)
+    @token_required
+    @user_has_permission('clients.view')
+    def get(self, client_id, debt_id):
+        """ client debt disputes for a given debt """
+        try:
+            client = get_client(public_id=client_id)
+            if not client:
+                api.abort(404)
+            else:
+                return DebtDisputeService.fetch_all(client, debt_id)
 
         except Exception as err:
             api.abort(500, "{}".format(str(err)))
