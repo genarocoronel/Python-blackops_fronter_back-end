@@ -21,7 +21,7 @@ class DebtDisputeService(object):
     def process_collection_letter(cls, 
                                   client, # Client, 
                                   debt,   # CreditReportData, 
-                                  doc):   # Docproc
+                                  doc=None):   # Docproc
         # client not valid
         if not client:
             raise BadParamsError('Client parameter is not present') 

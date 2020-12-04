@@ -1671,7 +1671,7 @@ class DebtDisputeDto:
 
     debt_dispute = api.model('debt_dispute', {
         'collector': fields.Nested(collector),
-        'collector_ref_no': fields.String(attribute='debt.collector_ref_no'),
+        'collector_ref_no': fields.String(),
         'status': fields.String(),
         'history': fields.List(fields.Nested(debt_dispute_log), attribute='logs'),
     })
