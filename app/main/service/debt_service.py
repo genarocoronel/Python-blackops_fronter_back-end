@@ -96,11 +96,6 @@ def save_new_debt(data, account):
 def update_debt(data):
     debt_data = CreditReportData.query.filter_by(public_id=data['public_id']).first()
     if debt_data:
-        for attr in data:
-            if hasattr(debt_data, attr):
-                setattr(debt_data, attr, data.get(attr))
-        setattr(debt_data, 'last_update', datetime.datetime.utcnow())
-
         # check for collector information
         collector_id = data.get('collector_id')
         if collector_id:
@@ -123,6 +118,15 @@ def update_debt(data):
             if debt_data.collector_id and debt_data.collector_id != dc.id:
                 debt_data.prev_collector_id = debt_data.collector_id 
             debt_data.collector_id = dc.id
+            # remove collector id from the update list
+            del data['collector_id']
+
+        # remove attrs not updated
+        del data['public_id']
+        for attr in data:
+            if hasattr(debt_data, attr):
+                setattr(debt_data, attr, data.get(attr))
+        setattr(debt_data, 'last_update', datetime.datetime.utcnow())
 
         save_changes(debt_data)
 
