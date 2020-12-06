@@ -23,14 +23,13 @@ from app.main.service.credit_report_account_service import (creport_account_sign
                                                             get_verification_questions, answer_verification_questions,
                                                             get_security_questions, complete_signup, pull_credit_report,
                                                             get_account_credentials)
-from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate
+from app.main.service.debt_payment_service import contract_open_revision, contract_reinstate, fetch_active_contract, update_active_contract
 from app.main.service.debt_service import check_existing_scrape_task, get_report_data, scrape_credit_report
 from app.main.service.debt_dispute import DebtDisputeService
 from app.main.service.docproc_service import (get_docs_for_client, get_doc_by_pubid, stream_doc_file, update_doc,
                                               allowed_doc_file_kinds, create_doc_manual, attach_file_to_doc, create_doc_note)
 from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_schedule, update_svc_schedule
 from app.main.service.user_service import get_request_user, get_a_user
-from app.main.service.debt_payment_service import fetch_active_contract
 from app.main.util.parsers import filter_request_parse
 from ..util.dto import LeadDto, ClientDto, AppointmentDto, TaskDto, TeamDto, DebtDisputeDto
 
@@ -1247,6 +1246,21 @@ class ClientActiveContract(Resource):
             try:
                 contract = fetch_active_contract(client)
                 return contract
+            except Exception as err:
+                api.abort(500, "{}".format(str(err)))
+
+    @api.doc('update payment contract')
+    @token_required
+    @user_has_permission('clients.update')
+    def put(self, client_id):
+        client = get_client(public_id=client_id)
+        if not client:
+            api.abort(404, "Client not found")
+        else:
+            try:
+                data = request.json
+                result = update_active_contract(client, data)
+                return result
             except Exception as err:
                 api.abort(500, "{}".format(str(err)))
 

@@ -98,7 +98,6 @@ class DebtPaymentContract(db.Model):
     prev_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_contract_prev_id_fkey'))
     next_contract = db.relationship('DebtPaymentContract', uselist=False, remote_side=[prev_id]) 
 
-
 class DebtPaymentContractCreditData(db.Model):
     """ DB model for storing enrolled debts for a contract """
     __tablename__ = "debt_payment_contract_credit_data"
@@ -126,7 +125,7 @@ class DebtPaymentSchedule(db.Model):
     # foreign key
     contract_id = db.Column(db.Integer, db.ForeignKey('debt_payment_contract.id', name='debt_payment_schedule_contract_id_fkey'))
     # relationship
-    contract = db.relationship("DebtPaymentContract", backref=backref('payment_schedule', cascade="all, delete-orphan"))
+    contract = db.relationship("DebtPaymentContract", backref=backref('payment_schedule', cascade="all, delete-orphan", order_by='DebtPaymentSchedule.id.asc()'))
 
     due_date = db.Column(db.DateTime, nullable=False)
     amount  = db.Column(db.Float, nullable=False)
