@@ -108,7 +108,7 @@ def update_debt(data):
                                    address=data.get('collector_address'),
                                    city=data.get('collector_city'),
                                    state=data.get('collector_state'),
-                                   zip_code=data.get('collector_state'),
+                                   zip_code=data.get('collector_zip_code'),
                                    inserted_on=datetime.datetime.utcnow(),
                                    updated_on=datetime.datetime.utcnow())
                 db.session.add(dc)
