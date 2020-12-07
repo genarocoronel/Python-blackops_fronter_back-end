@@ -181,7 +181,58 @@ def fetch_active_contract(client):
 
     return result
         
+# only first payment & second payment
+# date can be updated without team request
+def update_active_contract(client, data):
+    contract = DebtPaymentContract.query.filter_by(client_id=client.id,
+                                                   status=ContractStatus.ACTIVE).first()
+    if not contract:
+         raise ValueError('Active Contract not found for client')
 
+    payment_1st_date = data.get('payment_1st_date')
+    payment_2nd_date = data.get('payment_2nd_date')
+
+    # 1st Date
+    if payment_1st_date:
+        dt = datetime.strptime(payment_1st_date, '%m-%d-%Y')
+        # change the date in the schedule
+        payment_1st_schedule = contract.payment_schedule[0]
+        # allowed only the future 
+        if payment_1st_schedule.status == DebtEftStatus.FUTURE.name:
+            payment_1st_schedule.due_date = dt
+            contract.payment_start_date = dt
+    # 2nd Date
+    if payment_2nd_date:
+        dt = datetime.strptime(payment_2nd_date, '%m-%d-%Y')
+        # change the date in the schedule
+        payment_2nd_schedule = contract.payment_schedule[1]
+        # allowed only the future 
+        if payment_2nd_schedule.status == DebtEftStatus.FUTURE.name:
+            payment_2nd_schedule.due_date = dt
+            contract.payment_recurring_begin_date = dt
+
+    db.session.commit()
+
+    term = contract.term
+    pymt_start = contract.payment_start_date
+    pymt_rec_begin_date = contract.payment_recurring_begin_date
+    term_left = term - contract.num_inst_completed
+    balance = term_left * contract.monthly_fee
+
+    result = {
+        "term": term,
+        "total_debt" : contract.total_debt,
+        "enrolled_debt": contract.enrolled_debt,
+        "monthly_fee": contract.monthly_fee,
+        "total_paid": contract.total_paid,
+        "num_term_paid": contract.num_inst_completed,
+        "term_left": term_left,
+        "balance" : balance,
+        "payment_1st_date": pymt_start.strftime('%Y-%m-%d'),
+        "payment_2nd_date": pymt_rec_begin_date.strftime('%Y-%m-%d'),
+    }   
+
+    return result
 
 """
 Update Payment contract for a given client
