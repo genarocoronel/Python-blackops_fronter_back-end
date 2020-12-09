@@ -17,11 +17,12 @@ class DebtDisputeService(object):
                                               debt_id=debt.id).all()
         return disputes
 
+    ## respond to collection letter
     @classmethod
-    def process_collection_letter(cls, 
-                                  client, # Client, 
-                                  debt,   # CreditReportData, 
-                                  doc=None):   # Docproc
+    def respond_to_letter(cls, 
+                          client, # Client, 
+                          debt,   # CreditReportData, 
+                          doc=None):   # Docproc
         # client not valid
         if not client:
             raise BadParamsError('Client parameter is not present') 
@@ -139,10 +140,14 @@ class DebtDisputeService(object):
         elif disp.status == DebtDisputeStatus.NOIR_FDCPA_SEND.name:
             disp.status = DebtDisputeStatus.NOIR_FDCPA_WAIT.name
             db.session.commit()
+        elif disp.status == DebtDisputeStatus.NOIR_FDCPA_WAIT.name:
+            # create a task for account manager to manually send P1/SOLD PACKAGE
+            pass
 
     @classmethod
     def on_day_tick(cls, disp):
         now = datetime.utcnow()
+        client = disp.client
         if disp.status == DebtDisputeStatus.P1_SEND.name or\
            disp.status == DebtDisputeStatus.SOLD_PACKAGE_SEND.name:
             diff = (now - disp.p1_date)
@@ -173,7 +178,12 @@ class DebtDisputeService(object):
                 disp.fd_non_response_expired_date = now
                 disp.status = DebtDisputeStatus.FULLY_DISPUTED_NON_RESPONSE_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_NON_RESPONSE_EXPIRED.value
-
+                db.session.commit()
+                # check if graduated
+                if client.credit_report_account.is_graduated() is True and \
+                    client.status_name == 'Service_ActiveStatus_Fulfillment':
+                    client_status_name = 'Service_ActiveStatus_Graduated' 
+                 
                 log_title = 'No Non-Response Response Received'
                 msg = ''
                 status = DebtDisputeStatus.FULLY_DISPUTED_NON_RESPONSE_EXPIRED.value 
@@ -194,6 +204,12 @@ class DebtDisputeService(object):
                 disp.fd_noir_expired_date = now
                 disp.status = DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED.value
+                db.session.commit()
+                # Graduated
+                if client.credit_report_account.is_graduated() is True and \
+                    client.status_name == 'Service_ActiveStatus_Fulfillment':
+                    client_status_name = 'Service_ActiveStatus_Graduated' 
+
                 log_title = 'No NOIR Response Received'
                 msg = ''
                 status = DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED.value
@@ -211,8 +227,14 @@ class DebtDisputeService(object):
                 mailer.send_fully_dispute_ack(disp.client_id,
                                               disp.debt_id)
                 disp.fully_disputed_date = now
-                disp.status = DebtDisputeStatus.FULLY_DISPUTED_EXPIRED.name
+                disp.status = DebtDisputeStatus.FULLY_DISPUTED_NOIR2_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_NOIR2_EXPIRED.value
+                db.session.commit()
+                # Graduated
+                if client.credit_report_account.is_graduated() is True and \
+                    client.status_name == 'Service_ActiveStatus_Fulfillment':
+                    client_status_name = 'Service_ActiveStatus_Graduated' 
+
                 log_title = 'No NOIR2 Response Received'
                 msg = ''
                 status = DebtDisputeStatus.FULLY_DISPUTED_NOIR2_EXPIRED.value
@@ -233,6 +255,12 @@ class DebtDisputeService(object):
                 disp.fully_disputed_date = now
                 disp.status = DebtDisputeStatus.FULLY_DISPUTED_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_FDCPA_EXPIRED.value
+                db.session.commit()
+                # Graduated
+                if client.credit_report_account.is_graduated() is True and \
+                    client.status_name == 'Service_ActiveStatus_Fulfillment':
+                    client_status_name = 'Service_ActiveStatus_Graduated' 
+
                 log_title = 'No NOIR2 Response Received'
                 msg = ''
                 status = DebtDisputeStatus.FULLY_DISPUTED_FDCPA_EXPIRED.value

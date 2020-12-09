@@ -1,5 +1,5 @@
 from app.main import db
-from app.main.model.debt_payment import DebtPaymentSchedule, DebtPaymentContractCreditData, DebtEftStatus, ContractStatus, RevisionStatus 
+from app.main.model.debt_payment import DebtPaymentSchedule, DebtPaymentContractCreditData, DebtEftStatus, ContractStatus, RevisionStatus, ContractAction 
 from app.main.model.credit_report_account import CreditReportAccount, CreditReportData
 from app.main.model.usertask import UserTask, TaskAssignType, TaskPriority
 from app.main.model.docproc import DocprocStatus
@@ -379,6 +379,16 @@ class ContractWorkflow(Workflow):
                     self.status = ContractStatus.ACTIVE
                     self.save()
 
+                # REMOVE DEBTS OR RECEIVE SUMMON
+                contract = self._object
+                if contract.current_action == ContractAction.REMOVE_DEBTS or \
+                   contract.current_action == ContractAction.RECIEVE_SUMMON: 
+                    # check 
+                    if contract.monthly_fee <= 0:
+                        client.status_name = 'Service_ActiveStatus_Fulfillment'
+                        if client.credit_report_account.is_graduated() is True:
+                            client.status_name = 'Service_ActiveStatus_Graduated'
+                        
                 count = 0
                 for record in active_contract.payment_schedule:
                     count = count + 1
@@ -389,6 +399,9 @@ class ContractWorkflow(Workflow):
                     if record.status == DebtEftStatus.FUTURE.name:
                         record.contract_id = self._object.id
                         record.amount = self._object.monthly_fee
+                        if record.amount <= 0:
+                            # will not be drafted
+                            record.status = DebtEftStatus.PAUSED.name 
 
                 db.session.commit()
 

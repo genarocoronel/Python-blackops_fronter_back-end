@@ -153,11 +153,19 @@ class DebtPaymentSchedule(db.Model):
            self.status == DebtEftStatus.TRANSMITTED.name:
             contract = self.contract
             if contract:
+                client = contract.client
+
                 contract.total_paid = contract.total_paid + self.amount
                 contract.num_inst_completed = contract.num_inst_completed + 1
+                # all payments completed
+                if contract.term == contract.num_inst_completed:
+                    client.status_name = 'Service_ActiveStatus_Fulfillment'                    
+                    # Graduated logic
+                    if client.credit_report_account.is_graduated() is True:
+                        client.status_name = 'Service_ActiveStatus_Graduated'
+
                 # check the installments
                 if contract.num_inst_completed == 1 or contract.num_inst_completed == 2:
-                    client = contract.client
                     amount = round( contract.total_debt * (contract.commission_rate / 100), 2)
                     desc = 'Commission from 1st Payment'
                     if contract.num_inst_completed == 2:

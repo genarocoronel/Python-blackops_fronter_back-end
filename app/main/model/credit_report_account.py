@@ -71,6 +71,13 @@ class CreditReportAccount(db.Model):
         db.session.add(task)
         return task
 
+    def is_graduated(self):
+        for debt in self.records:
+            if debt.push is True and 'fully disputed' not in debt.last_debt_status.lower():
+                return False
+
+        return True
+
 
 class CreditReportData(db.Model):
     """ Db Model for storing candidate report data """

@@ -474,7 +474,7 @@ class ClientDebtDispute(Resource):
 
         for debt_item in credit_account.records:
             if debt_item.public_id == debt_id:
-                DebtDisputeService.process_collection_letter(client, debt_item)
+                DebtDisputeService.respond_to_letter(client, debt_item)
 
         return "Successfully triggered debt dispute", 200
 

@@ -375,8 +375,7 @@ def fetch_amendment_plan(client, plan_id=None):
     n_enrolled_debt = (planned_contract.total_debt * (cpp.enrolled_percent/100))
     n_total_fee   = n_enrolled_debt + (credit_monitoring_fee * planned_contract.term) + (bank_fee * planned_contract.term) 
     total_paid    = active_contract.total_paid
-    n_monthly_fee = (n_total_fee - total_paid)/(planned_contract.term - active_contract.num_inst_completed)
-
+    n_monthly_fee = (n_total_fee - total_paid)/(planned_contract.term - active_contract.num_inst_completed) if n_total_fee > total_paid else 0
     o_enrolled_debt = active_contract.enrolled_debt 
     o_total_fee = o_enrolled_debt + (credit_monitoring_fee * active_contract.term) + (bank_fee * active_contract.term)
     o_monthly_fee = active_contract.monthly_fee
@@ -478,7 +477,6 @@ def update_amendment_plan(client, data):
                 db.session.add(planned_debt)
                 total_debt = total_debt + float(item.balance_original)
           
-
     planned_contract.total_debt = total_debt
     db.session.commit()
 
