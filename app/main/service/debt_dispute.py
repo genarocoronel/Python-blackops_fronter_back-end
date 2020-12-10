@@ -6,6 +6,7 @@ from app.main.tasks import mailer
 from sqlalchemy import desc
 from datetime import datetime
 from flask import current_app as app
+from sqlalchemy import and_, desc, asc, or_
 
 
 class DebtDisputeService(object):
@@ -99,50 +100,78 @@ class DebtDisputeService(object):
                                   debt.id,
                                   new_dispute.id,
                                   failure_ttl=300) 
-            else:
-                # collector response
-                cls.on_collector_response(debt_dispute)     
+
 
     @classmethod
-    def on_collector_response(cls, disp):
+    def on_collector_response(cls, client, debt_id):
         now = datetime.utcnow()
-        if disp.status == DebtDisputeStatus.P1_SEND.name or\
-           disp.status == DebtDisputeStatus.SOLD_PACKAGE_SEND.name or\
-           disp.status == DebtDisputeStatus.P2_SEND.name or\
-           disp.status == DebtDisputeStatus.FULLY_DISPUTED_NON_RESPONSE_EXPIRED.name or\
-           disp.status == DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED:
-            disp.noir_date = now
-            disp.status = DebtDisputeStatus.NOIR_SEND.name
-            disp.debt.last_debt_status = DebtDisputeStatus.NOIR_SEND.value
-            db.session.commit()
-            # send
-            mailer.send_noir_notice(disp.client_id,
-                                    disp.debt_id,
-                                    disp.id)
-        elif disp.status == DebtDisputeStatus.NOIR_SEND.name:
-            disp.noir2_date = now
-            disp.status = DebtDisputeStatus.NOIR2_SEND.name
-            disp.debt.last_debt_status = DebtDisputeStatus.NOIR2_SEND.value
-            db.session.commit()
-            # send 
-            mailer.send_noir_2_notice(disp.client_id,
-                                      disp.debt_id,
-                                      disp.id)
-        elif disp.status == DebtDisputeStatus.NOIR2_SEND.name:
-            disp.noir_fdcpa_date = now
-            disp.status = DebtDisputeStatus.NOIR_FDCPA_SEND.name
-            disp.debt.last_debt_status = DebtDisputeStatus.FDCPA_SEND.value
-            db.session.commit()
-            # send
-            mailer.send_noir_fdcpa_notice(disp.client_id,
-                                          disp.debt_id,
+        debt = CreditReportData.query.filter_by(id=debt_id).first()
+        if debt is None:
+            raise ValueError('Debt not found')
+        
+        disp = DebtDispute.query.filter(and_(DebtDispute.client_id==client.id, DebtDispute.debt_id==debt.id))\
+                                .order_by(desc(DebtDispute.created_date))\
+                                .first() 
+        if disp is None:
+            raise ValueError('Debt Dispute not found')
+        
+        if disp.is_active is False:
+            if disp.status == DebtDisputeStatus.FULLY_DISPUTED_NON_RESPONSE_EXPIRED.name:
+                disp.status = DebtDisputeStatus.NOIR_SEND.name
+                disp.noir_date = now
+                disp.is_active = True
+                disp.debt.last_debt_status = DebtDisputeStatus.NOIR_SEND.value
+                db.session.commit()
+                # send
+                mailer.send_noir_notice(client.id,
+                                        debt.id,
+                                        disp.id)
+
+            elif disp.status == DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED
+                disp.status = DebtDisputeStatus.NOIR2_SEND.name
+                disp.noir2_date = now
+                disp.is_active = True
+                disp.debt.last_debt_status = DebtDisputeStatus.NOIR2_SEND.value
+                db.session.commit()
+                # send
+                mailer.send_noir2_notice(client.id,
+                                         debt.id,
+                                         disp.id)
+            else:
+                raise ValueError('Wrong dispute state')
+        else:
+            if disp.status == DebtDisputeStatus.P1_SEND.name or\
+               disp.status == DebtDisputeStatus.SOLD_PACKAGE_SEND.name or\
+               disp.status == DebtDisputeStatus.P2_SEND.name:
+                disp.noir_date = now
+                disp.status = DebtDisputeStatus.NOIR_SEND.name
+                disp.debt.last_debt_status = DebtDisputeStatus.NOIR_SEND.value
+                db.session.commit()
+                # send
+                mailer.send_noir_notice(client.id,
+                                        debt.id,
+                                        disp.id)
+            elif disp.status == DebtDisputeStatus.NOIR_SEND.name:
+                disp.noir2_date = now
+                disp.status = DebtDisputeStatus.NOIR2_SEND.name
+                disp.debt.last_debt_status = DebtDisputeStatus.NOIR2_SEND.value
+                db.session.commit()
+                # send 
+                mailer.send_noir_2_notice(client.id,
+                                          debt.id,
                                           disp.id)
-        elif disp.status == DebtDisputeStatus.NOIR_FDCPA_SEND.name:
-            disp.status = DebtDisputeStatus.NOIR_FDCPA_WAIT.name
-            db.session.commit()
-        elif disp.status == DebtDisputeStatus.NOIR_FDCPA_WAIT.name:
-            # create a task for account manager to manually send P1/SOLD PACKAGE
-            pass
+            elif disp.status == DebtDisputeStatus.NOIR2_SEND.name:
+                disp.noir_fdcpa_date = now
+                disp.status = DebtDisputeStatus.NOIR_FDCPA_SEND.name
+                disp.debt.last_debt_status = DebtDisputeStatus.NOIR_FDCPA_SEND.value
+                db.session.commit()
+                # send
+                mailer.send_noir_fdcpa_notice(client.id,
+                                              debt.id,
+                                              disp.id)
+            elif disp.status == DebtDisputeStatus.NOIR_FDCPA_SEND.name:
+                disp.status = DebtDisputeStatus.NOIR_FDCPA_WAIT.name
+                db.session.commit()
 
     @classmethod
     def on_day_tick(cls, disp):
@@ -178,6 +207,7 @@ class DebtDisputeService(object):
                 disp.fd_non_response_expired_date = now
                 disp.status = DebtDisputeStatus.FULLY_DISPUTED_NON_RESPONSE_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_NON_RESPONSE_EXPIRED.value
+                disp.is_active = False
                 db.session.commit()
                 # check if graduated
                 if client.credit_report_account.is_graduated() is True and \
@@ -204,6 +234,7 @@ class DebtDisputeService(object):
                 disp.fd_noir_expired_date = now
                 disp.status = DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED.value
+                disp.is_active = False
                 db.session.commit()
                 # Graduated
                 if client.credit_report_account.is_graduated() is True and \
@@ -229,6 +260,7 @@ class DebtDisputeService(object):
                 disp.fully_disputed_date = now
                 disp.status = DebtDisputeStatus.FULLY_DISPUTED_NOIR2_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_NOIR2_EXPIRED.value
+                disp.is_active = False
                 db.session.commit()
                 # Graduated
                 if client.credit_report_account.is_graduated() is True and \
@@ -255,6 +287,7 @@ class DebtDisputeService(object):
                 disp.fully_disputed_date = now
                 disp.status = DebtDisputeStatus.FULLY_DISPUTED_EXPIRED.name
                 disp.debt.last_debt_status = DebtDisputeStatus.FULLY_DISPUTED_FDCPA_EXPIRED.value
+                disp.is_active = False
                 db.session.commit()
                 # Graduated
                 if client.credit_report_account.is_graduated() is True and \
@@ -272,18 +305,9 @@ class DebtDisputeService(object):
                 db.session.add(log)
                 db.session.commit()
         elif disp.status == DebtDisputeStatus.NOIR_FDCPA_WAIT.name:
-            diff = (now - disp.fully_disputed_date)
+            diff = (now - disp.noir_fdcpa_date)   
             days_expired = diff.days
             if days_expired > 90:
+                # set the dispute to inactive
+                # so docprocessor can create a task to AM for initiating the process again 
                 disp.is_active = False
-
-                log_title = 'Auto Disputed'
-                msg = ''
-                status = DebtDisputeStatus.FULLY_DISPUTED_FDCPA_EXPIRED.value
-                log = DebtDisputeLog(created_on=now,
-                                     title=log_title,
-                                     message=msg,
-                                     dispute_id=disp.id,
-                                     status=status)
-                db.session.add(log)
-                db.session.commit()

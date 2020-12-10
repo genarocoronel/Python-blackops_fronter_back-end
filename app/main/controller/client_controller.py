@@ -461,7 +461,7 @@ class ClientCommunicationsFile(Resource):
 @api.response(404, 'client or credit report account does not exist')
 class ClientDebtDispute(Resource):
     @token_required
-    @enforce_rac_required_roles([RACRoles.SUPER_ADMIN, RACRoles.ADMIN, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP])
+    @user_has_permission('debt_disputes.create')
     def post(self, public_id, debt_id):
         """ Creates a Dispute Debt action to send out automated letter """
         client, error_response = _handle_get_client(public_id, ClientType.lead)
@@ -478,6 +478,23 @@ class ClientDebtDispute(Resource):
 
         return "Successfully triggered debt dispute", 200
 
+
+@api.route('/<public_id>/debt/<debt_id>/dispute/response')
+@api.param('public_id', 'The client Identifier')
+@api.param('debt_id', 'The Debt Identifier')
+@api.response(404, 'Client does not exist')
+class ClientDebtDisputeResponse(Resource):
+    @token_required
+    @user_has_permission('debt_disputes.update')
+    def post(self, public_id, debt_id):
+        """ Process Client Dispute Response """
+        client, error_response = _handle_get_client(public_id, ClientType.lead)
+        if not client:
+            api.abort(404, **error_response)
+
+        DebtDisputeService.on_collector_response(client, debt_id)
+
+        return "Successfully process debt dispute response", 200
 
 @api.route('/<public_id>/credit-report/debts')
 @api.param('public_id', 'The client Identifier')

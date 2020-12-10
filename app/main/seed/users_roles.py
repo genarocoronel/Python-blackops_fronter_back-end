@@ -544,6 +544,13 @@ def seed_permissions():
         {'name': 'templates.send', 'desc': 'Send Template', 
          'roles': [RACRoles.SALES_MGR, RACRoles.SALES_ADMIN, RACRoles.SALES_REP, RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP,
                    RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        # debt disputes
+        {'name': 'debt_disputes.create', 'desc': 'View templates', 
+         'roles': [RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        {'name': 'debt_disputes.update', 'desc': 'View templates', 
+         'roles': [RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
+        {'name': 'debt_disputes.view', 'desc': 'View templates', 
+         'roles': [RACRoles.SERVICE_MGR, RACRoles.SERVICE_ADMIN, RACRoles.SERVICE_REP, RACRoles.DOC_PROCESS_MGR, RACRoles.DOC_PROCESS_REP]},
 
     ]
 
