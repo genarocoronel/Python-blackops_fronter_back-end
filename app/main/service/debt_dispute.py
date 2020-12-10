@@ -127,7 +127,7 @@ class DebtDisputeService(object):
                                         debt.id,
                                         disp.id)
 
-            elif disp.status == DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED
+            elif disp.status == DebtDisputeStatus.FULLY_DISPUTED_NOIR_EXPIRED:
                 disp.status = DebtDisputeStatus.NOIR2_SEND.name
                 disp.noir2_date = now
                 disp.is_active = True
