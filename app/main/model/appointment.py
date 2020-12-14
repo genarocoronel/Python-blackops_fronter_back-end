@@ -31,7 +31,9 @@ class Appointment(db.Model):
     agent_id = db.Column(db.Integer, db.ForeignKey('users.id', name='appointments_agent_id_fkey'))
 
     # relationship
-    client = db.relationship('Client', backref='appointments')
+    client = db.relationship('Client', backref=backref('appointments', 
+                                                       cascade="all, delete-orphan", 
+                                                       order_by='Appointment.scheduled_at.asc()'))
     agent = db.relationship('User', backref='appointments', foreign_keys=[agent_id])
     
     scheduled_at = db.Column(db.DateTime, nullable=False)

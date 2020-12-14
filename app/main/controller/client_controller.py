@@ -32,6 +32,8 @@ from app.main.service.svc_schedule_service import create_svc_schedule, get_svc_s
 from app.main.service.user_service import get_request_user, get_a_user
 from app.main.util.parsers import filter_request_parse
 from ..util.dto import LeadDto, ClientDto, AppointmentDto, TaskDto, TeamDto, DebtDisputeDto
+from app.main.util.serializers import ClientFilterSerializer
+
 
 api = ClientDto.api
 _lead = LeadDto.lead
@@ -93,13 +95,14 @@ class ClientList(Resource):
 @api.route('/filter')
 class ClientFilter(Resource):
     @api.doc('Clients filter with pagination info')
-    @api.marshal_with(_lead_pagination)
     @token_required
     @user_has_permission('clients.view')
     def get(self):
         # filter args
         fargs = filter_request_parse(request)
-        result = client_filter(client_type=CLIENT, **fargs)
+        filtered = client_filter(client_type=CLIENT, **fargs)
+        result = ClientFilterSerializer.serialize(filtered)
+        
         return result, 200
 
 

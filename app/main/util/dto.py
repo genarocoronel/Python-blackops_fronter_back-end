@@ -122,7 +122,12 @@ class AssignedUserField(fields.Raw):
 
         return ''
          
-
+# Last Appt
+class LastApptField(fields.Raw):
+    def format(self, records):
+        result = records[-1].scheduled_at.strftime("%m-%d-%Y %H:%M") if len(records) > 0 else ''
+        return result 
+            
 
 authorizations = {
     'apikey': {
@@ -795,6 +800,7 @@ class LeadDto:
         'application_date': DateFormatField(),
         'co_client_id': fields.Integer(attribute='co_client.id'),
         'bank_account': fields.Nested(bank_account),
+        'last_appt': LastApptField(cls_or_instance='Appointment', attribute='appointments'),
         # use 'user_account' - if nested properties of user model is needed
         # for simplicity using only 'full_name' attribute
         'account_manager': fields.String(attribute='account_manager.full_name'),

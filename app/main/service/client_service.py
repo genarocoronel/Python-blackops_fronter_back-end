@@ -24,6 +24,7 @@ from app.main.model.checklist import CheckList
 from app.main.model.notification import NotificationPreference
 from app.main.model.user import User
 from app.main.model.service_schedule import ServiceSchedule, ServiceScheduleType
+from app.main.model.debt_payment import DebtPaymentContract, ContractStatus
 from app.main.channels import notification
 from app.main.service.lead_distro import LeadDistroSvc
 from app.main.service import client as svc
@@ -31,6 +32,7 @@ from app.main.service.note_service import fetch_notes_by_candidate_id
 from app.main.channels.notification import ClientUpdateChannel
 from app.main.tasks import channel as wkchannel
 from sqlalchemy import desc, asc, or_, and_
+from sqlalchemy.orm import aliased
 from flask import current_app as app
 from app.main.core.rac import RACRoles
 from flask import g
@@ -264,10 +266,14 @@ def client_filter(limit=25, sort_col='id', order="desc",
 
         sort = desc(sort_col) if order == 'desc' else asc(sort_col)
         # base query
-        query = Client.query.filter(Client.type!=ClientType.coclient).filter(Client.type==client_type).outerjoin(ClientDisposition) \
-            .outerjoin(CreditReportAccount) \
-            .outerjoin(Address) \
-            .outerjoin(SupermoneyOptions) \
+        dpc_alias = aliased(DebtPaymentContract, name='active_contract') 
+        query = db.session.query(Client, dpc_alias)\
+                          .outerjoin(ClientDisposition) \
+                          .outerjoin(CreditReportAccount) \
+                          .outerjoin(Address) \
+                          .outerjoin(SupermoneyOptions) \
+                          .outerjoin(dpc_alias, (dpc_alias.client_id==Client.id) & (dpc_alias.status==ContractStatus.ACTIVE))\
+                          .filter(Client.type==client_type)\
             # .outerjoin(ClientContactNumber)
 
         # current user and obj permissions
@@ -378,13 +384,12 @@ def client_filter(limit=25, sort_col='id', order="desc",
         total = query.count()
         query = query.order_by(sort).paginate(pageno, limit, False)
         records = query.items
-        return {'data': records, "page_number": pageno, "total_records": total, "limit": limit}
 
+        return {'data': records, "page_number": pageno, "total_records": total, "limit": limit}
 
     except Exception as err:
         app.logger.warning('Client filter issue, {}'.format(str(err)))
         raise ValueError("Invalid Client filter query")
-
 
 def get_client(public_id, client_type=ClientType.client):
     client = Client.query.filter_by(public_id=public_id)\

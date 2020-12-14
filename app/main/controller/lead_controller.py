@@ -31,6 +31,7 @@ from app.main.service.audit_service import get_last_audit_item
 from app.main.model.audit import Auditable
 from ..util.dto import LeadDto, ClientDto
 from ..util.parsers import filter_request_parse
+from app.main.util.serializers import LeadFilterSerializer
 
 api = LeadDto.api
 _lead = LeadDto.lead
@@ -89,13 +90,13 @@ class LeadList(Resource):
 @api.route('/filter')
 class LeadFilter(Resource):
     @api.doc('Leads filter with pagination info')
-    @api.marshal_with(_lead_pagination)
     @token_required
     @user_has_permission('leads.view')
     def get(self):
         #filter args
         fargs = filter_request_parse(request)
-        result =  client_filter(client_type=LEAD, **fargs)
+        filtered = client_filter(client_type=LEAD, **fargs)
+        result = LeadFilterSerializer.serialize(filtered)
         return result, 200
 
 @api.route('/filter/disposition')
